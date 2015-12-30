@@ -274,7 +274,7 @@ Button* AcceptDialog::add_button(const String& p_text,bool p_right,const String&
 	}
 
 	if (p_action!="") {
-		button->connect("pressed",this,"_custom_action",make_binds(p_action));
+		button->connect("pressed",this,"_custom_action",varray(p_action));
 	}
 
 	return button;
@@ -308,7 +308,9 @@ void AcceptDialog::_bind_methods() {
 	ADD_SIGNAL( MethodInfo("confirmed") );
 	ADD_SIGNAL( MethodInfo("custom_action",PropertyInfo(Variant::STRING,"action")) );
 
-	
+	ADD_PROPERTYNZ( PropertyInfo(Variant::STRING,"dialog/text",PROPERTY_HINT_MULTILINE_TEXT,"",PROPERTY_USAGE_DEFAULT_INTL),_SCS("set_text"),_SCS("get_text"));
+	ADD_PROPERTY( PropertyInfo(Variant::BOOL, "dialog/hide_on_ok"),_SCS("set_hide_on_ok"),_SCS("get_hide_on_ok") );
+
 }
 
 

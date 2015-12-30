@@ -34,6 +34,7 @@
 #include "core_string_names.h"
 #include "translation.h"
 #include "os/os.h"
+#include "resource.h"
 
 #ifdef DEBUG_ENABLED
 
@@ -257,12 +258,15 @@ bool Object::_predelete() {
 	
 	_predelete_ok=1;
 	notification(NOTIFICATION_PREDELETE,true);
+	if (_predelete_ok) {
+		_type_ptr=NULL; //must restore so destructors can access type ptr correctly
+	}
 	return _predelete_ok;
 
 }
 
 void Object::_postinitialize() {
-	
+	_type_ptr=_get_type_namev();
 	_initialize_typev();
 	notification(NOTIFICATION_POSTINITIALIZE);
 	
@@ -310,6 +314,7 @@ void Object::set(const StringName& p_name, const Variant& p_value, bool *r_valid
 
 	_edited=true;
 #endif
+
 	if (script_instance) {
 
 		if (script_instance->set(p_name,p_value)) {
@@ -322,9 +327,9 @@ void Object::set(const StringName& p_name, const Variant& p_value, bool *r_valid
 
 	//try built-in setgetter
 	{
-		if (ObjectTypeDB::set_property(this,p_name,p_value)) {
-			if (r_valid)
-				*r_valid=true;
+		if (ObjectTypeDB::set_property(this,p_name,p_value,r_valid)) {
+			//if (r_valid)
+			//	*r_valid=true;
 			return;
 		}
 	}
@@ -966,7 +971,10 @@ void Object::set_script_instance(ScriptInstance *p_instance) {
 
 	script_instance=p_instance;
 
-	script=p_instance->get_script().get_ref_ptr();
+	if (p_instance)
+		script=p_instance->get_script().get_ref_ptr();
+	else
+		script=RefPtr();
 }
 
 RefPtr Object::get_script() const {
@@ -1301,6 +1309,10 @@ Array Object::_get_signal_connection_list(const String& p_signal) const{
 
 void Object::get_signal_list(List<MethodInfo> *p_signals ) const {
 
+	if (!script.is_null()) {
+		Ref<Script>(script)->get_script_signal_list(p_signals);
+	}
+
 	ObjectTypeDB::get_signal_list(get_type_name(),p_signals);
 	//find maybe usersignals?
 	const StringName *S=NULL;
@@ -1312,6 +1324,7 @@ void Object::get_signal_list(List<MethodInfo> *p_signals ) const {
 			p_signals->push_back(signal_map[*S].user);
 		}
 	}
+
 }
 
 
@@ -1350,8 +1363,12 @@ Error Object::connect(const StringName& p_signal, Object *p_to_object, const Str
 	Signal *s = signal_map.getptr(p_signal);
 	if (!s) {
 		bool signal_is_valid = ObjectTypeDB::has_signal(get_type_name(),p_signal);
+		//check in script
+		if (!signal_is_valid && !script.is_null() && Ref<Script>(script)->has_script_signal(p_signal))
+			signal_is_valid=true;
+
 		if (!signal_is_valid) {
-			ERR_EXPLAIN("Attempt to connect to nonexistent signal: "+p_signal);
+			ERR_EXPLAIN("Attempt to connect nonexistent signal '"+p_signal+"' to method '"+p_to_method+"'");
 			ERR_FAIL_COND_V(!signal_is_valid,ERR_INVALID_PARAMETER);
 		}
 		signal_map[p_signal]=Signal();
@@ -1388,6 +1405,10 @@ bool Object::is_connected(const StringName& p_signal, Object *p_to_object, const
 		bool signal_is_valid = ObjectTypeDB::has_signal(get_type_name(),p_signal);
 		if (signal_is_valid)
 			return false;
+
+		if (!script.is_null() && Ref<Script>(script)->has_script_signal(p_signal))
+			return false;
+
 		ERR_EXPLAIN("Nonexistent signal: "+p_signal);
 		ERR_FAIL_COND_V(!s,false);
 	}
@@ -1464,6 +1485,63 @@ StringName Object::tr(const StringName& p_message) const {
 
 }
 
+
+void Object::_clear_internal_resource_paths(const Variant &p_var) {
+
+	switch(p_var.get_type()) {
+
+		case Variant::OBJECT: {
+
+			RES r = p_var;
+			if (!r.is_valid())
+				return;
+
+			if (!r->get_path().begins_with("res://") || r->get_path().find("::")==-1)
+				return; //not an internal resource
+
+			Object *object=p_var;
+			if (!object)
+				return;
+
+			r->set_path("");
+			r->clear_internal_resource_paths();
+		} break;
+		case Variant::ARRAY: {
+
+			Array a=p_var;
+			for(int i=0;i<a.size();i++) {
+				_clear_internal_resource_paths(a[i]);
+			}
+
+		} break;
+		case Variant::DICTIONARY: {
+
+			Dictionary d=p_var;
+			List<Variant> keys;
+			d.get_key_list(&keys);
+
+			for (List<Variant>::Element *E=keys.front();E;E=E->next()) {
+
+				_clear_internal_resource_paths(E->get());
+				_clear_internal_resource_paths(d[E->get()]);
+			}
+		} break;
+	}
+
+}
+
+void Object::clear_internal_resource_paths() {
+
+	List<PropertyInfo> pinfo;
+
+	get_property_list(&pinfo);
+
+	for(List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
+
+		_clear_internal_resource_paths(get(E->get().name));
+	}
+}
+
 void Object::_bind_methods() {
 
 	ObjectTypeDB::bind_method(_MD("get_type"),&Object::get_type);
@@ -1472,7 +1550,7 @@ void Object::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("get","property"),&Object::_get_bind);
 	ObjectTypeDB::bind_method(_MD("get_property_list"),&Object::_get_property_list_bind);
 	ObjectTypeDB::bind_method(_MD("get_method_list"),&Object::_get_method_list_bind);
-	ObjectTypeDB::bind_method(_MD("notification","what"),&Object::notification,DEFVAL(false));
+	ObjectTypeDB::bind_method(_MD("notification","what","reversed"),&Object::notification,DEFVAL(false));
 	ObjectTypeDB::bind_method(_MD("get_instance_ID"),&Object::get_instance_ID);
 
 	ObjectTypeDB::bind_method(_MD("set_script","script:Script"),&Object::set_script);
@@ -1535,9 +1613,9 @@ void Object::_bind_methods() {
 		ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"call_deferred",&Object::_call_deferred_bind,mi,defargs);
 	}
 
-	ObjectTypeDB::bind_method(_MD("callv:var","method","arg_array"),&Object::callv);
+	ObjectTypeDB::bind_method(_MD("callv:Variant","method","arg_array"),&Object::callv);
 
-	ObjectTypeDB::bind_method(_MD("has_method"),&Object::has_method);
+	ObjectTypeDB::bind_method(_MD("has_method","method"),&Object::has_method);
 
 	ObjectTypeDB::bind_method(_MD("get_signal_list"),&Object::_get_signal_list);
 
@@ -1621,6 +1699,26 @@ void Object::get_translatable_strings(List<String> *p_strings) const {
 
 }
 
+Variant::Type Object::get_static_property_type(const StringName& p_property, bool *r_valid) const {
+
+	bool valid;
+	Variant::Type t = ObjectTypeDB::get_property_type(get_type_name(),p_property,&valid);
+	if (valid) {
+		if (r_valid)
+			*r_valid=true;
+		return t;
+	}
+
+	if (get_script_instance()) {
+		return get_script_instance()->get_property_type(p_property,r_valid);
+	}
+	if (r_valid)
+		*r_valid=false;
+
+	return Variant::NIL;
+
+}
+
 bool Object::is_queued_for_deletion() const {
 	return _is_queued_for_deletion;
 }
@@ -1640,7 +1738,7 @@ bool Object::is_edited() const {
 
 Object::Object() {
 	
-
+	_type_ptr=NULL;
 	_block_signals=false;
 	_predelete_ok=0;
 	_instance_ID=0;

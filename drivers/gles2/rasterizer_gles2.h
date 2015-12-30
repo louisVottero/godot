@@ -91,6 +91,7 @@ class RasterizerGLES2 : public Rasterizer {
 	bool srgb_supported;
 	bool float_supported;
 	bool float_linear_supported;
+	bool use_16bits_fbo;
 
 	ShadowFilterTechnique shadow_filter;
 
@@ -105,16 +106,17 @@ class RasterizerGLES2 : public Rasterizer {
 	float anisotropic_level;
 
 	bool use_half_float;
-
+	bool low_memory_2d;
 
 	Vector<float> skel_default;
 
 	Image _get_gl_image_and_format(const Image& p_image, Image::Format p_format, uint32_t p_flags,GLenum& r_gl_format,GLenum& r_gl_internal_format,int &r_gl_components,bool &r_has_alpha_cache,bool &r_compressed);
 
-	class RenderTarget;
+	struct RenderTarget;
 
 	struct Texture {
 
+		String path;
 		uint32_t flags;
 		int width,height;
 		int alloc_width, alloc_height;
@@ -304,7 +306,7 @@ class RasterizerGLES2 : public Rasterizer {
 		virtual ~GeometryOwner() {}
 	};
 
-	class Mesh;
+	struct Mesh;
 
 	struct Surface : public Geometry {
 
@@ -1052,6 +1054,7 @@ class RasterizerGLES2 : public Rasterizer {
 	float camera_z_near;
 	float camera_z_far;
 	Size2 camera_vp_size;
+	bool camera_ortho;
 	Set<String> extensions;
 	bool texscreen_copied;
 	bool texscreen_used;
@@ -1273,6 +1276,7 @@ class RasterizerGLES2 : public Rasterizer {
 	Environment *current_env;
 	VS::ScenarioDebugMode current_debug;
 	RID overdraw_material;
+	float shader_time_rollback;
 
 
 	mutable MaterialShaderGLES2 material_shader;
@@ -1322,6 +1326,10 @@ public:
 	virtual bool texture_has_alpha(RID p_texture) const;
 	virtual void texture_set_size_override(RID p_texture,int p_width, int p_height);
 	virtual void texture_set_reload_hook(RID p_texture,ObjectID p_owner,const StringName& p_function) const;
+
+	virtual void texture_set_path(RID p_texture,const String& p_path);
+	virtual String texture_get_path(RID p_texture) const;
+	virtual void texture_debug_usage(List<VS::TextureInfo> *r_info);
 
 	GLuint _texture_get_name(RID p_tex);
 
@@ -1588,7 +1596,7 @@ public:
 
 	virtual void begin_shadow_map( RID p_light_instance, int p_shadow_pass );
 
-	virtual void set_camera(const Transform& p_world,const CameraMatrix& p_projection);
+	virtual void set_camera(const Transform& p_world,const CameraMatrix& p_projection,bool p_ortho_hint);
 
 	virtual void add_light( RID p_light_instance ); ///< all "add_light" calls happen before add_geometry calls
 
@@ -1693,8 +1701,12 @@ public:
 	void reload_vram();
 
 	virtual bool has_feature(VS::Features p_feature) const;
+	
+	virtual void restore_framebuffer();
 
 	static RasterizerGLES2* get_singleton();
+
+	virtual void set_force_16_bits_fbo(bool p_force);
 
 	RasterizerGLES2(bool p_compress_arrays=false,bool p_keep_ram_copy=true,bool p_default_fragment_lighting=true,bool p_use_reload_hooks=false);
 	virtual ~RasterizerGLES2();
