@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -511,13 +511,21 @@ void EditorNode::save_resource_as(const Ref<Resource>& p_resource) {
 	file->set_mode(EditorFileDialog::MODE_SAVE_FILE);
 	bool relpaths =  (p_resource->has_meta("__editor_relpaths__") && p_resource->get_meta("__editor_relpaths__").operator bool());
 
+	current_option=RESOURCE_SAVE_AS;
 	List<String> extensions;
 	Ref<PackedScene> sd = memnew( PackedScene );
 	ResourceSaver::get_recognized_extensions(p_resource,&extensions);
 	file->clear_filters();
+
+	List<String> preferred;
 	for(int i=0;i<extensions.size();i++) {
 
+		if (p_resource->is_type("Script") && extensions[i]=="tres" || extensions[i]=="res" || extensions[i]=="xml") {
+			//this serves no purpose and confused people
+			continue;
+		}
 		file->add_filter("*."+extensions[i]+" ; "+extensions[i].to_upper());
+		preferred.push_back(extensions[i]);
 	}
 
 	//file->set_current_path(current_path);
@@ -529,11 +537,11 @@ void EditorNode::save_resource_as(const Ref<Resource>& p_resource) {
 				file->set_current_path(p_resource->get_path().replacen("."+ext,"."+extensions.front()->get()));
 			}
 		}
-	} else {
+	} else if (preferred.size()) {
 
 		String existing;
 		if (extensions.size()) {
-			existing="new_"+p_resource->get_type().to_lower()+"."+extensions.front()->get().to_lower();
+			existing="new_"+p_resource->get_type().to_lower()+"."+preferred.front()->get().to_lower();
 		}
 		file->set_current_path(existing);
 
@@ -5179,7 +5187,7 @@ EditorNode::EditorNode() {
 	p->add_separator();
 	p->add_item("Revert Scene",EDIT_REVERT);
 	p->add_separator();
-	p->add_item("Quit to Project List",RUN_PROJECT_MANAGER,KEY_MASK_SHIFT+KEY_MASK_CMD+KEY_Q);
+	p->add_item("Quit to Project List",RUN_PROJECT_MANAGER,KEY_MASK_SHIFT+KEY_MASK_ALT+KEY_Q);
 	p->add_item("Quit",FILE_QUIT,KEY_MASK_CMD+KEY_Q);
 
 	recent_scenes = memnew( PopupMenu );
@@ -5945,6 +5953,7 @@ EditorNode::EditorNode() {
 	resource_preview->add_preview_generator( Ref<EditorScriptPreviewPlugin>( memnew(EditorScriptPreviewPlugin )));
 	resource_preview->add_preview_generator( Ref<EditorSamplePreviewPlugin>( memnew(EditorSamplePreviewPlugin )));
 	resource_preview->add_preview_generator( Ref<EditorMeshPreviewPlugin>( memnew(EditorMeshPreviewPlugin )));
+	resource_preview->add_preview_generator( Ref<EditorBitmapPreviewPlugin>( memnew(EditorBitmapPreviewPlugin )));
 
 	circle_step_msec=OS::get_singleton()->get_ticks_msec();
 	circle_step_frame=OS::get_singleton()->get_frames_drawn();

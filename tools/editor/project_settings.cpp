@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -107,6 +107,8 @@ void ProjectSettings::_action_persist_toggle() {
 	String name="input/"+ti->get_text(0);
 
 	bool prev = Globals::get_singleton()->is_persisting(name);
+	print_line("prev persist: "+itos(prev));
+	print_line("new persist: "+itos(ti->is_checked(0)));
 	if (prev==ti->is_checked(0))
 		return;
 
@@ -156,12 +158,14 @@ void ProjectSettings::_device_input_add() {
 		} break;
 		case InputEvent::JOYSTICK_MOTION: {
 
-				ie.joy_motion.axis = device_index->get_selected();
+				ie.joy_motion.axis = device_index->get_selected()>>1;
+				ie.joy_motion.axis_value = device_index->get_selected()&1?1:-1;
+
 
 				for(int i=0;i<arr.size();i++) {
 
 					InputEvent aie=arr[i];
-					if (aie.device == ie.device && aie.type==InputEvent::JOYSTICK_MOTION && aie.joy_motion.axis==ie.joy_motion.axis) {
+					if (aie.device == ie.device && aie.type==InputEvent::JOYSTICK_MOTION && aie.joy_motion.axis==ie.joy_motion.axis && aie.joy_motion.axis_value==ie.joy_motion.axis_value) {
 						return;
 					}
 				}
@@ -295,9 +299,10 @@ void ProjectSettings::_add_item(int p_item){
 			device_id->set_val(0);
 			device_index_label->set_text("Joy Button Axis:");
 			device_index->clear();
-			for(int i=0;i<8;i++) {
+			for(int i=0;i<24;i++) {
 
-				device_index->add_item("Axis "+itos(i));
+
+				device_index->add_item("Axis "+itos(i/2)+" "+(i&1?"+":"-"));
 			}
 			device_input->popup_centered(Size2(350,95));
 
@@ -425,7 +430,7 @@ void ProjectSettings::_update_actions() {
 			continue;
 
 		TreeItem *item=input_editor->create_item(root);
-		item->set_cell_mode(0,TreeItem::CELL_MODE_CHECK);
+		//item->set_cell_mode(0,TreeItem::CELL_MODE_CHECK);
 		item->set_text(0,name);
 		item->add_button(0,get_icon("Add","EditorIcons"),1);
 		if (!Globals::get_singleton()->get_input_presets().find(pi.name)) {
@@ -434,7 +439,7 @@ void ProjectSettings::_update_actions() {
 		}
 		item->set_custom_bg_color(0,get_color("prop_subsection","Editor"));
 		item->set_editable(0,true);
-		item->set_checked(0,pi.usage&PROPERTY_USAGE_CHECKED);
+		//item->set_checked(0,pi.usage&PROPERTY_USAGE_CHECKED);
 
 
 
@@ -494,7 +499,7 @@ void ProjectSettings::_update_actions() {
 				} break;
 				case InputEvent::JOYSTICK_MOTION: {
 
-					String str = "Device "+itos(ie.device)+", Axis "+itos(ie.joy_motion.axis)+".";
+					String str = "Device "+itos(ie.device)+", Axis "+itos(ie.joy_motion.axis)+" "+(ie.joy_motion.axis_value<0?"-.":"+.");
 					action->set_text(0,str);
 					action->set_icon(0,get_icon("JoyAxis","EditorIcons"));
 				} break;
@@ -696,9 +701,20 @@ void ProjectSettings::_save() {
 
 void ProjectSettings::_settings_prop_edited(const String& p_name) {
 
-	if (!Globals::get_singleton()->is_persisting(p_name)) {
-		String full_item = globals_editor->get_full_item_path(p_name);
+	String full_item = globals_editor->get_full_item_path(p_name);
+
+	if (!Globals::get_singleton()->is_persisting(full_item)) {
 		Globals::get_singleton()->set_persisting(full_item,true);
+
+		{
+			//small usability workaround, if anything related to resolution scaling or size is modified, change all of them together
+			if (full_item=="display/width" || full_item=="display/height" || full_item=="display/stretch_mode") {
+				Globals::get_singleton()->set_persisting("display/height",true);
+				Globals::get_singleton()->set_persisting("display/width",true);
+			}
+		}
+
+
 //		globals_editor->update_property(p_name);
 		globals_editor->get_property_editor()->update_tree();
 	}

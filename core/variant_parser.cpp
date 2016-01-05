@@ -49,6 +49,7 @@ const char * VariantParser::tk_name[TK_MAX] = {
 	"identifier",
 	"string",
 	"number",
+	"color",
 	"':'",
 	"','",
 	"'='",
@@ -120,6 +121,20 @@ Error VariantParser::get_token(Stream *p_stream, Token& r_token, int &line, Stri
 				r_token.type=TK_COLON;
 				return OK;
 			};
+			case ';': {
+
+				while(true) {
+					CharType ch=p_stream->get_char();
+					if (p_stream->is_eof()) {
+						r_token.type=TK_EOF;
+						return OK;
+					}
+					if (ch=='\n')
+						break;
+				}
+
+				break;
+			};
 			case ',': {
 
 				r_token.type=TK_COMMA;
@@ -129,6 +144,29 @@ Error VariantParser::get_token(Stream *p_stream, Token& r_token, int &line, Stri
 
 				r_token.type=TK_EQUAL;
 				return OK;
+			};
+			case '#': {
+
+
+				String color_str="#";
+				while(true) {
+					CharType ch=p_stream->get_char();
+					if (p_stream->is_eof()) {
+						r_token.type=TK_EOF;
+						return OK;
+					} else if ( (ch>='0' && ch<='9') || (ch>='a' && ch<='f') || (ch>='A' && ch<='F') ) {
+						color_str+=String::chr(ch);
+
+					} else {
+						p_stream->saved=ch;
+						break;
+					}
+				}
+
+				r_token.value=Color::html(color_str);
+				r_token.type=TK_COLOR;
+				return OK;
+
 			};
 			case '"': {
 
@@ -1034,8 +1072,24 @@ Error VariantParser::parse_value(Token& token,Variant &value,Stream *p_stream,in
 				ie.joy_motion.axis = token.value;
 
 				get_token(p_stream,token,line,r_err_str);
+
+				if (token.type!=TK_COMMA) {
+					r_err_str="Expected ',' after axis index";
+					return ERR_PARSE_ERROR;
+				}
+
+				get_token(p_stream,token,line,r_err_str);
+				if (token.type!=TK_NUMBER) {
+					r_err_str="Expected axis sign";
+					return ERR_PARSE_ERROR;
+				}
+
+				ie.joy_motion.axis_value = token.value;
+
+				get_token(p_stream,token,line,r_err_str);
+
 				if (token.type!=TK_PARENTHESIS_CLOSE) {
-					r_err_str="Expected ')'";
+					r_err_str="Expected ')' for jaxis";
 					return ERR_PARSE_ERROR;
 				}
 
@@ -1301,7 +1355,9 @@ Error VariantParser::parse_value(Token& token,Variant &value,Stream *p_stream,in
 			InputEvent ie;
 			ie.type=InputEvent::JOYSTICK_MOTION;
 			ie.device=params[0].to_int();
-			ie.joy_motion.axis=params[1].to_int();
+			int axis=params[1].to_int();
+			ie.joy_motion.axis=axis>>1;
+			ie.joy_motion.axis_value=axis&1?1:-1;
 
 			value= ie;
 
@@ -1354,6 +1410,10 @@ Error VariantParser::parse_value(Token& token,Variant &value,Stream *p_stream,in
 		value=token.value;
 		return OK;
 	} else if (token.type==TK_STRING) {
+
+		value=token.value;
+		return OK;
+	} else if (token.type==TK_COLOR) {
 
 		value=token.value;
 		return OK;
@@ -1590,6 +1650,18 @@ Error VariantParser::parse_tag_assign_eof(Stream *p_stream, int &line, String &r
 
 		if (p_stream->is_eof())
 			return ERR_FILE_EOF;
+
+		if (c==';') { //comment
+			while(true) {
+				CharType ch=p_stream->get_char();
+				if (p_stream->is_eof()) {
+					return ERR_FILE_EOF;
+				}
+				if (ch=='\n')
+					break;
+			}
+			continue;
+		}
 
 		if (c=='[' && what.length()==0) {
 			//it's a tag!

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -351,6 +351,8 @@ public:
 	Error load_byte_code(const String& p_path);
 
 	Vector<uint8_t> get_as_byte_code() const;
+
+	bool get_property_default_value(const StringName& p_property,Variant& r_value) const;
 
 	virtual ScriptLanguage *get_language() const;
 

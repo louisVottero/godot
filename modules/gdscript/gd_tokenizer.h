@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -119,6 +119,7 @@ public:
 		TK_QUESTION_MARK,
 		TK_COLON,
 		TK_NEWLINE,
+		TK_CONST_PI,
 		TK_ERROR,
 		TK_EOF,
 		TK_CURSOR, //used for code completion

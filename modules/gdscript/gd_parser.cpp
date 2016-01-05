@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -265,6 +265,13 @@ GDParser::Node* GDParser::_parse_expression(Node *p_parent,bool p_static,bool p_
 			//constant defined by tokenizer
 			ConstantNode *constant = alloc_node<ConstantNode>();
 			constant->value=tokenizer->get_token_constant();
+			tokenizer->advance();
+			expr=constant;
+		} else if (tokenizer->get_token()==GDTokenizer::TK_CONST_PI) {
+
+			//constant defined by tokenizer
+			ConstantNode *constant = alloc_node<ConstantNode>();
+			constant->value=Math_PI;
 			tokenizer->advance();
 			expr=constant;
 		} else if (tokenizer->get_token()==GDTokenizer::TK_PR_PRELOAD) {

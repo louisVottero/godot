@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2015 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,17 +33,6 @@
 #include "os/file_access.h"
 #include "io/file_access_encrypted.h"
 
-/* TODO:
-
-   *populate globals
-   *do checks as close to debugger as possible (but don't do debugger)
-   *const check plz
-   *check arguments and default arguments in GDFunction
-   -get property list in instance?
-   *missing opcodes
-   -const checks
-   -make thread safe
- */
 
 
 
@@ -231,6 +220,7 @@ Variant GDFunction::call(GDInstance *p_instance, const Variant **p_args, int p_a
 
 				r_err.error=Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS;
 				r_err.argument=_argument_count;
+
 
 				return Variant();
 			} else if (p_argcount < _argument_count - _default_arg_count) {
@@ -1603,6 +1593,28 @@ void GDScript::_update_placeholder(PlaceHolderScriptInstance *p_placeholder) {
 
 }*/
 #endif
+
+bool GDScript::get_property_default_value(const StringName& p_property, Variant &r_value) const {
+
+#ifdef TOOLS_ENABLED
+
+	//for (const Map<StringName,Variant>::Element *I=member_default_values.front();I;I=I->next()) {
+	//	print_line("\t"+String(String(I->key())+":"+String(I->get())));
+	//}
+	const Map<StringName,Variant>::Element *E=member_default_values_cache.find(p_property);
+	if (E) {
+		r_value=E->get();
+		return true;
+	}
+
+	if (base_cache.is_valid()) {
+		return base_cache->get_property_default_value(p_property,r_value);
+	}
+#endif
+	return false;
+
+}
+
 ScriptInstance* GDScript::instance_create(Object *p_this) {
 
 
@@ -1740,16 +1752,21 @@ bool GDScript::_update_exports() {
 					}
 				}
 
-				Ref<GDScript> bf = ResourceLoader::load(path);
+				if (path!=get_path()) {
 
-				if (bf.is_valid()) {
+					Ref<GDScript> bf = ResourceLoader::load(path);
 
-					//print_line("parent is: "+bf->get_path());
-					base_cache=bf;
-					bf->inheriters_cache.insert(get_instance_ID());
+					if (bf.is_valid()) {
 
-					//bf->_update_exports(p_instances,true,false);
+						//print_line("parent is: "+bf->get_path());
+						base_cache=bf;
+						bf->inheriters_cache.insert(get_instance_ID());
 
+						//bf->_update_exports(p_instances,true,false);
+
+					}
+				} else {
+					ERR_PRINT(("Path extending itself in  "+path).utf8().get_data());
 				}
 			}
 
