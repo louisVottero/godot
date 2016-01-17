@@ -327,7 +327,11 @@ void ScriptTextEditor::_load_theme_settings() {
 
 	for(List<StringName>::Element *E=types.front();E;E=E->next()) {
 
-		get_text_edit()->add_keyword_color(E->get(),type_color);
+		String n = E->get();
+		if (n.begins_with("_"))
+			n = n.substr(1, n.length());
+
+		get_text_edit()->add_keyword_color(n,type_color);
 	}
 
 	//colorize comments
@@ -2327,7 +2331,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 
 	script_list = memnew( ItemList );
 	script_split->add_child(script_list);
-	script_list->set_custom_minimum_size(Size2(70,0));
+	script_list->set_custom_minimum_size(Size2(0,0));
 	script_split->set_split_offset(70);
 
 	tab_container = memnew( TabContainer );
@@ -2413,7 +2417,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	debug_menu->get_popup()->add_item("Continue",DEBUG_CONTINUE);
 	debug_menu->get_popup()->add_separator();
 	debug_menu->get_popup()->add_check_item("Show Debugger",DEBUG_SHOW);
-	debug_menu->get_popup()->add_check_item("Keep Debuger Open",DEBUG_SHOW_KEEP_OPEN);
+	debug_menu->get_popup()->add_check_item("Keep Debugger Open",DEBUG_SHOW_KEEP_OPEN);
 	debug_menu->get_popup()->connect("item_pressed", this,"_menu_option");
 
 	debug_menu->get_popup()->set_item_disabled( debug_menu->get_popup()->get_item_index(DEBUG_NEXT), true);

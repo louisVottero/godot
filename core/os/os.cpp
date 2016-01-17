@@ -50,7 +50,7 @@ uint64_t OS::get_unix_time() const {
 
 	return 0;
 };
-uint64_t OS::get_system_time_msec() const {
+uint64_t OS::get_system_time_secs() const {
 	return 0;
 }
 void OS::debug_break() {
@@ -507,6 +507,13 @@ float OS::get_time_scale() const {
 	return _time_scale;
 }
 
+bool OS::is_joy_known(int p_device) {
+	return true;
+}
+
+String OS::get_joy_guid(int p_device) const {
+	return "Default Joystick";
+}
 
 OS::OS() {
 	last_error=NULL;

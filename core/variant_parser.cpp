@@ -448,7 +448,7 @@ Error VariantParser::_parse_construct(Stream *p_stream,Vector<T>& r_construct,in
 		if (!first) {
 			get_token(p_stream,token,line,r_err_str);
 			if (token.type==TK_COMMA) {
-				//do none
+				//do none				
 			} else if (token.type==TK_PARENTHESIS_CLOSE) {
 				break;
 			} else {
@@ -458,7 +458,10 @@ Error VariantParser::_parse_construct(Stream *p_stream,Vector<T>& r_construct,in
 			}
 		}
 		get_token(p_stream,token,line,r_err_str);
-		if (token.type!=TK_NUMBER) {
+
+		if (first && token.type==TK_PARENTHESIS_CLOSE) {
+			break;
+		} else if (token.type!=TK_NUMBER) {
 			r_err_str="Expected float in constructor";
 			return ERR_PARSE_ERROR;
 		}
@@ -1189,7 +1192,7 @@ Error VariantParser::parse_value(Token& token,Variant &value,Stream *p_stream,in
 					get_token(p_stream,token,line,r_err_str);
 					if (token.type==TK_COMMA) {
 						//do none
-					} else if (token.type!=TK_PARENTHESIS_CLOSE) {
+					} else if (token.type==TK_PARENTHESIS_CLOSE) {
 						break;
 					} else {
 						r_err_str="Expected ',' or ')'";
@@ -1198,11 +1201,13 @@ Error VariantParser::parse_value(Token& token,Variant &value,Stream *p_stream,in
 					}
 				}
 				get_token(p_stream,token,line,r_err_str);
+
 				if (token.type!=TK_STRING) {
-					r_err_str="Expected string";
+					r_err_str="Expected string";					
 					return ERR_PARSE_ERROR;
 				}
 
+				first=false;
 				cs.push_back(token.value);
 			}
 
@@ -1580,7 +1585,7 @@ Error VariantParser::_parse_dictionary(Dictionary &object, Stream *p_stream, int
 }
 
 
-Error VariantParser::_parse_tag(Token& token, Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, ResourceParser *p_res_parser) {
+Error VariantParser::_parse_tag(Token& token, Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, ResourceParser *p_res_parser,bool p_simple_tag) {
 
 	r_tag.fields.clear();
 
@@ -1589,6 +1594,29 @@ Error VariantParser::_parse_tag(Token& token, Stream *p_stream, int &line, Strin
 		return ERR_PARSE_ERROR;
 	}
 
+
+	if (p_simple_tag) {
+
+		r_tag.name="";
+		r_tag.fields.clear();
+
+		while(true) {
+
+			CharType c = p_stream->get_char();
+			if (p_stream->is_eof()) {
+				r_err_str="Unexpected EOF while parsing simple tag";
+				return ERR_PARSE_ERROR;
+			}
+			if (c==']')
+				break;
+			r_tag.name+=String::chr(c);
+		}
+
+		r_tag.name = r_tag.name.strip_edges();
+
+		return OK;
+
+	}
 
 	get_token(p_stream,token,line,r_err_str);
 
@@ -1654,7 +1682,7 @@ Error VariantParser::_parse_tag(Token& token, Stream *p_stream, int &line, Strin
 
 }
 
-Error VariantParser::parse_tag(Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, ResourceParser *p_res_parser) {
+Error VariantParser::parse_tag(Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, ResourceParser *p_res_parser, bool p_simple_tag) {
 
 	Token token;
 	get_token(p_stream,token,line,r_err_str);
@@ -1668,11 +1696,11 @@ Error VariantParser::parse_tag(Stream *p_stream, int &line, String &r_err_str, T
 		return ERR_PARSE_ERROR;
 	}
 
-	return _parse_tag(token,p_stream,line,r_err_str,r_tag,p_res_parser);
+	return _parse_tag(token,p_stream,line,r_err_str,r_tag,p_res_parser,p_simple_tag);
 
 }
 
-Error VariantParser::parse_tag_assign_eof(Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, String &r_assign, Variant &r_value, ResourceParser *p_res_parser) {
+Error VariantParser::parse_tag_assign_eof(Stream *p_stream, int &line, String &r_err_str, Tag& r_tag, String &r_assign, Variant &r_value, ResourceParser *p_res_parser, bool p_simple_tag) {
 
 
 	//assign..
@@ -1710,7 +1738,7 @@ Error VariantParser::parse_tag_assign_eof(Stream *p_stream, int &line, String &r
 			//it's a tag!
 			p_stream->saved='['; //go back one
 
-			Error err = parse_tag(p_stream,line,r_err_str,r_tag,p_res_parser);
+			Error err = parse_tag(p_stream,line,r_err_str,r_tag,p_res_parser,p_simple_tag);
 
 			return err;
 		}
@@ -1776,7 +1804,10 @@ Error VariantWriter::write(const Variant& p_variant, StoreStringFunc p_store_str
 		} break;
 		case Variant::REAL: {
 
-			p_store_string_func(p_store_string_ud, rtoss(p_variant.operator real_t()) );
+			String s = rtoss(p_variant.operator real_t());
+			if (s.find(".")==-1 && s.find("e")==-1)
+				s+=".0";
+			p_store_string_func(p_store_string_ud, s );
 		} break;
 		case Variant::STRING: {
 
@@ -2095,7 +2126,7 @@ Error VariantWriter::write(const Variant& p_variant, StoreStringFunc p_store_str
 				if (i>0)
 					p_store_string_func(p_store_string_ud,", ");
 				String str=ptr[i];
-				p_store_string_func(p_store_string_ud,""+str.c_escape()+"\"");
+				p_store_string_func(p_store_string_ud,"\""+str.c_escape()+"\"");
 			}
 
 			p_store_string_func(p_store_string_ud," )");

@@ -100,13 +100,12 @@ typedef void (*EditorNodeInitCallback)();
 class EditorNode : public Node {
 
 	OBJ_TYPE( EditorNode, Node );
-	
+
 	enum {
-		
-		HISTORY_SIZE=64	
+		HISTORY_SIZE=64
 	};
+
 	enum MenuOptions {
-	
 		FILE_NEW_SCENE,
 		FILE_NEW_INHERITED_SCENE,
 		FILE_OPEN_SCENE,
@@ -119,7 +118,6 @@ class EditorNode : public Node {
 		FILE_EXPORT_MESH_LIBRARY,
 		FILE_EXPORT_TILESET,
 		FILE_SAVE_OPTIMIZED,
-		FILE_SAVE_SUBSCENE,
 		FILE_DUMP_STRINGS,
 		FILE_OPEN_RECENT,
 		FILE_OPEN_OLD_SCENE,
@@ -288,10 +286,10 @@ class EditorNode : public Node {
 	AcceptDialog *about;
 	AcceptDialog *warning;
 
-	Ref<ConfigFile> default_theme;
+	int overridden_default_layout;
+	Ref<ConfigFile> default_layout;
 	PopupMenu *editor_layouts;
 	EditorNameDialog *layout_dialog;
-	AcceptDialog *confirm_error;
 
 	//OptimizedPresetsDialog *optimized_presets;
 	EditorSettingsDialog *settings_config_dialog;
@@ -440,7 +438,7 @@ class EditorNode : public Node {
 
 	void _update_keying();
 	void _hide_top_editors();
-	void _quick_opened(const String& p_resource);
+	void _quick_opened();
 	void _quick_run(const String& p_resource);
 
 	void _run(bool p_current=false, const String &p_custom="");

@@ -127,6 +127,8 @@ Error ConfigFile::save(const String& p_path){
 	FileAccess *file = FileAccess::open(p_path,FileAccess::WRITE,&err);
 
 	if (err) {
+		if (file)
+			memdelete(file);
 		return err;
 	}
 
@@ -177,9 +179,11 @@ Error ConfigFile::load(const String& p_path) {
 		next_tag.fields.clear();
 		next_tag.name=String();
 
-		err = VariantParser::parse_tag_assign_eof(&stream,lines,error_text,next_tag,assign,value,NULL);
-		if (err==ERR_FILE_EOF)
+		err = VariantParser::parse_tag_assign_eof(&stream,lines,error_text,next_tag,assign,value,NULL,true);
+		if (err==ERR_FILE_EOF) {
+			memdelete(f);
 			return OK;
+		}
 		else if (err!=OK) {
 			ERR_PRINTS("ConfgFile::load - "+p_path+":"+itos(lines)+" error: "+error_text);
 			memdelete(f);

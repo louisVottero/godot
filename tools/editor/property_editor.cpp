@@ -727,7 +727,17 @@ bool CustomPropertyEditor::edit(Object* p_owner,const String& p_name,Variant::Ty
 
 
 			RES cb=EditorSettings::get_singleton()->get_resource_clipboard();
-			bool paste_valid=cb.is_valid() && (hint_text=="" || ObjectTypeDB::is_type(cb->get_type(),hint_text));
+			bool paste_valid=false;
+			if (cb.is_valid()) {
+				if (hint_text=="")
+					paste_valid=true;
+				else
+					for (int i = 0; i < hint_text.get_slice_count(",");i++)
+						if (ObjectTypeDB::is_type(cb->get_type(),hint_text.get_slice(",",i))) {
+							paste_valid=true;
+							break;
+						}
+			}
 
 			if (!RES(v).is_null() || paste_valid) {
 				menu->add_separator();
@@ -3767,6 +3777,10 @@ class SectionedPropertyEditorFilter : public Object {
 		for (List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
 
 			PropertyInfo pi=E->get();
+
+			if (section=="")
+				p_list->push_back(pi);
+
 			int sp = pi.name.find("/");
 			if (sp!=-1) {
 				String ss = pi.name.substr(0,sp);
@@ -3776,7 +3790,7 @@ class SectionedPropertyEditorFilter : public Object {
 					p_list->push_back(pi);
 				}
 			} else {
-				if (section=="")
+				if (section=="global")
 					p_list->push_back(pi);
 			}
 		}
@@ -3801,15 +3815,49 @@ public:
 
 };
 
+void SectionedPropertyEditor::_notification(int p_what) {
+
+	if (p_what==NOTIFICATION_ENTER_TREE) {
+
+		clear_button->set_icon(get_icon("Close", "EditorIcons"));
+	}
+}
 
 void SectionedPropertyEditor::_bind_methods() {
 
 	ObjectTypeDB::bind_method("_section_selected",&SectionedPropertyEditor::_section_selected);
+	ObjectTypeDB::bind_method("_clear_search_box",&SectionedPropertyEditor::clear_search_box);
 }
 
 void SectionedPropertyEditor::_section_selected(int p_which) {
 
 	filter->set_section( sections->get_item_metadata(p_which) );
+}
+
+void SectionedPropertyEditor::clear_search_box() {
+
+	if (search_box->get_text().strip_edges()=="")
+		return;
+
+	search_box->clear();
+	editor->update_tree();
+}
+
+
+String SectionedPropertyEditor::get_current_section() const {
+
+	String section = sections->get_item_metadata( sections->get_current() );
+
+	if (section=="") {
+		String name = editor->get_selected_path();
+
+		int sp = name.find("/");
+		if (sp!=-1)
+			section = name.substr(0, sp);
+
+	}
+
+	return section;
 }
 
 String SectionedPropertyEditor::get_full_item_path(const String& p_item) {
@@ -3829,11 +3877,20 @@ void SectionedPropertyEditor::edit(Object* p_object) {
 	sections->clear();
 
 	Set<String> existing_sections;
+
+	existing_sections.insert("");
+	sections->add_item("All");
+	sections->set_item_metadata(0, "");
+
 	for (List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
 
 		PropertyInfo pi=E->get();
+
 		if (pi.usage&PROPERTY_USAGE_CATEGORY)
 			continue;
+		if ( !(pi.usage&PROPERTY_USAGE_EDITOR) )
+			continue;
+
 		if (pi.name.find(":")!=-1 || pi.name=="script/script")
 			continue;
 		int sp = pi.name.find("/");
@@ -3846,10 +3903,10 @@ void SectionedPropertyEditor::edit(Object* p_object) {
 			}
 
 		} else {
-			if (!existing_sections.has("")) {
-				existing_sections.insert("");
+			if (!existing_sections.has("global")) {
+				existing_sections.insert("global");
 				sections->add_item("Global");
-				sections->set_item_metadata(sections->get_item_count()-1,"");
+				sections->set_item_metadata(sections->get_item_count()-1,"global");
 			}
 		}
 
@@ -3874,6 +3931,8 @@ PropertyEditor *SectionedPropertyEditor::get_property_editor() {
 
 SectionedPropertyEditor::SectionedPropertyEditor() {
 
+	add_constant_override("separation", 8);
+
 	VBoxContainer *left_vb = memnew( VBoxContainer);
 	left_vb->set_custom_minimum_size(Size2(160,0));
 	add_child(left_vb);
@@ -3888,7 +3947,21 @@ SectionedPropertyEditor::SectionedPropertyEditor() {
 	add_child(right_vb);
 
 	filter = memnew( SectionedPropertyEditorFilter );
+
+	HBoxContainer *hbc = memnew( HBoxContainer );
+	right_vb->add_margin_child("Search:",hbc);
+
+	search_box = memnew( LineEdit );
+	search_box->set_h_size_flags(SIZE_EXPAND_FILL);
+	hbc->add_child(search_box);
+
+	clear_button = memnew( ToolButton );
+	hbc->add_child(clear_button);
+	clear_button->connect("pressed", this, "_clear_search_box");
+
 	editor = memnew( PropertyEditor );
+	editor->register_text_enter(search_box);
+	editor->set_use_filter(true);
 	editor->set_v_size_flags(SIZE_EXPAND_FILL);
 	right_vb->add_margin_child("Properties:",editor,true);
 

@@ -262,7 +262,7 @@ def configure(env):
 		env.Append(CCFLAGS=["/I"+DIRECTX_PATH+"/Include"])
 		env.Append(LIBPATH=[DIRECTX_PATH+"/Lib/x86"])
 		env['ENV'] = os.environ;
-		env["x86_opt_vc"]=True
+		env["x86_opt_vc"]=env["bits"]!="64"
 	else:
 
 		# Workaround for MinGW. See:
@@ -339,7 +339,13 @@ def configure(env):
 
 		if (env["target"]=="release"):
 			
-			env.Append(CCFLAGS=['-O3','-ffast-math','-fomit-frame-pointer','-msse2'])
+			env.Append(CCFLAGS=['-ffast-math','-fomit-frame-pointer','-msse2'])
+
+			if (env["bits"]=="64"):
+				env.Append(CCFLAGS=['-O3'])
+			else:
+				env.Append(CCFLAGS=['-O2'])
+
 			env.Append(LINKFLAGS=['-Wl,--subsystem,windows'])
 
 		elif (env["target"]=="release_debug"):
@@ -382,7 +388,7 @@ def configure(env):
 
 		#'d3dx9d'
 		env.Append(CPPFLAGS=['-DMINGW_ENABLED'])
-		env.Append(LINKFLAGS=['-g'])
+		#env.Append(LINKFLAGS=['-g'])
 
 		# resrc
 		env['is_mingw']=True

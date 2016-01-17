@@ -194,7 +194,7 @@ void CanvasItemEditor::_edit_set_pivot(const Vector2& mouse_pos) {
 
 void CanvasItemEditor::_unhandled_key_input(const InputEvent& p_ev) {
 
-	if (!is_visible())
+	if (!is_visible() || window_has_modal_stack())
 		return;
 	if (p_ev.key.mod.control)
 		// prevent to change tool mode when control key is pressed
@@ -405,9 +405,9 @@ void CanvasItemEditor::_node_removed(Node *p_node) {
 #endif
 }
 
-void CanvasItemEditor::_keying_changed(bool p_changed) {
+void CanvasItemEditor::_keying_changed() {
 
-	if (p_changed)
+	if (editor->get_animation_editor()->has_keying())
 		animation_hb->show();
 	else
 		animation_hb->hide();
