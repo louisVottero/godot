@@ -162,11 +162,10 @@ void Viewport::_update_rect() {
 	if (!is_inside_tree())
 		return;
 
-	Node *parent = get_parent();
 
-	if (!render_target && parent && parent->cast_to<Control>()) {
+	if (!render_target && parent_control) {
 
-		Control *c = parent->cast_to<Control>();
+		Control *c = parent_control;
 
 		rect.pos=Point2();
 		rect.size=c->get_size();
@@ -175,6 +174,7 @@ void Viewport::_update_rect() {
 	VisualServer::ViewportRect vr;
 	vr.x=rect.pos.x;
 	vr.y=rect.pos.y;
+
 	if (render_target) {
 		vr.x=0;
 		vr.y=0;
@@ -206,11 +206,10 @@ void Viewport::_parent_draw() {
 
 void Viewport::_parent_visibility_changed() {
 
-	Node *parent = get_parent();
 
-	if (parent && parent->cast_to<Control>()) {
+	if (parent_control) {
 
-		Control *c = parent->cast_to<Control>();
+		Control *c = parent_control;
 		VisualServer::get_singleton()->canvas_item_set_visible(canvas_item,c->is_visible());
 
 		_update_listener();
@@ -223,11 +222,9 @@ void Viewport::_parent_visibility_changed() {
 
 void Viewport::_vp_enter_tree() {
 
-	Node *parent = get_parent();
-		//none?
-	if (parent && parent->cast_to<Control>()) {
+	if (parent_control) {
 
-		Control *cparent=parent->cast_to<Control>();
+		Control *cparent=parent_control;
 		RID parent_ci = cparent->get_canvas_item();
 		ERR_FAIL_COND(!parent_ci.is_valid());
 		canvas_item = VisualServer::get_singleton()->canvas_item_create();
@@ -235,8 +232,8 @@ void Viewport::_vp_enter_tree() {
 		VisualServer::get_singleton()->canvas_item_set_parent(canvas_item,parent_ci);
 		VisualServer::get_singleton()->canvas_item_set_visible(canvas_item,false);
 		VisualServer::get_singleton()->canvas_item_attach_viewport(canvas_item,viewport);
-		parent->connect("resized",this,"_parent_resized");
-		parent->connect("visibility_changed",this,"_parent_visibility_changed");
+		parent_control->connect("resized",this,"_parent_resized");
+		parent_control->connect("visibility_changed",this,"_parent_visibility_changed");
 	} else if (!parent){
 
 		VisualServer::get_singleton()->viewport_attach_to_screen(viewport,0);
@@ -248,15 +245,14 @@ void Viewport::_vp_enter_tree() {
 
 void Viewport::_vp_exit_tree() {
 
-	Node *parent = get_parent();
-	if (parent && parent->cast_to<Control>()) {
+	if (parent_control) {
 
-		parent->disconnect("resized",this,"_parent_resized");
+		parent_control->disconnect("resized",this,"_parent_resized");
 	}
 
-	if (parent && parent->cast_to<Control>()) {
+	if (parent_control) {
 
-		parent->disconnect("visibility_changed",this,"_parent_visibility_changed");
+		parent_control->disconnect("visibility_changed",this,"_parent_visibility_changed");
 	}
 
 	if (canvas_item.is_valid()) {
@@ -328,21 +324,31 @@ void Viewport::_notification(int p_what) {
 		
 		case NOTIFICATION_ENTER_TREE: {
 
+			if (get_parent()) {
+				Node *parent=get_parent();
+				if (parent) {
+					parent_control=parent->cast_to<Control>();
+				}
+			}
+
+
+			parent=NULL;
+			Node *parent_node=get_parent();
+
+
+			while(parent_node) {
+
+				parent = parent_node->cast_to<Viewport>();
+				if (parent)
+					break;
+
+				parent_node=parent_node->get_parent();
+			}
+
 
 			if (!render_target)
 				_vp_enter_tree();
 
-			this->parent=NULL;
-			Node *parent=get_parent();
-
-			if (parent) {
-
-
-				while(parent && !(this->parent=parent->cast_to<Viewport>())) {
-
-					parent=parent->get_parent();
-				}
-			}
 
 			current_canvas=find_world_2d()->get_canvas();
 			VisualServer::get_singleton()->viewport_set_scenario(viewport,find_world()->get_scenario());
@@ -400,7 +406,7 @@ void Viewport::_notification(int p_what) {
 		case NOTIFICATION_EXIT_TREE: {
 
 
-
+			_gui_cancel_tooltip();
 			if (world_2d.is_valid())
 				world_2d->_remove_viewport(this);
 
@@ -423,10 +429,17 @@ void Viewport::_notification(int p_what) {
 			}
 
 			remove_from_group("_viewports");
+			parent_control=NULL;
 
 		} break;
 		case NOTIFICATION_FIXED_PROCESS: {
 
+			if (gui.tooltip_timer>=0) {
+				gui.tooltip_timer-=get_fixed_process_delta_time();
+				if (gui.tooltip_timer<0) {
+					_gui_show_tooltip();
+				}
+			}
 
 			if (get_tree()->is_debugging_collisions_hint() && contact_2d_debug.is_valid()) {
 
@@ -1276,6 +1289,15 @@ void Viewport::_vp_input(const InputEvent& p_ev) {
 	if (disable_input)
 		return;
 
+#ifdef TOOLS_ENABLED
+	if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+		return;
+	}
+#endif
+
+	if (parent_control && !parent_control->is_visible())
+		return;
+
 	if (render_target && to_screen_rect==Rect2())
 		return; //if render target, can't get input events
 
@@ -1291,6 +1313,17 @@ void Viewport::_vp_input(const InputEvent& p_ev) {
 
 void Viewport::_vp_unhandled_input(const InputEvent& p_ev) {
 
+	if (disable_input)
+		return;
+
+#ifdef TOOLS_ENABLED
+	if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+		return;
+	}
+#endif
+
+	if (parent_control && !parent_control->is_visible())
+		return;
 
 	if (render_target && to_screen_rect==Rect2())
 		return; //if render target, can't get input events
@@ -1349,10 +1382,11 @@ void Viewport::_gui_sort_roots() {
 void Viewport::_gui_cancel_tooltip() {
 
 	gui.tooltip=NULL;
-	if (gui.tooltip_timer)
-		gui.tooltip_timer->stop();
-	if (gui.tooltip_popup)
-		gui.tooltip_popup->hide();
+	gui.tooltip_timer=-1;
+	if (gui.tooltip_popup) {
+		gui.tooltip_popup->queue_delete();
+		gui.tooltip_popup=NULL;
+	}
 
 }
 
@@ -1366,10 +1400,25 @@ void Viewport::_gui_show_tooltip() {
 	if (tooltip.length()==0)
 		return; // bye
 
-
-	if (!gui.tooltip_label) {
-		return;
+	if (gui.tooltip_popup) {
+		memdelete(gui.tooltip_popup);
+		gui.tooltip_popup=NULL;
 	}
+
+	Control *rp = gui.tooltip->get_root_parent_control();
+	if (!rp)
+		return;
+
+
+	gui.tooltip_popup = memnew( TooltipPanel );
+
+	rp->add_child(gui.tooltip_popup);
+	gui.tooltip_popup->force_parent_owned();
+	gui.tooltip_label = memnew( TooltipLabel );
+	gui.tooltip_popup->add_child(gui.tooltip_label);
+	gui.tooltip_popup->set_as_toplevel(true);
+	gui.tooltip_popup->hide();
+
 	Ref<StyleBox> ttp = gui.tooltip_label->get_stylebox("panel","TooltipPanel");
 
 	gui.tooltip_label->set_anchor_and_margin(MARGIN_LEFT,Control::ANCHOR_BEGIN,ttp->get_margin(MARGIN_LEFT));
@@ -1389,11 +1438,10 @@ void Viewport::_gui_show_tooltip() {
 	else if (r.pos.y<0)
 		r.pos.y=0;
 
-	gui.tooltip_popup->set_pos(r.pos);
+	gui.tooltip_popup->set_global_pos(r.pos);
 	gui.tooltip_popup->set_size(r.size);
 
 	gui.tooltip_popup->raise();
-
 	gui.tooltip_popup->show();
 }
 
@@ -1437,13 +1485,15 @@ Control* Viewport::_gui_find_control(const Point2& p_global)  {
 		Matrix32 xform;
 		CanvasItem *pci = sw->get_parent_item();
 		if (pci)
-			xform=pci->get_global_transform();
+			xform=pci->get_global_transform_with_canvas();
 
 
 		Control *ret = _gui_find_control_at_pos(sw,p_global,xform,gui.focus_inv_xform);
 		if (ret)
 			return ret;
 	}
+
+	_gui_sort_roots();
 
 	for (List<Control*>::Element *E=gui.roots.back();E;E=E->prev()) {
 
@@ -1454,7 +1504,7 @@ Control* Viewport::_gui_find_control(const Point2& p_global)  {
 		Matrix32 xform;
 		CanvasItem *pci = sw->get_parent_item();
 		if (pci)
-			xform=pci->get_global_transform();
+			xform=pci->get_global_transform_with_canvas();
 
 
 		Control *ret = _gui_find_control_at_pos(sw,p_global,xform,gui.focus_inv_xform);
@@ -1557,7 +1607,6 @@ void Viewport::_gui_input_event(InputEvent p_event) {
 						Vector2 pos = top->get_global_transform_with_canvas().affine_inverse().xform(mpos);
 						if (!top->has_point(pos)) {
 
-							print_line("NO POINT");
 							if (top->data.modal_exclusive) {
 								//cancel event, sorry, modal exclusive EATS UP ALL
 								//get_tree()->call_group(SceneTree::GROUP_CALL_REALTIME,"windows","_cancel_input_ID",p_event.ID);
@@ -1634,7 +1683,8 @@ void Viewport::_gui_input_event(InputEvent p_event) {
 				get_tree()->call_group(SceneTree::GROUP_CALL_REALTIME,"windows","_cancel_input_ID",p_event.ID);
 				get_tree()->set_input_as_handled();
 
-				gui.tooltip_popup->hide();
+				_gui_cancel_tooltip();
+				//gui.tooltip_popup->hide();
 
 			} else {
 
@@ -1766,7 +1816,7 @@ void Viewport::_gui_input_event(InputEvent p_event) {
 			p_event.mouse_motion.relative_x=rel.x;
 			p_event.mouse_motion.relative_y=rel.y;
 
-			if (p_event.mouse_motion.button_mask==0 && gui.tooltip_timer) {
+			if (p_event.mouse_motion.button_mask==0) {
 				//nothing pressed
 
 				bool can_tooltip=true;
@@ -1782,7 +1832,8 @@ void Viewport::_gui_input_event(InputEvent p_event) {
 
 					gui.tooltip=over;
 					gui.tooltip_pos=mpos;//(parent_xform * get_transform()).affine_inverse().xform(pos);
-					gui.tooltip_timer->start();
+					gui.tooltip_timer=gui.tooltip_delay;
+
 				}
 			}
 
@@ -1795,7 +1846,6 @@ void Viewport::_gui_input_event(InputEvent p_event) {
 
 
 			Control::CursorShape cursor_shape = over->get_cursor_shape(pos);
-
 			OS::get_singleton()->set_cursor_shape( (OS::CursorShape)cursor_shape );
 
 
@@ -1958,17 +2008,17 @@ void Viewport::_gui_remove_from_modal_stack(List<Control*>::Element *MI,ObjectID
 	}
 }
 
-void Viewport::_gui_force_drag(const Variant& p_data,Control *p_control) {
+void Viewport::_gui_force_drag(Control *p_base, const Variant& p_data, Control *p_control) {
 
 	gui.drag_data=p_data;
 	gui.mouse_focus=NULL;
 
 	if (p_control) {
-		_gui_set_drag_preview(p_control);
+		_gui_set_drag_preview(p_base,p_control);
 	}
 }
 
-void Viewport::_gui_set_drag_preview(Control *p_control) {
+void Viewport::_gui_set_drag_preview(Control *p_base, Control *p_control) {
 
 	ERR_FAIL_NULL(p_control);
 	ERR_FAIL_COND( !((Object*)p_control)->cast_to<Control>());
@@ -1980,7 +2030,7 @@ void Viewport::_gui_set_drag_preview(Control *p_control) {
 	}
 	p_control->set_as_toplevel(true);
 	p_control->set_pos(gui.last_mouse_pos);
-	add_child(p_control); //add as child of viewport
+	p_base->get_root_parent_control()->add_child(p_control); //add as child of viewport
 	p_control->raise();
 	if (gui.drag_preview) {
 		memdelete( gui.drag_preview );
@@ -2028,8 +2078,10 @@ void Viewport::_gui_hid_control(Control *p_control) {
 		gui.mouse_over=NULL;
 	if (gui.tooltip == p_control)
 		gui.tooltip=NULL;
-	if (gui.tooltip == p_control)
+	if (gui.tooltip == p_control) {
 		gui.tooltip=NULL;
+		_gui_cancel_tooltip();
+	}
 
 }
 
@@ -2044,6 +2096,9 @@ void Viewport::_gui_remove_control(Control *p_control) {
 		gui.mouse_over=NULL;
 	if (gui.tooltip == p_control)
 		gui.tooltip=NULL;
+	if (gui.tooltip_popup == p_control) {
+		_gui_cancel_tooltip();
+	}
 
 
 }
@@ -2149,6 +2204,8 @@ void Viewport::_gui_grab_click_focus(Control *p_control) {
 void Viewport::input(const InputEvent& p_event) {
 
 	ERR_FAIL_COND(!is_inside_tree());
+
+
 	get_tree()->_call_input_pause(input_group,"_input",p_event);		
 	_gui_input_event(p_event);
 	//get_tree()->call_group(SceneTree::GROUP_CALL_REVERSE|SceneTree::GROUP_CALL_REALTIME|SceneTree::GROUP_CALL_MULIILEVEL,gui_input_group,"_gui_input",p_event); //special one for GUI, as controls use their own process check
@@ -2157,6 +2214,7 @@ void Viewport::input(const InputEvent& p_event) {
 void Viewport::unhandled_input(const InputEvent& p_event) {
 
 	ERR_FAIL_COND(!is_inside_tree());
+
 
 	get_tree()->_call_input_pause(unhandled_input_group,"_unhandled_input",p_event);
 	//call_group(GROUP_CALL_REVERSE|GROUP_CALL_REALTIME|GROUP_CALL_MULIILEVEL,"unhandled_input","_unhandled_input",ev);
@@ -2433,21 +2491,18 @@ Viewport::Viewport() {
 	disable_input=false;
 
 	//window tooltip
-	gui.tooltip_timer = memnew( Timer );
-	add_child(gui.tooltip_timer);
-	gui.tooltip_timer->force_parent_owned();
-	gui.tooltip_timer->set_wait_time( GLOBAL_DEF("display/tooltip_delay",0.7));
-	gui.tooltip_timer->connect("timeout",this,"_gui_show_tooltip");
+	gui.tooltip_timer = -1;
+
+	//gui.tooltip_timer->force_parent_owned();
+	gui.tooltip_delay=GLOBAL_DEF("display/tooltip_delay",0.7);
+
 	gui.tooltip=NULL;
-	gui.tooltip_popup = memnew( TooltipPanel );
-	add_child(gui.tooltip_popup);
-	gui.tooltip_popup->force_parent_owned();
-	gui.tooltip_label = memnew( TooltipLabel );
-	gui.tooltip_popup->add_child(gui.tooltip_label);
-	gui.tooltip_popup->set_as_toplevel(true);
-	gui.tooltip_popup->hide();
-	gui.drag_attempted=false;
+	gui.tooltip_label=NULL;
 	gui.drag_preview=NULL;
+	gui.drag_attempted=false;
+
+
+	parent_control=NULL;
 
 
 }

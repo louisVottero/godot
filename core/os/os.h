@@ -46,6 +46,7 @@ class OS {
 	String _custom_level;
 	List<String> _cmdline;
 	int ips;
+	bool _keep_screen_on;
 	bool low_processor_usage_mode;
 	bool _verbose_stdout;
 	String _local_clipboard;
@@ -75,7 +76,7 @@ public:
 		bool fullscreen;
 		bool resizable;
 		float get_aspect() const { return (float)width/(float)height; }
-		VideoMode(int p_width=1280,int p_height=720,bool p_fullscreen=false, bool p_resizable = true) {width=p_width; height=p_height; fullscreen=p_fullscreen; resizable = p_resizable; }
+		VideoMode(int p_width=1024,int p_height=600,bool p_fullscreen=false, bool p_resizable = true) {width=p_width; height=p_height; fullscreen=p_fullscreen; resizable = p_resizable; }
 	};
 protected:
 friend class Main;
@@ -180,7 +181,8 @@ public:
 
 	virtual float get_frames_per_second() const { return _fps; };
 
-
+	virtual void set_keep_screen_on(bool p_enabled);
+	virtual bool is_keep_screen_on() const;
 	virtual void set_low_processor_usage_mode(bool p_enabled);
 	virtual bool is_in_low_processor_usage_mode() const;
 

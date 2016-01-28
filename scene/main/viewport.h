@@ -87,6 +87,9 @@ public:
 private:
 
 friend class RenderTargetTexture;
+
+
+	Control *parent_control;
 	Viewport *parent;
 
 	Camera *camera;
@@ -184,7 +187,8 @@ friend class RenderTargetTexture;
 		bool drag_attempted;
 		Variant drag_data;
 		Control *drag_preview;
-		Timer *tooltip_timer;
+		float tooltip_timer;
+		float tooltip_delay;
 		List<Control*> modal_stack;
 		unsigned int cancelled_input_ID;
 		Matrix32 focus_inv_xform;
@@ -243,8 +247,8 @@ friend class Control;
 	void _gui_remove_control(Control *p_control);
 	void _gui_hid_control(Control *p_control);
 
-	void _gui_force_drag(const Variant& p_data,Control *p_control);
-	void _gui_set_drag_preview(Control *p_control);
+	void _gui_force_drag(Control *p_base,const Variant& p_data,Control *p_control);
+	void _gui_set_drag_preview(Control *p_base,Control *p_control);
 
 	bool _gui_is_modal_on_top(const Control* p_control);
 	List<Control*>::Element* _gui_show_modal(Control* p_control);

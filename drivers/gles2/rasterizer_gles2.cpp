@@ -6755,7 +6755,13 @@ void RasterizerGLES2::_render_list_forward(RenderList *p_render_list,const Trans
 			if (e->instance->billboard) {
 
 				Vector3 scale = xf.basis.get_scale();
-				xf.set_look_at(xf.origin,xf.origin+p_view_transform.get_basis().get_axis(2),p_view_transform.get_basis().get_axis(1));
+
+				if (current_rt && current_rt_vflip) {
+					xf.set_look_at(xf.origin, xf.origin + p_view_transform.get_basis().get_axis(2), -p_view_transform.get_basis().get_axis(1));
+				} else {
+					xf.set_look_at(xf.origin, xf.origin + p_view_transform.get_basis().get_axis(2), p_view_transform.get_basis().get_axis(1));
+				}
+
 				xf.basis.scale(scale);
 			}
 			material_shader.set_uniform(MaterialShaderGLES2::WORLD_TRANSFORM, xf);
@@ -9254,7 +9260,13 @@ void RasterizerGLES2::_canvas_item_setup_shader_params(CanvasItemMaterial *mater
 				glReadBuffer(GL_BACK);
 			}
 #endif
-			glCopyTexSubImage2D(GL_TEXTURE_2D,0,x,y,x,y,viewport.width,viewport.height);
+			if (current_rt) {
+				glCopyTexSubImage2D(GL_TEXTURE_2D,0,viewport.x,viewport.y,viewport.x,viewport.y,viewport.width,viewport.height);
+				canvas_shader.set_uniform(CanvasShaderGLES2::TEXSCREEN_SCREEN_CLAMP,Color(float(x)/framebuffer.width,float(viewport.y)/framebuffer.height,float(x+viewport.width)/framebuffer.width,float(y+viewport.height)/framebuffer.height));
+				//window_size.height-(viewport.height+viewport.y)
+			} else {
+				glCopyTexSubImage2D(GL_TEXTURE_2D,0,x,y,x,y,viewport.width,viewport.height);
+			}
 //			if (current_clip) {
 //			//	print_line(" a clip ");
 //			}
@@ -9451,7 +9463,12 @@ void RasterizerGLES2::canvas_render_items(CanvasItem *p_item_list,int p_z,const 
 				glReadBuffer(GL_BACK);
 			}
 #endif
-			glCopyTexSubImage2D(GL_TEXTURE_2D,0,x,y,x,y,w,h);
+			if (current_rt) {
+				glCopyTexSubImage2D(GL_TEXTURE_2D,0,viewport.x,viewport.y,viewport.x,viewport.y,viewport.width,viewport.height);
+				//window_size.height-(viewport.height+viewport.y)
+			} else {
+				glCopyTexSubImage2D(GL_TEXTURE_2D,0,x,y,x,y,viewport.width,viewport.height);
+			}
 //			if (current_clip) {
 //			//	print_line(" a clip ");
 //			}

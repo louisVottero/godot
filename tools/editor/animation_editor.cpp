@@ -1085,6 +1085,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 		move_up_button->set_disabled(true);
 		move_down_button->set_disabled(true);
 		remove_button->set_disabled(true);
+
 		return;
 	}
 
@@ -2806,8 +2807,14 @@ void AnimationKeyEditor::_notification(int p_what) {
 
 
 	switch(p_what) {
+		case NOTIFICATION_VISIBILITY_CHANGED: {
+
+			EditorNode::get_singleton()->update_keying();
+		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
+
+				key_editor->edit(key_edit);
 
 				zoomicon->set_texture( get_icon("Zoom","EditorIcons") );
 
@@ -2988,6 +2995,8 @@ void AnimationKeyEditor::set_animation(const Ref<Animation>& p_anim) {
 	_update_menu();
 	selected_track=-1;
 	_edit_if_single_selection();
+
+	EditorNode::get_singleton()->update_keying();
 }
 
 void AnimationKeyEditor::set_root(Node *p_root) {
@@ -3013,9 +3022,14 @@ Node *AnimationKeyEditor::get_root() const {
 
 
 
-void AnimationKeyEditor::set_keying(bool p_enabled) {
+void AnimationKeyEditor::update_keying() {
 
-	keying=p_enabled;
+	bool keying_enabled=is_visible() && animation.is_valid();
+
+	if (keying_enabled==keying)
+		return;
+
+	keying=keying_enabled;
 	_update_menu();
 	emit_signal("keying_changed");
 
@@ -3352,6 +3366,7 @@ Ref<Animation> AnimationKeyEditor::get_current_animation() const {
 
 void AnimationKeyEditor::_animation_len_changed(float p_len) {
 
+
 	if (updating)
 		return;
 
@@ -3479,8 +3494,10 @@ void AnimationKeyEditor::_insert_delay() {
 void AnimationKeyEditor::_step_changed(float p_len) {
 
 	updating=true;
-	if (!animation.is_null())
+	if (!animation.is_null()) {
 		animation->set_step(p_len);
+		emit_signal("animation_step_changed",animation->get_step());
+	}
 	updating=false;
 }
 
@@ -3691,21 +3708,33 @@ void AnimationKeyEditor::_bind_methods() {
 	ADD_SIGNAL( MethodInfo("keying_changed" ) );
 	ADD_SIGNAL( MethodInfo("timeline_changed", PropertyInfo(Variant::REAL,"pos") ) );
 	ADD_SIGNAL( MethodInfo("animation_len_changed", PropertyInfo(Variant::REAL,"len") ) );
+	ADD_SIGNAL( MethodInfo("animation_step_changed", PropertyInfo(Variant::REAL,"step") ) );
 	ADD_SIGNAL( MethodInfo("key_edited", PropertyInfo(Variant::INT,"track"), PropertyInfo(Variant::INT,"key") ) );
 
 }
 
 
-AnimationKeyEditor::AnimationKeyEditor(UndoRedo *p_undo_redo, EditorHistory *p_history,EditorSelection *p_selection) {
+AnimationKeyEditor::AnimationKeyEditor() {
 
 	alc="animation_len_changed";
-	editor_selection=p_selection;
+	editor_selection=EditorNode::get_singleton()->get_editor_selection();
 
 	selected_track=-1;
 	updating=false;
 	te_drawing=false;
-	undo_redo=p_undo_redo;
-	history=p_history;
+	undo_redo=EditorNode::get_singleton()->get_undo_redo();
+	history=EditorNode::get_singleton()->get_editor_history();
+
+	ec = memnew (Control);
+	ec->set_custom_minimum_size(Size2(0,150));
+	add_child(ec);
+	ec->set_v_size_flags(SIZE_EXPAND_FILL);
+
+	h_scroll = memnew( HScrollBar );
+	h_scroll->connect("value_changed",this,"_scroll_changed");
+	add_child(h_scroll);
+	h_scroll->set_val(0);
+
 
 	HBoxContainer *hb = memnew( HBoxContainer );
 	add_child(hb);
@@ -3863,10 +3892,6 @@ AnimationKeyEditor::AnimationKeyEditor(UndoRedo *p_undo_redo, EditorHistory *p_h
 
 //	menu->get_popup()->connect("item_pressed",this,"_menu_callback");
 
-	ec = memnew (Control);
-	ec->set_custom_minimum_size(Size2(0,150));
-	add_child(ec);
-	ec->set_v_size_flags(SIZE_EXPAND_FILL);
 
 	hb = memnew( HBoxContainer);
 	hb->set_area_as_parent_rect();
@@ -3906,7 +3931,7 @@ AnimationKeyEditor::AnimationKeyEditor(UndoRedo *p_undo_redo, EditorHistory *p_h
 	key_edit = memnew( AnimationKeyEdit );
 	key_edit->undo_redo=undo_redo;
 	//key_edit->ke_dialog=key_edit_dialog;
-	key_editor->edit(key_edit);
+
 	type_menu = memnew( PopupMenu );
 	add_child(type_menu);
 	for(int i=0;i<Variant::VARIANT_MAX;i++)
@@ -3942,12 +3967,6 @@ AnimationKeyEditor::AnimationKeyEditor(UndoRedo *p_undo_redo, EditorHistory *p_h
 	curve_vb->add_child(curve_edit);
 	curve_edit->set_v_size_flags(SIZE_EXPAND_FILL);
 	key_editor_tab->add_child(curve_vb);
-
-	h_scroll = memnew( HScrollBar );
-	h_scroll->connect("value_changed",this,"_scroll_changed");
-	add_child(h_scroll);
-	h_scroll->set_val(0);
-
 
 	track_name = memnew( LineEdit );
 	track_name->set_as_toplevel(true);
@@ -4025,6 +4044,7 @@ AnimationKeyEditor::AnimationKeyEditor(UndoRedo *p_undo_redo, EditorHistory *p_h
 
 	cleanup_dialog->connect("confirmed",this,"_menu_track",varray(TRACK_MENU_CLEAN_UP_CONFIRM));
 
+	add_constant_override("separation",get_constant("separation","VBoxContainer"));
 
 
 }
