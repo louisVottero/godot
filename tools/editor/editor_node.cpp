@@ -2671,8 +2671,9 @@ void EditorNode::_menu_option_confirm(int p_option,bool p_confirmed) {
 			String exec = OS::get_singleton()->get_executable_path();
 
 			List<String> args;
-			args.push_back ( "-path" );
-			args.push_back (exec.get_base_dir() );
+			//args.push_back ( "-path" );
+			//args.push_back (exec.get_base_dir() );
+			args.push_back("-pm");
 
 			OS::ProcessID pid=0;
 			Error err = OS::get_singleton()->execute(exec,args,false,&pid);
@@ -4539,7 +4540,7 @@ void EditorNode::_scene_tab_closed(int p_tab) {
 	}
 	else {
 		_remove_scene(p_tab);
-		//_update_scene_tabs();
+		_update_scene_tabs();
 	}
 
 }
