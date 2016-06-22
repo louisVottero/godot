@@ -545,9 +545,19 @@ https://github.com/godotengine/godot/issues/3127
 			}
 
 #endif
-			if (exists && bool(Variant::evaluate(Variant::OP_EQUAL,value,original))) {
-				//exists and did not change
-				continue;
+			if (exists) {
+
+				//check if already exists and did not change
+				if (value.get_type()==Variant::REAL && original.get_type()==Variant::REAL) {
+					//this must be done because, as some scenes save as text, there might be a tiny difference in floats due to numerical error
+					float a = value;
+					float b = original;
+
+					if (Math::abs(a-b)<CMP_EPSILON)
+						continue;
+				} else if (bool(Variant::evaluate(Variant::OP_EQUAL,value,original))) {
+					continue;
+				}
 			}
 
 			if (!exists && isdefault) {
@@ -646,7 +656,7 @@ https://github.com/godotengine/godot/issues/3127
 	}
 
 	// Save the right type. If this node was created by an instance
-	// then flag that the node should not be created but reused	
+	// then flag that the node should not be created but reused
 	if (pack_state_stack.empty()) {
 		//this node is not part of an instancing process, so save the type
 		nd.type=_nm_get_string(p_node->get_type(),name_map);
@@ -963,7 +973,7 @@ Ref<SceneState> SceneState::_get_base_scene_state() const {
 
 int SceneState::find_node_by_path(const NodePath& p_node) const {
 
-	if (!node_path_cache.has(p_node)) {		
+	if (!node_path_cache.has(p_node)) {
 		if (_get_base_scene_state().is_valid()) {
 			int idx = _get_base_scene_state()->find_node_by_path(p_node);
 			if (idx>=0) {
@@ -1275,7 +1285,7 @@ Dictionary SceneState::get_bundled_scene() const {
 	rnode_paths.resize(node_paths.size());
 	for(int i=0;i<node_paths.size();i++) {
 		rnode_paths[i]=node_paths[i];
-	}	
+	}
 	d["node_paths"]=rnode_paths;
 
 	Array reditable_instances;
@@ -1403,8 +1413,7 @@ NodePath SceneState::get_node_path(int p_idx,bool p_for_parent) const {
 		}
 	}
 
-	for(int i=0;i<base_path.get_name_count();i++) {
-		StringName sn = base_path.get_name(i);
+	for(int i=base_path.get_name_count()-1;i>=0;i--) {
 		sub_path.insert(0,base_path.get_name(i));
 	}
 
@@ -1493,7 +1502,7 @@ int SceneState::get_connection_flags(int p_idx) const{
 
 Array SceneState::get_connection_binds(int p_idx) const {
 
-	ERR_FAIL_INDEX_V(p_idx,connections.size(),-1);
+	ERR_FAIL_INDEX_V(p_idx,connections.size(),Array());
 	Array binds;
 	for(int i=0;i<connections[p_idx].binds.size();i++) {
 		binds.push_back(variants[connections[p_idx].binds[i]]);

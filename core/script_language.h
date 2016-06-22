@@ -40,20 +40,24 @@ class ScriptLanguage;
 
 class ScriptServer {
 	enum {
-		
+
 		MAX_LANGUAGES=4
 	};
-	
+
 	static ScriptLanguage *_languages[MAX_LANGUAGES];
 	static int _language_count;
 	static bool scripting_enabled;
-public:	
-	
+	static bool reload_scripts_on_save;
+public:
+
 	static void set_scripting_enabled(bool p_enabled);
 	static bool is_scripting_enabled();
 	static int get_language_count();
 	static ScriptLanguage *get_language(int p_idx);
 	static void register_language(ScriptLanguage *p_language);
+
+	static void set_reload_scripts_on_save(bool p_enable);
+	static bool is_reload_scripts_on_save_enabled();
 
 	static void init_languages();
 };
@@ -76,18 +80,18 @@ protected:
 friend class PlaceHolderScriptInstance;
 	virtual void _placeholder_erased(PlaceHolderScriptInstance *p_placeholder) {}
 public:
-	
+
 	virtual bool can_instance() const=0;
 
 	virtual StringName get_instance_base_type() const=0; // this may not work in all scripts, will return empty if so
 	virtual ScriptInstance* instance_create(Object *p_this)=0;
 	virtual bool instance_has(const Object *p_this) const=0;
 
-	
+
 	virtual bool has_source_code() const=0;
 	virtual String get_source_code() const=0;
 	virtual void set_source_code(const String& p_code)=0;
-	virtual Error reload()=0;
+	virtual Error reload(bool p_keep_state=false)=0;
 
 	virtual bool is_tool() const=0;
 
@@ -102,7 +106,7 @@ public:
 
 	virtual void update_exports() {} //editor tool
 
-	
+
 	Script() {}
 };
 
@@ -125,7 +129,16 @@ public:
 	virtual void notification(int p_notification)=0;
 
 
+	//this is used by script languages that keep a reference counter of their own
+	//you can make make Ref<> not die when it reaches zero, so deleting the reference
+	//depends entirely from the script
+
+	virtual void refcount_incremented() {}
+	virtual bool refcount_decremented() { return true; } //return true if it can die
+
 	virtual Ref<Script> get_script() const=0;
+
+	virtual bool is_placeholder() const { return false; }
 
 	virtual ScriptLanguage *get_language()=0;
 	virtual ~ScriptInstance();
@@ -148,13 +161,13 @@ class ScriptLanguage {
 public:
 
 	virtual String get_name() const=0;
-	
+
 	/* LANGUAGE FUNCTIONS */
-	virtual void init()=0;	
+	virtual void init()=0;
 	virtual String get_type() const=0;
 	virtual String get_extension() const=0;
-	virtual Error execute_file(const String& p_path) =0;	
-	virtual void finish()=0;	
+	virtual Error execute_file(const String& p_path) =0;
+	virtual void finish()=0;
 
 	/* EDITOR FUNCTIONS */
 	virtual void get_reserved_words(List<String> *p_words) const=0;
@@ -189,15 +202,32 @@ public:
 
 	virtual Vector<StackInfo> debug_get_current_stack_info() { return Vector<StackInfo>(); }
 
+	virtual void reload_all_scripts()=0;
+	virtual void reload_tool_script(const Ref<Script>& p_script,bool p_soft_reload)=0;
 	/* LOADER FUNCTIONS */
 
 	virtual void get_recognized_extensions(List<String> *p_extensions) const=0;
 	virtual void get_public_functions(List<MethodInfo> *p_functions) const=0;
 	virtual void get_public_constants(List<Pair<String,Variant> > *p_constants) const=0;
 
+	struct ProfilingInfo {
+		StringName signature;
+		uint64_t call_count;
+		uint64_t total_time;
+		uint64_t self_time;
+
+	};
+
+	virtual void profiling_start()=0;
+	virtual void profiling_stop()=0;
+
+	virtual int profiling_get_accumulated_data(ProfilingInfo *p_info_arr,int p_info_max)=0;
+	virtual int profiling_get_frame_data(ProfilingInfo *p_info_arr,int p_info_max)=0;
+
+
 	virtual void frame();
 
-	virtual ~ScriptLanguage() {};	
+	virtual ~ScriptLanguage() {};
 };
 
 extern uint8_t script_encryption_key[32];
@@ -232,6 +262,8 @@ public:
 	Object *get_owner() { return owner; }
 
 	void update(const List<PropertyInfo> &p_properties,const Map<StringName,Variant>& p_values); //likely changed in editor
+
+	virtual bool is_placeholder() const { return true; }
 
 	PlaceHolderScriptInstance(ScriptLanguage *p_language, Ref<Script> p_script,Object *p_owner);
 	~PlaceHolderScriptInstance();
@@ -308,6 +340,13 @@ public:
 
 	virtual void set_request_scene_tree_message_func(RequestSceneTreeMessageFunc p_func, void *p_udata) {}
 	virtual void set_live_edit_funcs(LiveEditFuncs *p_funcs) {}
+
+	virtual bool is_profiling() const=0;
+	virtual void add_profiling_frame_data(const StringName& p_name,const Array& p_data)=0;
+	virtual void profiling_start()=0;
+	virtual void profiling_end()=0;
+	virtual void profiling_set_frame_times(float p_frame_time,float p_idle_time,float p_fixed_time,float p_fixed_frame_time)=0;
+
 
 	ScriptDebugger();
 	virtual ~ScriptDebugger() {singleton=NULL;}

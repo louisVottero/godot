@@ -131,7 +131,7 @@ void VideoPlayer::_notification(int p_notification) {
 			if (!playback->is_playing())
 				return;
 
-			double audio_time = OS::get_singleton()->get_ticks_usec()/1000000.0; //AudioServer::get_singleton()->get_mix_time();
+			double audio_time = USEC_TO_SEC(OS::get_singleton()->get_ticks_usec()); //AudioServer::get_singleton()->get_mix_time();
 
 			double delta = last_audio_time==0?0:audio_time-last_audio_time;
 			last_audio_time=audio_time;
@@ -208,10 +208,17 @@ void VideoPlayer::set_stream(const Ref<VideoStream> &p_stream) {
 		playback->set_paused(paused);
 		texture=playback->get_texture();
 
+		const int channels = playback->get_channels();
+
 		AudioServer::get_singleton()->lock();
-		resampler.setup(playback->get_channels(),playback->get_mix_rate(),server_mix_rate,buffering_ms,0);
+		if (channels > 0)
+			resampler.setup(channels,playback->get_mix_rate(),server_mix_rate,buffering_ms,0);
+		else
+			resampler.clear();
 		AudioServer::get_singleton()->unlock();
-		playback->set_mix_callback(_audio_mix_callback,this);
+
+		if (channels > 0)
+			playback->set_mix_callback(_audio_mix_callback,this);
 
 	} else {
 		texture.unref();
@@ -360,8 +367,8 @@ bool VideoPlayer::has_autoplay() const {
 
 void VideoPlayer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_stream","stream:Stream"),&VideoPlayer::set_stream);
-	ObjectTypeDB::bind_method(_MD("get_stream:Stream"),&VideoPlayer::get_stream);
+	ObjectTypeDB::bind_method(_MD("set_stream","stream:VideoStream"),&VideoPlayer::set_stream);
+	ObjectTypeDB::bind_method(_MD("get_stream:VideoStream"),&VideoPlayer::get_stream);
 
 	ObjectTypeDB::bind_method(_MD("play"),&VideoPlayer::play);
 	ObjectTypeDB::bind_method(_MD("stop"),&VideoPlayer::stop);

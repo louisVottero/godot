@@ -41,7 +41,11 @@
 #define _MKSTR(m_x) _STR(m_x)
 #endif
 // have to include version.h for this to work, include it in the .cpp not the .h
+#ifdef VERSION_PATCH
+#define VERSION_MKSTRING _MKSTR(VERSION_MAJOR)"." _MKSTR(VERSION_MINOR)"." _MKSTR(VERSION_PATCH)"." _MKSTR(VERSION_STATUS)"." _MKSTR(VERSION_REVISION)
+#else
 #define VERSION_MKSTRING _MKSTR(VERSION_MAJOR)"." _MKSTR(VERSION_MINOR)"." _MKSTR(VERSION_STATUS)"." _MKSTR(VERSION_REVISION)
+#endif // VERSION_PATCH
 #define VERSION_FULL_NAME _MKSTR(VERSION_NAME)" v" VERSION_MKSTRING
 
 
@@ -188,13 +192,22 @@ static _FORCE_INLINE_ unsigned int nearest_power_of_2(unsigned int x) {
 	return ++x;
 }
 
+// We need this definition inside the function below.
+static inline int get_shift_from_power_of_2(unsigned int p_pixel);
+
 template<class T>
 static _FORCE_INLINE_ T nearest_power_of_2_templated(T x) {
 
 	--x;
+
+	// The number of operations on x is the base two logarithm
+	// of the p_number of bits in the type. Add three to account
+	// for sizeof(T) being in bytes.
+	size_t num = get_shift_from_power_of_2(sizeof(T)) + 3;
+
 	// If the compiler is smart, it unrolls this loop
 	// If its dumb, this is a bit slow.
-	for (size_t i = 0; i < sizeof(T); i++)
+	for (size_t i = 0; i < num; i++)
 		x |= x >> (1 << i);
 
 	return ++x;
@@ -261,7 +274,7 @@ void _global_lock();
 void _global_unlock();
 
 struct _GlobalLock {
-	
+
 	_GlobalLock() { _global_lock(); }
 	~_GlobalLock() { _global_unlock(); }
 };

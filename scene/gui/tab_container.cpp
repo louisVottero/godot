@@ -27,7 +27,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "tab_container.h"
- 
+
 #include "message_queue.h"
 
 
@@ -209,7 +209,7 @@ void TabContainer::_notification(int p_what) {
 			Ref<Texture> incr = get_icon("increment");
 			Ref<Texture> incr_hl = get_icon("increment_hilite");
 			Ref<Texture> decr = get_icon("decrement");
-			Ref<Texture> decr_hl = get_icon("decrement_hilite");			
+			Ref<Texture> decr_hl = get_icon("decrement_hilite");
 			Ref<Texture> menu = get_icon("menu");
 			Ref<Texture> menu_hl = get_icon("menu_hl");
 			Ref<Font> font = get_font("font");
@@ -410,6 +410,11 @@ void TabContainer::_notification(int p_what) {
 
 			panel->draw(ci, Rect2( 0, top_size.height, size.width, size.height-top_size.height));
 
+		} break;
+		case NOTIFICATION_THEME_CHANGED: {
+			if (get_tab_count() > 0) {
+				call_deferred("set_current_tab",get_current_tab()); //wait until all changed theme
+			}
 		} break;
 	}
 }
@@ -700,13 +705,13 @@ Size2 TabContainer::get_minimum_size() const {
 		if (c->is_set_as_toplevel())
 			continue;
 
-		if (!c->has_meta("_tab_name"))
-			continue;
+		//if (!c->has_meta("_tab_name"))
+		//	continue;
 
 		if (!c->is_visible())
 			continue;
 
-		Size2 cms = c->get_minimum_size();
+		Size2 cms = c->get_combined_minimum_size();
 		ms.x=MAX(ms.x,cms.x);
 		ms.y=MAX(ms.y,cms.y);
 	}
@@ -717,6 +722,9 @@ Size2 TabContainer::get_minimum_size() const {
 
 	ms.y+=MAX(tab_bg->get_minimum_size().y,tab_fg->get_minimum_size().y);
 	ms.y+=font->get_height();
+
+	Ref<StyleBox> sb = get_stylebox("panel");
+	ms+=sb->get_minimum_size();
 
 	return ms;
 }

@@ -31,6 +31,9 @@
 #include "scene/gui/margin_container.h"
 #include "globals.h"
 #include "editor_file_system.h"
+#include "editor_node.h"
+#include "os/keyboard.h"
+
 void EditorSettingsDialog::ok_pressed() {
 
 	if (!EditorSettings::get_singleton())
@@ -45,6 +48,7 @@ void EditorSettingsDialog::_settings_changed() {
 
 
 	timer->start();
+	property_editor->get_property_editor()->update_tree(); // else color's won't update when theme is selected.
 }
 
 void EditorSettingsDialog::_settings_save() {
@@ -70,183 +74,19 @@ void EditorSettingsDialog::popup_edit_settings() {
 	if (!EditorSettings::get_singleton())
 		return;
 
+	EditorSettings::get_singleton()->list_text_editor_themes(); // make sure we have an up to date list of themes
+
 	property_editor->edit(EditorSettings::get_singleton());
 	property_editor->get_property_editor()->update_tree();
 
 	search_box->select_all();
 	search_box->grab_focus();
 
+	_update_shortcuts();
 	popup_centered_ratio(0.7);
 }
 
 
-void EditorSettingsDialog::_plugin_install() {
-
-	EditorSettings::Plugin plugin =	EditorSettings::get_singleton()->get_plugins()[plugin_setting_edit];
-
-	DirAccess *da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
-	da->change_dir("res://");
-	if (da->change_dir("plugins")!=OK) {
-
-		Error err = da->make_dir("plugins");
-		if (err)
-			memdelete(da);
-		ERR_FAIL_COND(err!=OK);
-		err = da->change_dir("plugins");
-		if (err)
-			memdelete(da);
-		ERR_FAIL_COND(err!=OK);
-	}
-
-	if (da->change_dir(plugin_setting_edit)!=OK) {
-
-		Error err = da->make_dir(plugin_setting_edit);
-		if (err)
-			memdelete(da);
-		ERR_FAIL_COND(err!=OK);
-		err = da->change_dir(plugin_setting_edit);
-		if (err)
-			memdelete(da);
-		ERR_FAIL_COND(err!=OK);
-	}
-
-	Vector<String> ifiles=plugin.install_files;
-
-	if (ifiles.find("plugin.cfg")==-1) {
-		ifiles.push_back("plugin.cfg");
-	}
-
-	if (ifiles.find(plugin.script)==-1) {
-		ifiles.push_back(plugin.script);
-	}
-
-	for(int i=0;i<ifiles.size();i++) {
-
-		String target = "res://plugins/"+plugin_setting_edit+"/"+ifiles[i];
-		Error err = da->copy(EditorSettings::get_singleton()->get_settings_path().plus_file("plugins/"+plugin_setting_edit+"/"+ifiles[i]),target);
-		if (err)
-			memdelete(da);
-		ERR_EXPLAIN("Error copying to file "+target);
-		ERR_FAIL_COND(err!=OK);
-		EditorFileSystem::get_singleton()->update_file(target);
-	}
-
-	memdelete(da);
-
-	Globals::get_singleton()->set("plugins/"+plugin_setting_edit,"res://plugins/"+plugin_setting_edit);
-	Globals::get_singleton()->set_persisting("plugins/"+plugin_setting_edit,true);
-	EditorSettings::get_singleton()->load_installed_plugin(plugin_setting_edit);
-	Globals::get_singleton()->save();
-
-
-	_update_plugins();
-}
-
-void EditorSettingsDialog::_rescan_plugins() {
-
-	EditorSettings::get_singleton()->scan_plugins();
-	_update_plugins();
-}
-
-void EditorSettingsDialog::_plugin_edited() {
-
-	if (updating)
-		return;
-
-	TreeItem *ti=plugins->get_edited();
-	if (!ti)
-		return;
-
-	String plugin = ti->get_metadata(0);
-	bool enabled = ti->is_checked(0);
-
-	EditorSettings::get_singleton()->set_plugin_enabled(plugin,enabled);
-}
-
-void EditorSettingsDialog::_plugin_settings(Object *p_obj,int p_cell,int p_index) {
-
-	TreeItem *ti=p_obj->cast_to<TreeItem>();
-
-	EditorSettings::Plugin plugin =	EditorSettings::get_singleton()->get_plugins()[ti->get_metadata(0)];
-
-	plugin_description->clear();
-	plugin_description->parse_bbcode(plugin.description);
-	plugin_setting_edit = ti->get_metadata(0);
-	if (plugin.installs) {
-		if (Globals::get_singleton()->has("plugins/"+plugin_setting_edit))
-			plugin_setting->get_ok()->set_text("Re-Install to Project");
-		else
-			plugin_setting->get_ok()->set_text("Install to Project");
-		plugin_setting->get_ok()->show();
-		plugin_setting->get_cancel()->set_text("Close");
-	} else {
-		plugin_setting->get_ok()->hide();
-		plugin_setting->get_cancel()->set_text("Close");
-	}
-
-	plugin_setting->set_title(plugin.name);
-	plugin_setting->popup_centered(Size2(300,200));
-}
-
-void EditorSettingsDialog::_update_plugins() {
-
-
-	updating=true;
-
-	plugins->clear();
-	TreeItem *root = plugins->create_item(NULL);
-	plugins->set_hide_root(true);
-
-	Color sc = get_color("prop_subsection","Editor");
-	TreeItem *editor = plugins->create_item(root);
-	editor->set_text(0,"Editor Plugins");
-	editor->set_custom_bg_color(0,sc);
-	editor->set_custom_bg_color(1,sc);
-	editor->set_custom_bg_color(2,sc);
-
-	TreeItem *install = plugins->create_item(root);
-	install->set_text(0,"Installable Plugins");
-	install->set_custom_bg_color(0,sc);
-	install->set_custom_bg_color(1,sc);
-	install->set_custom_bg_color(2,sc);
-
-	for (const Map<String,EditorSettings::Plugin>::Element *E=EditorSettings::get_singleton()->get_plugins().front();E;E=E->next()) {
-
-
-		TreeItem *ti = plugins->create_item(E->get().installs?install:editor);
-		if (!E->get().installs) {
-			ti->set_cell_mode(0,TreeItem::CELL_MODE_CHECK);
-			ti->set_editable(0,true);
-			if (EditorSettings::get_singleton()->is_plugin_enabled(E->key()))
-				ti->set_checked(0,true);
-
-			ti->set_text(0,E->get().name);
-		} else {
-
-			if (Globals::get_singleton()->has("plugins/"+E->key())) {
-
-				ti->set_text(0,E->get().name+" (Installed)");
-			} else {
-				ti->set_text(0,E->get().name);
-			}
-		}
-
-
-		ti->add_button(0,get_icon("Tools","EditorIcons"),0);
-		ti->set_text(1,E->get().author);
-		ti->set_text(2,E->get().version);
-		ti->set_metadata(0,E->key());
-
-	}
-
-	if (!editor->get_children())
-		memdelete(editor);
-	if (!install->get_children())
-		memdelete(install);
-
-	updating=false;
-
-}
 
 void EditorSettingsDialog::_clear_search_box() {
 
@@ -261,26 +101,180 @@ void EditorSettingsDialog::_notification(int p_what) {
 
 	if (p_what==NOTIFICATION_ENTER_TREE) {
 
-		rescan_plugins->set_icon(get_icon("Reload","EditorIcons"));
 		clear_button->set_icon(get_icon("Close","EditorIcons"));
-		_update_plugins();
 	}
+}
+
+
+void EditorSettingsDialog::_update_shortcuts() {
+
+	shortcuts->clear();
+
+	List<String> slist;
+	EditorSettings::get_singleton()->get_shortcut_list(&slist);
+	TreeItem *root = shortcuts->create_item();
+
+	Map<String,TreeItem*> sections;
+
+	for(List<String>::Element *E=slist.front();E;E=E->next()) {
+
+		Ref<ShortCut> sc = EditorSettings::get_singleton()->get_shortcut(E->get());
+		if (!sc->has_meta("original"))
+			continue;
+
+		InputEvent original = sc->get_meta("original");
+
+		String section_name = E->get().get_slice("/",0);
+
+		TreeItem *section;
+
+		if (sections.has(section_name)) {
+			section=sections[section_name];
+		} else {
+			section = shortcuts->create_item(root);
+			section->set_text(0,section_name.capitalize());
+
+			sections[section_name]=section;
+			section->set_custom_bg_color(0,get_color("prop_subsection","Editor"));
+			section->set_custom_bg_color(1,get_color("prop_subsection","Editor"));
+
+		}
+
+		TreeItem *item = shortcuts->create_item(section);
+
+
+		item->set_text(0,sc->get_name());
+		item->set_text(1,sc->get_as_text());
+		if (!sc->is_shortcut(original) && !(sc->get_shortcut().type==InputEvent::NONE && original.type==InputEvent::NONE)) {
+			item->add_button(1,get_icon("Reload","EditorIcons"),2);
+		}
+		item->add_button(1,get_icon("Edit","EditorIcons"),0);
+		item->add_button(1,get_icon("Close","EditorIcons"),1);
+		item->set_tooltip(0,E->get());
+		item->set_metadata(0,E->get());
+	}
+
+
+
+
+}
+
+void EditorSettingsDialog::_shortcut_button_pressed(Object* p_item,int p_column,int p_idx) {
+
+	TreeItem *ti=p_item->cast_to<TreeItem>();
+	ERR_FAIL_COND(!ti);
+
+	String item = ti->get_metadata(0);
+	Ref<ShortCut> sc = EditorSettings::get_singleton()->get_shortcut(item);
+
+	if (p_idx==0) {
+		press_a_key_label->set_text(TTR("Press a Key.."));
+		last_wait_for_key=InputEvent();
+		press_a_key->popup_centered(Size2(250,80)*EDSCALE);
+		press_a_key->grab_focus();
+		press_a_key->get_ok()->set_focus_mode(FOCUS_NONE);
+		press_a_key->get_cancel()->set_focus_mode(FOCUS_NONE);
+		shortcut_configured=item;
+
+	} else if (p_idx==1) {//erase
+		if (!sc.is_valid())
+			return; //pointless, there is nothing
+
+		UndoRedo *ur = EditorNode::get_singleton()->get_undo_redo();
+		ur->create_action("Erase Shortcut");
+		ur->add_do_method(sc.ptr(),"set_shortcut",InputEvent());
+		ur->add_undo_method(sc.ptr(),"set_shortcut",sc->get_shortcut());
+		ur->add_do_method(this,"_update_shortcuts");
+		ur->add_undo_method(this,"_update_shortcuts");
+		ur->add_do_method(this,"_settings_changed");
+		ur->add_undo_method(this,"_settings_changed");
+		ur->commit_action();
+	} else if (p_idx==2) {//revert to original
+		if (!sc.is_valid())
+			return; //pointless, there is nothing
+
+		InputEvent original = sc->get_meta("original");
+
+		UndoRedo *ur = EditorNode::get_singleton()->get_undo_redo();
+		ur->create_action("Restore Shortcut");
+		ur->add_do_method(sc.ptr(),"set_shortcut",original);
+		ur->add_undo_method(sc.ptr(),"set_shortcut",sc->get_shortcut());
+		ur->add_do_method(this,"_update_shortcuts");
+		ur->add_undo_method(this,"_update_shortcuts");
+		ur->add_do_method(this,"_settings_changed");
+		ur->add_undo_method(this,"_settings_changed");
+		ur->commit_action();
+	}
+}
+
+
+void EditorSettingsDialog::_wait_for_key(const InputEvent& p_event) {
+
+
+	if (p_event.type==InputEvent::KEY && p_event.key.pressed && p_event.key.scancode!=0) {
+
+		last_wait_for_key=p_event;
+		String str=keycode_get_string(p_event.key.scancode).capitalize();
+		if (p_event.key.mod.meta)
+			str=TTR("Meta+")+str;
+		if (p_event.key.mod.shift)
+			str=TTR("Shift+")+str;
+		if (p_event.key.mod.alt)
+			str=TTR("Alt+")+str;
+		if (p_event.key.mod.control)
+			str=TTR("Control+")+str;
+
+
+		press_a_key_label->set_text(str);
+		press_a_key->accept_event();
+
+	}
+}
+
+
+
+
+void EditorSettingsDialog::_press_a_key_confirm() {
+
+	if (last_wait_for_key.type!=InputEvent::KEY)
+		return;
+
+	InputEvent ie;
+	ie.type=InputEvent::KEY;
+	ie.key.scancode=last_wait_for_key.key.scancode;
+	ie.key.mod=last_wait_for_key.key.mod;
+
+	Ref<ShortCut> sc = EditorSettings::get_singleton()->get_shortcut(shortcut_configured);
+
+	UndoRedo *ur = EditorNode::get_singleton()->get_undo_redo();
+	ur->create_action("Change Shortcut '"+shortcut_configured+"'");
+	ur->add_do_method(sc.ptr(),"set_shortcut",ie);
+	ur->add_undo_method(sc.ptr(),"set_shortcut",sc->get_shortcut());
+	ur->add_do_method(this,"_update_shortcuts");
+	ur->add_undo_method(this,"_update_shortcuts");
+	ur->add_do_method(this,"_settings_changed");
+	ur->add_undo_method(this,"_settings_changed");
+	ur->commit_action();
+
+
+
 }
 
 void EditorSettingsDialog::_bind_methods() {
 
 	ObjectTypeDB::bind_method(_MD("_settings_save"),&EditorSettingsDialog::_settings_save);
 	ObjectTypeDB::bind_method(_MD("_settings_changed"),&EditorSettingsDialog::_settings_changed);
-	ObjectTypeDB::bind_method(_MD("_rescan_plugins"),&EditorSettingsDialog::_rescan_plugins);
-	ObjectTypeDB::bind_method(_MD("_plugin_settings"),&EditorSettingsDialog::_plugin_settings);
-	ObjectTypeDB::bind_method(_MD("_plugin_edited"),&EditorSettingsDialog::_plugin_edited);
-	ObjectTypeDB::bind_method(_MD("_plugin_install"),&EditorSettingsDialog::_plugin_install);
 	ObjectTypeDB::bind_method(_MD("_clear_search_box"),&EditorSettingsDialog::_clear_search_box);
+	ObjectTypeDB::bind_method(_MD("_shortcut_button_pressed"),&EditorSettingsDialog::_shortcut_button_pressed);
+	ObjectTypeDB::bind_method(_MD("_update_shortcuts"),&EditorSettingsDialog::_update_shortcuts);
+	ObjectTypeDB::bind_method(_MD("_press_a_key_confirm"),&EditorSettingsDialog::_press_a_key_confirm);
+	ObjectTypeDB::bind_method(_MD("_wait_for_key"),&EditorSettingsDialog::_wait_for_key);
+
 }
 
 EditorSettingsDialog::EditorSettingsDialog() {
 
-	set_title("Editor Settings");
+	set_title(TTR("Editor Settings"));
 
 	tabs = memnew( TabContainer );
 	add_child(tabs);
@@ -288,14 +282,14 @@ EditorSettingsDialog::EditorSettingsDialog() {
 
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	tabs->add_child(vbc);
-	vbc->set_name("General");
+	vbc->set_name(TTR("General"));
 
 	HBoxContainer *hbc = memnew( HBoxContainer );
 	hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	vbc->add_child(hbc);
 
 	Label *l = memnew( Label );
-	l->set_text("Search: ");
+	l->set_text(TTR("Search:")+" ");
 	hbc->add_child(l);
 
 	search_box = memnew( LineEdit );
@@ -315,41 +309,36 @@ EditorSettingsDialog::EditorSettingsDialog() {
 
 	vbc = memnew( VBoxContainer );
 	tabs->add_child(vbc);
-	vbc->set_name("Plugins");
+	vbc->set_name(TTR("Shortcuts"));
 
-	hbc = memnew( HBoxContainer );
-	vbc->add_child(hbc);
-	hbc->add_child( memnew( Label("Plugin List: ")));
-	hbc->add_spacer();
+	shortcuts = memnew( Tree );
+	vbc->add_margin_child("Shortcut List:",shortcuts,true);
+	shortcuts->set_columns(2);
+	shortcuts->set_hide_root(true);
+	//shortcuts->set_hide_folding(true);
+	shortcuts->set_column_titles_visible(true);
+	shortcuts->set_column_title(0,"Name");
+	shortcuts->set_column_title(1,"Binding");
+	shortcuts->connect("button_pressed",this,"_shortcut_button_pressed");
+
+	press_a_key = memnew( ConfirmationDialog );
+	press_a_key->set_focus_mode(FOCUS_ALL);
+	add_child(press_a_key);
+
+	l = memnew( Label );
+	l->set_text(TTR("Press a Key.."));
+	l->set_area_as_parent_rect();
+	l->set_align(Label::ALIGN_CENTER);
+	l->set_margin(MARGIN_TOP,20);
+	l->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_BEGIN,30);
+	press_a_key_label=l;
+	press_a_key->add_child(l);
+	press_a_key->connect("input_event",this,"_wait_for_key");
+	press_a_key->connect("confirmed",this,"_press_a_key_confirm");
 	//Button *load = memnew( Button );
+
 	//load->set_text("Load..");
 	//hbc->add_child(load);
-	Button *rescan = memnew( Button );
-	rescan_plugins=rescan;
-	rescan_plugins->connect("pressed",this,"_rescan_plugins");
-	hbc->add_child(rescan);
-	plugins = memnew( Tree );
-	MarginContainer *mc = memnew( MarginContainer);
-	vbc->add_child(mc);
-	mc->add_child(plugins);
-	mc->set_v_size_flags(SIZE_EXPAND_FILL);
-	plugins->set_columns(3);
-	plugins->set_column_title(0,"Name");
-	plugins->set_column_title(1,"Author");
-	plugins->set_column_title(2,"Version");
-	plugins->set_column_expand(2,false);
-	plugins->set_column_min_width(2,100);
-	plugins->set_column_titles_visible(true);
-	plugins->connect("button_pressed",this,"_plugin_settings");
-	plugins->connect("item_edited",this,"_plugin_edited");
-
-	plugin_setting = memnew( ConfirmationDialog );
-	add_child(plugin_setting);
-	plugin_description = memnew( RichTextLabel );
-	plugin_setting->add_child(plugin_description);
-	plugin_setting->set_child_rect(plugin_description);
-	plugin_setting->connect("confirmed",this,"_plugin_install");
-
 
 
 	//get_ok()->set_text("Apply");
@@ -362,9 +351,7 @@ EditorSettingsDialog::EditorSettingsDialog() {
 	timer->set_one_shot(true);
 	add_child(timer);
 	EditorSettings::get_singleton()->connect("settings_changed",this,"_settings_changed");
-	get_ok()->set_text("Close");
-	install_confirm = memnew( ConfirmationDialog );
-	add_child(install_confirm);
+	get_ok()->set_text(TTR("Close"));
 
 	updating=false;
 

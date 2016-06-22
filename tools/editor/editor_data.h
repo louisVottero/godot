@@ -34,7 +34,6 @@
 #include "list.h"
 #include "undo_redo.h"
 #include "pair.h"
-#include "default_saver.h"
 
 class EditorHistory {
 
@@ -150,6 +149,7 @@ public:
 
 	EditorPlugin* get_editor(Object *p_object);
 	EditorPlugin* get_subeditor(Object *p_object);
+	Vector<EditorPlugin*> get_subeditors(Object *p_object);
 	EditorPlugin* get_editor(String p_name);
 
 	void copy_object_params(Object *p_object);
@@ -164,6 +164,9 @@ public:
 
 	void add_editor_plugin(EditorPlugin *p_plugin);
 	void remove_editor_plugin(EditorPlugin *p_plugin);
+
+	int get_editor_plugin_count() const;
+	EditorPlugin *get_editor_plugin(int p_idx);
 
 	UndoRedo &get_undo_redo();
 

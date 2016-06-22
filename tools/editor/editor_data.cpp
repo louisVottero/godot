@@ -260,14 +260,24 @@ EditorPlugin* EditorData::get_subeditor(Object *p_object) {
 	return NULL;
 }
 
+Vector<EditorPlugin*> EditorData::get_subeditors(Object* p_object) {
+	Vector<EditorPlugin*> sub_plugins;
+	for (int i = 0; i < editor_plugins.size(); i++) {
+		if (!editor_plugins[i]->has_main_screen() && editor_plugins[i]->handles(p_object)) {
+			sub_plugins.push_back(editor_plugins[i]);
+		}
+	}
+	return sub_plugins;
+}
+
 EditorPlugin* EditorData::get_editor(String p_name) {
-	
+
 	for(int i=0;i<editor_plugins.size();i++) {
-		
+
 		if (editor_plugins[i]->get_name()==p_name)
 			return editor_plugins[i];
 	}
-	
+
 	return NULL;
 }
 
@@ -422,6 +432,14 @@ void EditorData::add_editor_plugin(EditorPlugin *p_plugin) {
 	editor_plugins.push_back(p_plugin);
 }
 
+int EditorData::get_editor_plugin_count() const {
+	return editor_plugins.size();
+}
+EditorPlugin *EditorData::get_editor_plugin(int p_idx) {
+
+	ERR_FAIL_INDEX_V(p_idx,editor_plugins.size(),NULL);
+	return editor_plugins[p_idx];
+}
 
 
 void EditorData::add_custom_type(const String& p_type, const String& p_inherits,const Ref<Script>& p_script,const Ref<Texture>& p_icon ) {
@@ -551,12 +569,12 @@ bool EditorData::check_and_update_scene(int p_idx) {
 		Ref<PackedScene> pscene;
 		pscene.instance();
 
-		EditorProgress ep("update_scene","Updating Scene",2);
-		ep.step("Storing local changes..",0);
+		EditorProgress ep("update_scene",TTR("Updating Scene"),2);
+		ep.step(TTR("Storing local changes.."),0);
 		//pack first, so it stores diffs to previous version of saved scene
 		Error err = pscene->pack(edited_scene[p_idx].root);
 		ERR_FAIL_COND_V(err!=OK,false);
-		ep.step("Updating scene..",1);
+		ep.step(TTR("Updating scene.."),1);
 		Node *new_scene = pscene->instance(true);
 		ERR_FAIL_COND_V(!new_scene,false);
 
@@ -852,8 +870,8 @@ void EditorSelection::_bind_methods() {
 
 	ObjectTypeDB::bind_method(_MD("_node_removed"),&EditorSelection::_node_removed);
 	ObjectTypeDB::bind_method(_MD("clear"),&EditorSelection::clear);
-	ObjectTypeDB::bind_method(_MD("add_node","node"),&EditorSelection::add_node);
-	ObjectTypeDB::bind_method(_MD("remove_node","node"),&EditorSelection::remove_node);
+	ObjectTypeDB::bind_method(_MD("add_node","node:Node"),&EditorSelection::add_node);
+	ObjectTypeDB::bind_method(_MD("remove_node","node:Node"),&EditorSelection::remove_node);
 	ObjectTypeDB::bind_method(_MD("get_selected_nodes"),&EditorSelection::_get_selected_nodes);
 	ADD_SIGNAL( MethodInfo("selection_changed") );
 
