@@ -34,6 +34,8 @@
 #include "resource.h"
 #include "os/thread_safe.h"
 #include "core/io/config_file.h"
+#include "translation.h"
+#include "scene/gui/input_action.h"
 
 class EditorPlugin;
 
@@ -57,13 +59,13 @@ public:
 		Vector<String> install_files;
 	};
 private:
-	Map<String,Plugin> plugins;
 
 	struct VariantContainer {
 		int order;
 		Variant variant;
 		bool hide_from_editor;
-		VariantContainer(){ order=0; hide_from_editor=false; }
+		bool save;
+		VariantContainer(){ order=0; hide_from_editor=false; save=false;}
 		VariantContainer(const Variant& p_variant, int p_order) { variant=p_variant; order=p_order; hide_from_editor=false; }
 	};
 
@@ -84,15 +86,22 @@ private:
 	Ref<Resource> clipboard;
 
 
-	EditorPlugin *_load_plugin_editor(const String& p_path);
-	Error _load_plugin(const String& p_path,Plugin& plugin);
+	bool save_changed_setting;
+
 
 	void _load_defaults(Ref<ConfigFile> p_extra_config = NULL);
+	void _load_default_text_editor_theme();
+
+	bool _save_text_editor_theme(String p_file);
 
 	String project_config_path;
 
 	Vector<String> favorite_dirs;
 	Vector<String> recent_dirs;
+
+	Vector<Ref<Translation> > translations;
+
+	Map<String,Ref<ShortCut> > shortcuts;
 
 protected:
 
@@ -111,10 +120,8 @@ public:
 	//String get_global_settings_path() const;
 	String get_project_settings_path() const;
 
-	const Map<String,Plugin>& get_plugins() const { return plugins; }
 
-	void scan_plugins();
-	void enable_plugins();
+	void setup_language();
 	void setup_network();
 
 	void raise_order(const String& p_name);
@@ -123,11 +130,6 @@ public:
 	static void destroy();
 
 	void notify_changes();
-
-	void set_plugin_enabled(const String& p_plugin,bool p_enabled);
-	bool is_plugin_enabled(const String& p_plugin);
-
-	void load_installed_plugin(const String& p_plugin);
 
 	void set_resource_clipboard(const Ref<Resource>& p_resource) { clipboard=p_resource; }
 	Ref<Resource> get_resource_clipboard() const { return clipboard; }
@@ -142,6 +144,17 @@ public:
 
 	void load_favorites();
 
+	void list_text_editor_themes();
+	void load_text_editor_theme();
+	bool import_text_editor_theme(String p_file);
+	bool save_text_editor_theme();
+	bool save_text_editor_theme_as(String p_file);
+
+	void add_shortcut(const String& p_name,Ref<ShortCut>& p_shortcut);
+	bool is_shortcut(const String&p_name,const InputEvent& p_event) const;
+	Ref<ShortCut> get_shortcut(const String&p_name) const;
+	void get_shortcut_list(List<String> *r_shortcuts);
+
 	EditorSettings();
 	~EditorSettings();
 
@@ -151,5 +164,9 @@ public:
 
 #define EDITOR_DEF(m_var,m_val) _EDITOR_DEF(m_var,Variant(m_val))
 Variant _EDITOR_DEF( const String& p_var, const Variant& p_default);
+
+#define ED_IS_SHORTCUT(p_name,p_ev) (EditorSettings::get_singleton()->is_shortcut(p_name,p_ev))
+Ref<ShortCut> ED_SHORTCUT(const String& p_path,const String& p_name,uint32_t p_keycode=0);
+Ref<ShortCut> ED_GET_SHORTCUT(const String& p_path);
 
 #endif // EDITOR_SETTINGS_H

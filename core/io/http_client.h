@@ -40,7 +40,7 @@ class HTTPClient : public Reference {
 	OBJ_TYPE(HTTPClient,Reference);
 public:
 
-	enum RespondeCode {
+	enum ResponseCode {
 
 		// 1xx informational
 		RESPONSE_CONTINUE = 100,
@@ -164,11 +164,13 @@ private:
 public:
 
 
-	Error connect_url(const String& p_url); //connects to a full url and perform request
+	//Error connect_and_get(const String& p_url,bool p_verify_host=true); //connects to a full url and perform request
 	Error connect(const String &p_host,int p_port,bool p_ssl=false,bool p_verify_host=true);
 
 	void set_connection(const Ref<StreamPeer>& p_connection);
+	Ref<StreamPeer> get_connection() const;
 
+	Error request_raw( Method p_method, const String& p_url, const Vector<String>& p_headers,const DVector<uint8_t>& p_body);
 	Error request( Method p_method, const String& p_url, const Vector<String>& p_headers,const String& p_body=String());
 	Error send_body_text(const String& p_body);
 	Error send_body_data(const ByteArray& p_body);
@@ -192,7 +194,7 @@ public:
 
 	Error poll();
 
-    String query_string_from_dict(const Dictionary& p_dict);
+	String query_string_from_dict(const Dictionary& p_dict);
 
 	HTTPClient();
 	~HTTPClient();

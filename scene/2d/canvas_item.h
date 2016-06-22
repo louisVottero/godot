@@ -60,7 +60,6 @@ protected:
 	bool _get(const StringName& p_name,Variant &r_ret) const;
 	void _get_property_list( List<PropertyInfo> *p_list) const;
 
-	void _shader_changed();
 	static void _bind_methods();
 
 	void get_argument_options(const StringName& p_function,int p_idx,List<String>*r_options) const;
@@ -239,6 +238,8 @@ public:
 
 	virtual Matrix32 get_global_transform() const;
 	virtual Matrix32 get_global_transform_with_canvas() const;
+
+	Rect2 get_item_and_children_rect() const;
 
 	CanvasItem *get_toplevel() const;
 	_FORCE_INLINE_ RID get_canvas_item() const { return canvas_item; }

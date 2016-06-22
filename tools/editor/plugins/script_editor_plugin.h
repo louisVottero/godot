@@ -122,6 +122,10 @@ class ScriptEditor : public VBoxContainer {
 		FILE_SAVE,
 		FILE_SAVE_AS,
 		FILE_SAVE_ALL,
+		FILE_IMPORT_THEME,
+		FILE_RELOAD_THEME,
+		FILE_SAVE_THEME,
+		FILE_SAVE_THEME_AS,
 		FILE_CLOSE,
 		EDIT_UNDO,
 		EDIT_REDO,
@@ -131,14 +135,18 @@ class ScriptEditor : public VBoxContainer {
 		EDIT_SELECT_ALL,
 		EDIT_COMPLETE,
 		EDIT_AUTO_INDENT,
+		EDIT_TRIM_TRAILING_WHITESAPCE,
 		EDIT_TOGGLE_COMMENT,
 		EDIT_MOVE_LINE_UP,
 		EDIT_MOVE_LINE_DOWN,
 		EDIT_INDENT_RIGHT,
 		EDIT_INDENT_LEFT,
 		EDIT_CLONE_DOWN,
+		FILE_TOOL_RELOAD,
+		FILE_TOOL_RELOAD_SOFT,
 		SEARCH_FIND,
 		SEARCH_FIND_NEXT,
+		SEARCH_FIND_PREV,
 		SEARCH_REPLACE,
 		SEARCH_LOCATE_FUNCTION,
 		SEARCH_GOTO_LINE,
@@ -146,6 +154,9 @@ class ScriptEditor : public VBoxContainer {
 		SEARCH_CLASSES,
 		SEARCH_WEBSITE,
 		DEBUG_TOGGLE_BREAKPOINT,
+		DEBUG_REMOVE_ALL_BREAKPOINTS,
+		DEBUG_GOTO_NEXT_BREAKPOINT,
+		DEBUG_GOTO_PREV_BREAKPOINT,
 		DEBUG_NEXT,
 		DEBUG_STEP,
 		DEBUG_BREAK,
@@ -178,12 +189,14 @@ class ScriptEditor : public VBoxContainer {
 	ItemList *script_list;
 	HSplitContainer *script_split;
 	TabContainer *tab_container;
-	FindReplaceDialog *find_replace_dialog;
+	EditorFileDialog *file_dialog;
 	GotoLineDialog *goto_line_dialog;
 	ConfirmationDialog *erase_tab_confirm;
 	ScriptCreateDialog *script_create_dialog;
 	ScriptEditorDebugger* debugger;
 	ToolButton *scripts_visible;
+
+	String current_theme;
 
 	TextureFrame *script_icon;
 	Label *script_name_label;
@@ -219,11 +232,15 @@ class ScriptEditor : public VBoxContainer {
 	void _resave_scripts(const String& p_str);
 	void _reload_scripts();
 
-	bool _test_script_times_on_disk();
+	bool _test_script_times_on_disk(Ref<Script> p_for_script=Ref<Script>());
 
 	void _close_current_tab();
 
 	bool grab_focus_block;
+
+	bool pending_auto_reload;
+	bool auto_reload_running_scripts;
+	void _live_auto_reload_running_scripts();
 
 	ScriptEditorQuickOpen *quick_open;
 
@@ -237,6 +254,10 @@ class ScriptEditor : public VBoxContainer {
 
 	void _add_callback(Object *p_obj, const String& p_function, const StringArray& p_args);
 	void _res_saved_callback(const Ref<Resource>& p_res);
+
+	bool trim_trailing_whitespace_on_save;
+
+	void _trim_trailing_whitespace(TextEdit *tx);
 
 	void _goto_script_line2(int p_line);
 	void _goto_script_line(REF p_script,int p_line);
@@ -270,8 +291,10 @@ class ScriptEditor : public VBoxContainer {
 	void _go_to_tab(int p_idx);
 	void _update_history_pos(int p_new_pos);
 	void _update_script_colors();
-	void _update_modified_scripts_for_external_editor();
+	void _update_modified_scripts_for_external_editor(Ref<Script> p_for_script=Ref<Script>());
 
+	int file_dialog_option;
+	void _file_dialog_action(String p_file);
 
 	static ScriptEditor *script_editor;
 protected:
@@ -302,9 +325,12 @@ public:
 
 	void set_scene_root_script( Ref<Script> p_script );
 
+	bool script_go_to_method(Ref<Script> p_script, const String& p_method);
+
 	virtual void edited_scene_changed();
 
 	ScriptEditorDebugger *get_debugger() { return debugger; }
+	void set_live_auto_reload_running_scripts(bool p_enabled);
 
 	ScriptEditor(EditorNode *p_editor);
 	~ScriptEditor();
@@ -339,6 +365,7 @@ public:
 	virtual void get_window_layout(Ref<ConfigFile> p_layout);
 
 	virtual void get_breakpoints(List<String> *p_breakpoints);
+
 
 	virtual void edited_scene_changed();
 

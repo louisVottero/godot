@@ -32,18 +32,20 @@
 
 
 void Popup::_input_event(InputEvent p_event) {
-	
+
 
 }
 
 void Popup::_notification(int p_what) {
-	
+
 	if (p_what==NOTIFICATION_VISIBILITY_CHANGED) {
 		if (popped_up && !is_visible()) {
 			popped_up=false;
 			notification(NOTIFICATION_POPUP_HIDE);
 			emit_signal("popup_hide");
 		}
+
+		update_configuration_warning();
 	}
 
 	if (p_what==NOTIFICATION_ENTER_TREE) {
@@ -58,11 +60,11 @@ void Popup::_notification(int p_what) {
 }
 
 void Popup::_fix_size() {
-	
+
 
 #if 0
 	Point2 pos = get_pos();
-	Size2 size = get_size();		
+	Size2 size = get_size();
 	Point2 window_size = window==this ? get_parent_area_size()  :window->get_size();
 #else
 
@@ -75,7 +77,7 @@ void Popup::_fix_size() {
 		pos.x=window_size.width-size.width;
 	if (pos.x<0)
 		pos.x=0;
-	
+
 	if (pos.y+size.height > window_size.height)
 		pos.y=window_size.height-size.height;
 	if (pos.y<0)
@@ -179,7 +181,7 @@ void Popup::popup_centered_minsize(const Size2& p_minsize) {
 }
 
 void Popup::popup_centered(const Size2& p_size) {
-	
+
 	Point2 window_size = get_viewport_rect().size;
 
 	emit_signal("about_to_show");
@@ -203,9 +205,9 @@ void Popup::popup_centered(const Size2& p_size) {
 }
 
 void Popup::popup_centered_ratio(float p_screen_ratio) {
-	
-	
-	
+
+
+
 	emit_signal("about_to_show");
 
 	Rect2 rect;
@@ -214,7 +216,7 @@ void Popup::popup_centered_ratio(float p_screen_ratio) {
 	rect.pos = ((window_size-rect.size)/2.0).floor();
 	set_pos( rect.pos );
 	set_size( rect.size );
-	
+
 	show_modal(exclusive);
 	_fix_size();
 
@@ -282,6 +284,14 @@ Popup::Popup() {
 	hide();
 }
 
+String Popup::get_configuration_warning() const {
+
+	if (is_visible()) {
+		return TTR("Popups will hide by default unless you call popup() or any of the popup*() functions. Making them visible for editing is fine though, but they will hide upon running.");
+	}
+
+	return String();
+}
 
 Popup::~Popup()
 {

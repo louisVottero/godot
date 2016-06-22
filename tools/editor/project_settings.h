@@ -31,13 +31,18 @@
 
 #include "scene/gui/dialogs.h"
 #include "property_editor.h"
-#include "optimized_save_dialog.h"
 #include "undo_redo.h"
 #include "editor_data.h"
+#include "scene/gui/tab_container.h"
+#include "editor_plugin_settings.h"
+
 //#include "project_export_settings.h"
 
 class ProjectSettings : public AcceptDialog {
 	OBJ_TYPE( ProjectSettings, AcceptDialog );
+
+
+	TabContainer *tab_container;
 
 	Timer *timer;
 	InputEvent::Type add_type;
@@ -85,9 +90,13 @@ class ProjectSettings : public AcceptDialog {
 
 
 	Tree *autoload_list;
+	String selected_autoload;
 	EditorFileDialog *autoload_file_open;
 	LineEdit *autoload_add_name;
 	LineEdit *autoload_add_path;
+
+
+	EditorPluginSettings *plugin_settings;
 
 	void _update_autoload();
 	void _autoload_file_callback(const String& p_path);
@@ -95,6 +104,7 @@ class ProjectSettings : public AcceptDialog {
 	void _autoload_edited();
 	void _autoload_file_open();
 	void _autoload_delete(Object *p_item,int p_column, int p_button);
+	void _autoload_selected();
 	bool updating_autoload;
 
 
@@ -142,6 +152,8 @@ class ProjectSettings : public AcceptDialog {
 	void _toggle_search_bar(bool p_pressed);
 	void _clear_search_box();
 
+
+
 	ProjectSettings();
 
 
@@ -156,6 +168,9 @@ public:
 	void add_translation(const String& p_translation);
 	static ProjectSettings *get_singleton() { return singleton; }
 	void popup_project_settings();
+	void set_plugins_page();
+
+	void queue_save();
 
 
 	ProjectSettings(EditorData *p_data);

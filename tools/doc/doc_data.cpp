@@ -36,6 +36,21 @@
 #include "io/compression.h"
 #include "scene/resources/theme.h"
 
+struct _ConstantComparator {
+
+	inline bool operator()(const DocData::ConstantDoc &a, const DocData::ConstantDoc &b) const {
+		String left_a = a.name.find("_") == -1 ? a.name : a.name.substr(0, a.name.find("_"));
+		String left_b = b.name.find("_") == -1 ? b.name : b.name.substr(0, b.name.find("_"));
+		if (left_a == left_b) // If they have the same prefix
+			if (a.value == b.value)
+				return a.name < b.name; // Sort by name if the values are the same
+			else
+				return a.value < b.value; // Sort by value otherwise
+		else
+			return left_a < left_b; // Sort by name if the prefixes aren't the same
+	}
+};
+
 void DocData::merge_from(const DocData& p_data) {
 
 	for( Map<String,ClassDoc>::Element *E=class_list.front();E;E=E->next()) {
@@ -60,6 +75,27 @@ void DocData::merge_from(const DocData& p_data) {
 				if (cf.methods[j].name!=m.name)
 					continue;
 				if (cf.methods[j].arguments.size()!=m.arguments.size())
+					continue;
+				// since polymorphic functions are allowed we need to check the type of
+				// the arguments so we make sure they are different.
+				int arg_count = cf.methods[j].arguments.size();
+				Vector<bool> arg_used;
+				arg_used.resize(arg_count);
+				for (int l = 0; l < arg_count; ++l) arg_used[l] = false;
+				// also there is no guarantee that argument ordering will match, so we
+				// have to check one by one so we make sure we have an exact match
+				for (int k = 0; k < arg_count; ++k) {
+					for (int l = 0; l < arg_count; ++l)
+						if (cf.methods[j].arguments[k].type == m.arguments[l].type && !arg_used[l]) {
+							arg_used[l] = true;
+							break;
+						}
+				}
+				bool not_the_same = false;
+				for (int l = 0; l < arg_count; ++l)
+					if (!arg_used[l]) // at least one of the arguments was different
+						not_the_same = true;
+				if (not_the_same)
 					continue;
 
 				const MethodDoc &mf = cf.methods[j];
@@ -190,7 +226,11 @@ void DocData::generate(bool p_basic_types) {
 #ifdef DEBUG_METHODS_ENABLED
 					if (m && m->get_return_type()!=StringName())
 						method.return_type=m->get_return_type();
-					else if (arginfo.type!=Variant::NIL) // {
+					else if (method.name.find(":")!=-1) {
+						method.return_type=method.name.get_slice(":",1);
+						method.name=method.name.get_slice(":",0);
+
+					} else if (arginfo.type!=Variant::NIL) // {
 #endif
 						method.return_type=(arginfo.hint==PROPERTY_HINT_RESOURCE_TYPE)?arginfo.hint_string:Variant::get_type_name(arginfo.type);
 //					}
@@ -210,7 +250,7 @@ void DocData::generate(bool p_basic_types) {
 					} else if (arginfo.hint==PROPERTY_HINT_RESOURCE_TYPE) {
 						type_name=arginfo.hint_string;
 					} else if (arginfo.type==Variant::NIL)
-						type_name="var";
+						type_name="Variant";
 					else
 						type_name=Variant::get_type_name(arginfo.type);
 
@@ -263,6 +303,7 @@ void DocData::generate(bool p_basic_types) {
 							case Variant::INT_ARRAY:
 							case Variant::REAL_ARRAY:
 							case Variant::STRING_ARRAY:	//25
+							case Variant::VECTOR2_ARRAY:
 							case Variant::VECTOR3_ARRAY:
 							case Variant::COLOR_ARRAY:
 								default_arg_text=Variant::get_type_name(default_arg.get_type())+"("+default_arg_text+")";
@@ -916,6 +957,8 @@ Error DocData::save(const String& p_path) {
 		_write_string(f,1,"</description>");
 		_write_string(f,1,"<methods>");
 
+		c.methods.sort();
+
 		for(int i=0;i<c.methods.size();i++) {
 
 			MethodDoc &m=c.methods[i];
@@ -958,11 +1001,15 @@ Error DocData::save(const String& p_path) {
 		if (c.properties.size()) {
 			_write_string(f,1,"<members>");
 
+			c.properties.sort();
+
 			for(int i=0;i<c.properties.size();i++) {
 
 
 				PropertyDoc &p=c.properties[i];
 				_write_string(f,2,"<member name=\""+p.name+"\" type=\""+p.type+"\">");
+				if (p.description!="")
+					_write_string(f,3,p.description.xml_escape());
 				_write_string(f,2,"</member>");
 
 			}
@@ -970,6 +1017,8 @@ Error DocData::save(const String& p_path) {
 		}
 
 		if (c.signals.size()) {
+
+			c.signals.sort();
 
 			_write_string(f,1,"<signals>");
 			for(int i=0;i<c.signals.size();i++) {
@@ -997,6 +1046,8 @@ Error DocData::save(const String& p_path) {
 
 		_write_string(f,1,"<constants>");
 
+		c.constants.sort_custom<_ConstantComparator>();
+
 		for(int i=0;i<c.constants.size();i++) {
 
 			ConstantDoc &k=c.constants[i];
@@ -1009,6 +1060,9 @@ Error DocData::save(const String& p_path) {
 		_write_string(f,1,"</constants>");
 
 		if (c.theme_properties.size()) {
+
+			c.theme_properties.sort();
+
 			_write_string(f,1,"<theme_items>");
 			for(int i=0;i<c.theme_properties.size();i++) {
 

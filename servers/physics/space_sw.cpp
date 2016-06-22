@@ -318,7 +318,7 @@ bool PhysicsDirectSpaceStateSW::cast_motion(const RID& p_shape, const Transform&
 	}
 
 	p_closest_safe=best_safe;
-	p_closest_unsafe=best_unsafe;	
+	p_closest_unsafe=best_unsafe;
 
 	return true;
 }
@@ -736,6 +736,10 @@ SpaceSW::SpaceSW() {
 
 	direct_access = memnew( PhysicsDirectSpaceStateSW );
 	direct_access->space=this;
+
+	for(int i=0;i<ELAPSED_TIME_MAX;i++)
+		elapsed_time[i]=0;
+
 }
 
 SpaceSW::~SpaceSW() {

@@ -1,3 +1,31 @@
+/*************************************************************************/
+/*  export.cpp                                                           */
+/*************************************************************************/
+/*                       This file is part of:                           */
+/*                           GODOT ENGINE                                */
+/*                    http://www.godotengine.org                         */
+/*************************************************************************/
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/*                                                                       */
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the       */
+/* "Software"), to deal in the Software without restriction, including   */
+/* without limitation the rights to use, copy, modify, merge, publish,   */
+/* distribute, sublicense, and/or sell copies of the Software, and to    */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions:                                             */
+/*                                                                       */
+/* The above copyright notice and this permission notice shall be        */
+/* included in all copies or substantial portions of the Software.       */
+/*                                                                       */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF    */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.*/
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,  */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
+/*************************************************************************/
 #include "version.h"
 #include "export.h"
 #include "tools/editor/editor_settings.h"
@@ -32,6 +60,7 @@ class EditorExportPlatformOSX : public EditorExportPlatform {
 	String signature;
 	String copyright;
 	bool use64;
+	bool useFat;
 	bool high_resolution;
 
 	Ref<ImageTexture> logo;
@@ -59,7 +88,7 @@ public:
 	virtual String get_device_info(int p_device) const { return String(); }
 	virtual Error run(int p_device,int p_flags=0);
 
-	virtual bool requieres_password(bool p_debug) const { return false; }
+	virtual bool requires_password(bool p_debug) const { return false; }
 	virtual String get_binary_extension() const { return "zip"; }
 	virtual Error export_project(const String& p_path,bool p_debug,int p_flags=0);
 
@@ -95,6 +124,8 @@ bool EditorExportPlatformOSX::_set(const StringName& p_name, const Variant& p_va
 		copyright=p_value;
 	else if (n=="application/64_bits")
 		use64=p_value;
+	else if (n=="application/fat_bits")
+		useFat=p_value;
 	else if (n=="display/high_res")
 		high_resolution=p_value;
 	else
@@ -129,6 +160,8 @@ bool EditorExportPlatformOSX::_get(const StringName& p_name,Variant &r_ret) cons
 		r_ret=copyright;
 	else if (n=="application/64_bits")
 		r_ret=use64;
+	else if (n=="application/fat_bits")
+		r_ret=useFat;
 	else if (n=="display/high_res")
 		r_ret=high_resolution;
 	else
@@ -150,6 +183,7 @@ void EditorExportPlatformOSX::_get_property_list( List<PropertyInfo> *p_list) co
 	p_list->push_back( PropertyInfo( Variant::STRING, "application/version") );
 	p_list->push_back( PropertyInfo( Variant::STRING, "application/copyright") );
 	p_list->push_back( PropertyInfo( Variant::BOOL, "application/64_bits") );
+	p_list->push_back( PropertyInfo( Variant::BOOL, "application/fat_bits") );
 	p_list->push_back( PropertyInfo( Variant::BOOL, "display/high_res") );
 
 
@@ -287,7 +321,7 @@ Error EditorExportPlatformOSX::export_project(const String& p_path, bool p_debug
 	io2.opaque=&dst_f;
 	zipFile	dpkg=zipOpen2(p_path.utf8().get_data(),APPEND_STATUS_CREATE,NULL,&io2);
 
-	String binary_to_use="godot_osx_"+String(p_debug?"debug":"release")+"."+String(use64?"64":"32");
+	String binary_to_use="godot_osx_"+String(p_debug?"debug":"release")+"."+String(useFat?"fat":use64?"64":"32");
 
 	print_line("binary: "+binary_to_use);
 	String pkg_name;
@@ -459,6 +493,7 @@ EditorExportPlatformOSX::EditorExportPlatformOSX() {
 	short_version="1.0";
 	version="1.0";
 	use64=false;
+	useFat=false;
 	high_resolution=false;
 
 }

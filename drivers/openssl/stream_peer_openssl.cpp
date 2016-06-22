@@ -1,4 +1,31 @@
-
+/*************************************************************************/
+/*  stream_peer_openssl.cpp                                              */
+/*************************************************************************/
+/*                       This file is part of:                           */
+/*                           GODOT ENGINE                                */
+/*                    http://www.godotengine.org                         */
+/*************************************************************************/
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/*                                                                       */
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the       */
+/* "Software"), to deal in the Software without restriction, including   */
+/* without limitation the rights to use, copy, modify, merge, publish,   */
+/* distribute, sublicense, and/or sell copies of the Software, and to    */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions:                                             */
+/*                                                                       */
+/* The above copyright notice and this permission notice shall be        */
+/* included in all copies or substantial portions of the Software.       */
+/*                                                                       */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF    */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.*/
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,  */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
+/*************************************************************************/
 #ifdef OPENSSL_ENABLED
 #include "stream_peer_openssl.h"
 //hostname matching code from curl
@@ -532,7 +559,25 @@ StreamPeerSSL* StreamPeerOpenSSL::_create_func() {
 Vector<X509*> StreamPeerOpenSSL::certs;
 
 
+void StreamPeerOpenSSL::_load_certs(const ByteArray& p_array) {
+
+	ByteArray::Read r = p_array.read();
+	BIO* mem = BIO_new(BIO_s_mem());
+	BIO_puts(mem,(const char*)r.ptr());
+	while(true) {
+		X509*cert = PEM_read_bio_X509(mem, NULL, 0, NULL);
+		if (!cert)
+			break;
+		certs.push_back(cert);
+	}
+	BIO_free(mem);
+}
+
 void StreamPeerOpenSSL::initialize_ssl() {
+
+	available=true;
+
+	load_certs_func=_load_certs;
 
 	_create=_create_func;
 	CRYPTO_malloc_init(); // Initialize malloc, free, etc for OpenSSL's use
@@ -544,20 +589,24 @@ void StreamPeerOpenSSL::initialize_ssl() {
 	Globals::get_singleton()->set_custom_property_info("ssl/certificates",PropertyInfo(Variant::STRING,"ssl/certificates",PROPERTY_HINT_FILE,"*.crt"));
 	if (certs_path!="") {
 
-		Vector<uint8_t> data = FileAccess::get_file_as_array(certs_path);;
-		if (data.size()) {
-			data.push_back(0);
-			BIO* mem = BIO_new(BIO_s_mem());
-			BIO_puts(mem,(const char*) data.ptr());
-			while(true) {
-				X509*cert = PEM_read_bio_X509(mem, NULL, 0, NULL);
-				if (!cert)
-					break;
-				certs.push_back(cert);
+
+
+		FileAccess *f=FileAccess::open(certs_path,FileAccess::READ);
+		if (f) {
+			ByteArray arr;
+			int flen = f->get_len();
+			arr.resize(flen+1);
+			{
+				ByteArray::Write w = arr.write();
+				f->get_buffer(w.ptr(),flen);
+				w[flen]=0; //end f string
 			}
-			BIO_free(mem);
+
+			memdelete(f);
+
+			_load_certs(arr);
+			print_line("Loaded certs from '"+certs_path+"':  "+itos(certs.size()));
 		}
-		print_line("Loaded certs from '"+certs_path+"':  "+itos(certs.size()));
 	}
 	String config_path =GLOBAL_DEF("ssl/config","");
 	Globals::get_singleton()->set_custom_property_info("ssl/config",PropertyInfo(Variant::STRING,"ssl/config",PROPERTY_HINT_FILE,"*.cnf"));

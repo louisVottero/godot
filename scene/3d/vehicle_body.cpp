@@ -1,3 +1,31 @@
+/*************************************************************************/
+/*  vehicle_body.cpp                                                     */
+/*************************************************************************/
+/*                       This file is part of:                           */
+/*                           GODOT ENGINE                                */
+/*                    http://www.godotengine.org                         */
+/*************************************************************************/
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/*                                                                       */
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the       */
+/* "Software"), to deal in the Software without restriction, including   */
+/* without limitation the rights to use, copy, modify, merge, publish,   */
+/* distribute, sublicense, and/or sell copies of the Software, and to    */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions:                                             */
+/*                                                                       */
+/* The above copyright notice and this permission notice shall be        */
+/* included in all copies or substantial portions of the Software.       */
+/*                                                                       */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF    */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.*/
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,  */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
+/*************************************************************************/
 #include "vehicle_body.h"
 
 #define ROLLING_INFLUENCE_FIX
@@ -936,7 +964,7 @@ void VehicleBody::_direct_state_changed(Object *p_state) {
 		wheel.m_deltaRotation *= real_t(0.99);//damping of rotation when not in contact
 
 	}
-
+	linear_velocity = s->get_linear_velocity();
 }
 
 void VehicleBody::set_mass(real_t p_mass) {
@@ -990,6 +1018,10 @@ float VehicleBody::get_steering() const{
 	return m_steeringValue;
 }
 
+Vector3 VehicleBody::get_linear_velocity() const
+{
+	return linear_velocity;
+}
 
 void VehicleBody::_bind_methods(){
 
@@ -1007,6 +1039,8 @@ void VehicleBody::_bind_methods(){
 
 	ObjectTypeDB::bind_method(_MD("set_steering","steering"),&VehicleBody::set_steering);
 	ObjectTypeDB::bind_method(_MD("get_steering"),&VehicleBody::get_steering);
+
+	ObjectTypeDB::bind_method(_MD("get_linear_velocity"),&VehicleBody::get_linear_velocity);
 
 	ObjectTypeDB::bind_method(_MD("_direct_state_changed"),&VehicleBody::_direct_state_changed);
 
