@@ -168,6 +168,10 @@ void EditorNode::_update_title() {
 
 void EditorNode::_unhandled_input(const InputEvent& p_event) {
 
+	if (Node::get_viewport()->get_modal_stack_top())
+		return; //ignore because of modal window
+
+
 	if (p_event.type==InputEvent::KEY && p_event.key.pressed && !p_event.key.echo && !gui_base->get_viewport()->gui_has_modal_stack()) {
 
 
@@ -1161,7 +1165,11 @@ void EditorNode::_dialog_action(String p_file) {
 
 			load_scene(p_file);
 		} break;
+		case SETTINGS_PICK_MAIN_SCENE: {
 
+			Globals::get_singleton()->set("application/main_scene",p_file);
+			//would be nice to show the project manager opened with the hilighted field..
+		} break;
 		case FILE_SAVE_OPTIMIZED: {
 
 
@@ -1850,10 +1858,29 @@ void EditorNode::_run(bool p_current,const String& p_custom) {
 
 			current_option=-1;
 			//accept->get_cancel()->hide();
-			accept->get_ok()->set_text(TTR("I see.."));
-			accept->set_text(TTR("No main scene has ever been defined.\nSelect one from \"Project Settings\" under the 'application' category."));
-			accept->popup_centered_minsize();
+			pick_main_scene->set_text(TTR("No main scene has ever been defined, select one?\nYou can change it later in later in \"Project Settings\" under the 'application' category."));
+			pick_main_scene->popup_centered_minsize();
 			return;
+		}
+
+		if (!FileAccess::exists(run_filename)) {
+
+			current_option=-1;
+			//accept->get_cancel()->hide();
+			pick_main_scene->set_text(vformat(TTR("Selected scene '%s' does not exist, select a valid one?\nYou can change it later in \"Project Settings\" under the 'application' category."), run_filename));
+			pick_main_scene->popup_centered_minsize();
+			return;
+
+		}
+
+		if (ResourceLoader::get_resource_type(run_filename)!="PackedScene") {
+
+			current_option=-1;
+			//accept->get_cancel()->hide();
+			pick_main_scene->set_text(vformat(TTR("Selected scene '%s' is not a scene file, select a valid one?\nYou can change it later in \"Project Settings\" under the 'application' category."), run_filename));
+			pick_main_scene->popup_centered_minsize();
+			return;
+
 		}
 
 	}
@@ -2769,6 +2796,30 @@ void EditorNode::_menu_option_confirm(int p_option,bool p_confirmed) {
 			file_templates->popup_centered_ratio();
 
 		} break;
+		case SETTINGS_PICK_MAIN_SCENE: {
+
+
+			//print_tree();
+			file->set_mode(EditorFileDialog::MODE_OPEN_FILE);
+			//not for now?
+			List<String> extensions;
+			ResourceLoader::get_recognized_extensions_for_type("PackedScene",&extensions);
+			file->clear_filters();
+			for(int i=0;i<extensions.size();i++) {
+
+				file->add_filter("*."+extensions[i]+" ; "+extensions[i].to_upper());
+			}
+
+
+			//file->set_current_path(current_path);
+			Node *scene = editor_data.get_edited_scene_root();
+			if (scene) {
+				file->set_current_path(scene->get_filename());
+			};
+			file->set_title(TTR("Pick a Main Scene"));
+			file->popup_centered_ratio();
+
+		} break;
 		case SETTINGS_ABOUT: {
 
 			about->popup_centered(Size2(500,130)*EDSCALE);
@@ -2782,10 +2833,12 @@ void EditorNode::_menu_option_confirm(int p_option,bool p_confirmed) {
 
 			List<Ref<Resource> > cached;
 			ResourceCache::get_cached_resources(&cached);
-
+			//this should probably be done in a thread..
 			for(List<Ref<Resource> >::Element *E=cached.front();E;E=E->next()) {
 
-				if (!E->get()->can_reload_from_file())
+				if (!E->get()->editor_can_reload_from_file())
+					continue;
+				if (!E->get()->get_path().is_resource_file() && !E->get()->get_path().is_abs_path())
 					continue;
 				if (!FileAccess::exists(E->get()->get_path()))
 					continue;
@@ -3376,7 +3429,10 @@ Dictionary EditorNode::_get_main_scene_state() {
 	return state;
 }
 
-void EditorNode::_set_main_scene_state(Dictionary p_state) {
+void EditorNode::_set_main_scene_state(Dictionary p_state,Node* p_for_scene) {
+
+	if (get_edited_scene()!=p_for_scene)
+		return; //not for this scene
 
 	//print_line("set current 7 ");
 	changing_scene=false;
@@ -3520,7 +3576,7 @@ void EditorNode::set_current_scene(int p_idx) {
 	}*/
 	//_set_main_scene_state(state);
 
-	call_deferred("_set_main_scene_state",state); //do after everything else is done setting up
+	call_deferred("_set_main_scene_state",state,get_edited_scene()); //do after everything else is done setting up
 	//print_line("set current 6 ");
 
 
@@ -5062,6 +5118,78 @@ void EditorNode::_file_access_close_error_notify(const String& p_str) {
 	add_io_error("Unable to write to file '"+p_str+"', file in use, locked or lacking permissions.");
 }
 
+
+void EditorNode::reload_scene(const String& p_path) {
+
+
+	//first of all, reload textures as they might have changed on disk
+
+	List<Ref<Resource> > cached;
+	ResourceCache::get_cached_resources(&cached);
+	List<Ref<Resource> > to_clear; //clear internal resources from previous scene from being used
+	for(List<Ref<Resource> >::Element *E=cached.front();E;E=E->next()) {
+
+		if (E->get()->get_path().begins_with(p_path+"::")) //subresources of existing scene
+			to_clear.push_back(E->get());
+
+		if (!E->get()->cast_to<Texture>())
+			continue;
+		if (!E->get()->get_path().is_resource_file() && !E->get()->get_path().is_abs_path())
+			continue;
+		if (!FileAccess::exists(E->get()->get_path()))
+			continue;
+		uint64_t mt = FileAccess::get_modified_time(E->get()->get_path());
+		if (mt!=E->get()->get_last_modified_time()) {
+			E->get()->reload_from_file();
+		}
+	}
+
+	//so reload reloads everything, clear subresources of previous scene
+	while(to_clear.front()) {
+		to_clear.front()->get()->set_path("");
+		to_clear.pop_front();
+	}
+
+	int scene_idx=-1;
+	for(int i=0;i<editor_data.get_edited_scene_count();i++) {
+
+		if (editor_data.get_scene_path(i)==p_path) {
+			scene_idx=i;
+			break;
+		}
+	}
+
+	int current_tab = editor_data.get_edited_scene();
+
+
+	if (scene_idx==-1) {
+		if (get_edited_scene()) {
+			//scene is not open, so at it might be instanced, just refresh, set tab to itself and it will reload
+			set_current_scene(current_tab);
+			editor_data.get_undo_redo().clear_history();
+		}
+		return;
+	}
+
+
+	if (current_tab==scene_idx) {
+		editor_data.apply_changes_in_editors();
+		_set_scene_metadata(p_path);
+
+	}
+	//remove scene
+	_remove_scene(scene_idx);
+	//reload scene
+	load_scene(p_path);
+	//adjust index so tab is back a the previous position
+	editor_data.move_edited_scene_to_index(scene_idx);
+	get_undo_redo()->clear_history();
+	//recover the tab
+	scene_tabs->set_current_tab(current_tab);
+	_scene_tab_changed(current_tab);
+}
+
+
 void EditorNode::_bind_methods() {
 
 
@@ -6432,7 +6560,7 @@ EditorNode::EditorNode() {
 	load_error_dialog->add_child(load_errors);
 	load_error_dialog->set_title(TTR("Load Errors"));
 	load_error_dialog->set_child_rect(load_errors);
-	add_child(load_error_dialog);
+	gui_base->add_child(load_error_dialog);
 
 	//EditorImport::add_importer( Ref<EditorImporterCollada>( memnew(EditorImporterCollada )));
 
@@ -6457,7 +6585,10 @@ EditorNode::EditorNode() {
 	Node::set_human_readable_collision_renaming(true);
 
 
-
+	pick_main_scene = memnew( ConfirmationDialog );
+	gui_base->add_child(pick_main_scene);
+	pick_main_scene->get_ok()->set_text("Select");
+	pick_main_scene->connect("confirmed",this,"_menu_option",varray(SETTINGS_PICK_MAIN_SCENE));
 
 //	Ref<ImageTexture> it = gui_base->get_icon("logo","Icons");
 //	OS::get_singleton()->set_icon( it->get_data() );

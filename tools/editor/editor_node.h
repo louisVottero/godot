@@ -185,6 +185,7 @@ private:
 		SETTINGS_LAYOUT_DELETE,
 		SETTINGS_LAYOUT_DEFAULT,
 		SETTINGS_LOAD_EXPORT_TEMPLATES,
+		SETTINGS_PICK_MAIN_SCENE,
 		SETTINGS_HELP,
 		SETTINGS_ABOUT,
 		SOURCES_REIMPORT,
@@ -287,6 +288,7 @@ private:
 	ConfirmationDialog *confirmation;
 	ConfirmationDialog *import_confirmation;
 	ConfirmationDialog *open_recent_confirmation;
+	ConfirmationDialog *pick_main_scene;
 	AcceptDialog *accept;
 	AcceptDialog *about;
 	AcceptDialog *warning;
@@ -553,7 +555,7 @@ private:
 	void _scene_tab_script_edited(int p_tab);
 
 	Dictionary _get_main_scene_state();
-	void _set_main_scene_state(Dictionary p_state);
+	void _set_main_scene_state(Dictionary p_state,Node* p_for_scene);
 
 	int _get_current_main_editor();
 
@@ -713,6 +715,8 @@ public:
 	void save_layout();
 
 	void update_keying();
+
+	void reload_scene(const String& p_path);
 
 	bool is_exiting() const { return exiting; }
 
