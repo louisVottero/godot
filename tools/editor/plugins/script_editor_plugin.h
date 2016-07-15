@@ -234,6 +234,8 @@ class ScriptEditor : public VBoxContainer {
 
 	bool _test_script_times_on_disk(Ref<Script> p_for_script=Ref<Script>());
 
+	void _close_tab(int p_idx);
+
 	void _close_current_tab();
 
 	bool grab_focus_block;
@@ -278,6 +280,8 @@ class ScriptEditor : public VBoxContainer {
 	void _tree_changed();
 
 	void _script_split_dragged(float);
+
+	void _unhandled_input(const InputEvent& p_event);
 
 
 	void _history_forward();
@@ -328,6 +332,8 @@ public:
 	bool script_go_to_method(Ref<Script> p_script, const String& p_method);
 
 	virtual void edited_scene_changed();
+
+	void close_builtin_scripts_from_scene(const String& p_scene);
 
 	ScriptEditorDebugger *get_debugger() { return debugger; }
 	void set_live_auto_reload_running_scripts(bool p_enabled);

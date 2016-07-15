@@ -243,7 +243,7 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 
 			//if (!_validate_no_foreign())
 			//	break;
-			create_dialog->popup_centered_ratio();
+			create_dialog->popup(true);
 		} break;
 		case TOOL_INSTANCE: {
 
@@ -281,7 +281,7 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 		} break;
 		case TOOL_REPLACE: {
 
-			create_dialog->popup_centered_ratio();
+			create_dialog->popup(false);
 		} break;
 		case TOOL_CONNECT: {
 
@@ -382,11 +382,8 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 				ERR_FAIL_COND(!top_node->get_parent());
 				ERR_FAIL_COND(!bottom_node->get_parent());
 
-				int top_node_pos = top_node->get_index();
 				int bottom_node_pos = bottom_node->get_index();
-
-				int top_node_pos_next = top_node_pos + (MOVING_DOWN ? 1 : -1);
-				int bottom_node_pos_next = bottom_node_pos + (MOVING_DOWN ? 1 : -1);
+				int top_node_pos_next = top_node->get_index() + (MOVING_DOWN ? 1 : -1);
 
 				editor_data->get_undo_redo().add_do_method(top_node->get_parent(), "move_child", top_node, top_node_pos_next);
 				editor_data->get_undo_redo().add_undo_method(bottom_node->get_parent(), "move_child", bottom_node, bottom_node_pos);
@@ -1069,6 +1066,8 @@ void SceneTreeDock::_do_reparent(Node* p_new_parent,int p_position_in_parent,Vec
 
 	List<Pair<NodePath,NodePath> > path_renames;
 
+	int inc=0;
+
 	for(int ni=0;ni<p_nodes.size();ni++) {
 
 		//no undo for now, sorry
@@ -1085,12 +1084,16 @@ void SceneTreeDock::_do_reparent(Node* p_new_parent,int p_position_in_parent,Vec
 		}
 
 
+		if (new_parent==node->get_parent() && node->get_index() < p_position_in_parent+ni) {
+			//if child will generate a gap when moved, adjust
+			inc--;
+		}
 
 		editor_data->get_undo_redo().add_do_method(node->get_parent(),"remove_child",node);
 		editor_data->get_undo_redo().add_do_method(new_parent,"add_child",node);
 
 		if (p_position_in_parent>=0)
-			editor_data->get_undo_redo().add_do_method(new_parent,"move_child",node,p_position_in_parent+ni);
+			editor_data->get_undo_redo().add_do_method(new_parent,"move_child",node,p_position_in_parent+inc);
 
 		ScriptEditorDebugger *sed = ScriptEditor::get_singleton()->get_debugger();
 		String new_name = new_parent->validate_child_name(node->get_name());
@@ -1102,17 +1105,8 @@ void SceneTreeDock::_do_reparent(Node* p_new_parent,int p_position_in_parent,Vec
 				editor_data->get_undo_redo().add_do_method(node,"set_global_transform",node->cast_to<Node2D>()->get_global_transform());
 			if (node->cast_to<Spatial>())
 				editor_data->get_undo_redo().add_do_method(node,"set_global_transform",node->cast_to<Spatial>()->get_global_transform());
-			if (node->cast_to<Control>()) {
-				bool can_do_it=false;
-				Control *c=node->cast_to<Control>();
-				if (c->get_parent()->cast_to<Container>())
-					can_do_it=false;
-				for(int i=0;i<4;i++) {
-					if (c->get_anchor(Margin(i))!=ANCHOR_BEGIN)
-						can_do_it=false;
-				}
+			if (node->cast_to<Control>())
 				editor_data->get_undo_redo().add_do_method(node,"set_global_pos",node->cast_to<Control>()->get_global_pos());
-			}
 		}
 
 		editor_data->get_undo_redo().add_do_method(this,"_set_owners",edited_scene,owners);
@@ -1121,6 +1115,8 @@ void SceneTreeDock::_do_reparent(Node* p_new_parent,int p_position_in_parent,Vec
 			editor_data->get_undo_redo().add_do_method(AnimationPlayerEditor::singleton->get_key_editor(),"set_root",node);
 
 		editor_data->get_undo_redo().add_undo_method(new_parent,"remove_child",node);
+
+		inc++;
 
 	}
 
@@ -1153,17 +1149,8 @@ void SceneTreeDock::_do_reparent(Node* p_new_parent,int p_position_in_parent,Vec
 				editor_data->get_undo_redo().add_undo_method(node,"set_transform",node->cast_to<Node2D>()->get_transform());
 			if (node->cast_to<Spatial>())
 				editor_data->get_undo_redo().add_undo_method(node,"set_transform",node->cast_to<Spatial>()->get_transform());
-			if (node->cast_to<Control>()) {
-				bool can_do_it=false;
-				Control *c=node->cast_to<Control>();
-				if (c->get_parent()->cast_to<Container>())
-					can_do_it=false;
-				for(int i=0;i<4;i++) {
-					if (c->get_anchor(Margin(i))!=ANCHOR_BEGIN)
-						can_do_it=false;
-				}
+			if (node->cast_to<Control>())
 				editor_data->get_undo_redo().add_undo_method(node,"set_pos",node->cast_to<Control>()->get_pos());
-			}
 		}
 
 
@@ -1543,7 +1530,7 @@ static bool _has_visible_children(Node* p_node) {
 	for(int i=0;i<p_node->get_child_count();i++) {
 
 		Node* child = p_node->get_child(i);
-		if (!_is_node_visible(p_node))
+		if (!_is_node_visible(child))
 			continue;
 
 		return true;
@@ -1555,9 +1542,9 @@ static bool _has_visible_children(Node* p_node) {
 
 
 
-static Node* _find_last_visible(Node*p_node) {
+static Node* _find_last_visible(Node* p_node) {
 
-	Node*last=NULL;
+	Node* last=NULL;
 
 	bool collapsed = p_node->has_meta("_editor_collapsed") ? (bool)p_node->get_meta("_editor_collapsed") : false;
 
@@ -1583,7 +1570,7 @@ static Node* _find_last_visible(Node*p_node) {
 }
 
 
-void SceneTreeDock::_normalize_drop(Node*& to_node, int &to_pos,int p_type) {
+void SceneTreeDock::_normalize_drop(Node*& to_node, int &to_pos, int p_type) {
 
 	to_pos=-1;
 
@@ -1624,6 +1611,7 @@ void SceneTreeDock::_normalize_drop(Node*& to_node, int &to_pos,int p_type) {
 			//just insert over this node because nothing is above at the same level
 			to_pos=to_node->get_index();
 			to_node=to_node->get_parent();
+
 		}
 
 	} else if (p_type==1) {
@@ -1650,12 +1638,13 @@ void SceneTreeDock::_normalize_drop(Node*& to_node, int &to_pos,int p_type) {
 						break;
 					}
 				}
-
 				if (lower_sibling) {
 					to_pos=lower_sibling->get_index();
 				}
 
 				to_node=to_node->get_parent();
+
+
 			}
 #if 0
 				//quite complicated, look for next visible in tree

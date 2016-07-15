@@ -43,6 +43,28 @@
 /*** SCRIPT EDITOR ****/
 
 
+static bool _can_open_in_editor(Script* p_script) {
+
+	String path = p_script->get_path();
+
+	if (path.find("::")!=-1) {
+		//refuse handling this if it can't be edited
+
+		bool valid=false;
+		for(int i=0;i<EditorNode::get_singleton()->get_editor_data().get_edited_scene_count();i++) {
+			if (path.begins_with(EditorNode::get_singleton()->get_editor_data().get_scene_path(i))) {
+				valid=true;
+				break;
+			}
+		}
+
+		return valid;
+	}
+
+	return true;
+}
+
+
 class EditorScriptCodeCompletionCache : public ScriptCodeCompletionCache {
 
 
@@ -290,6 +312,8 @@ void ScriptTextEditor::_load_theme_settings() {
 	get_text_edit()->add_color_override("completion_background_color", EDITOR_DEF("text_editor/completion_background_color", Color(0,0,0,0)));
 	get_text_edit()->add_color_override("completion_selected_color", EDITOR_DEF("text_editor/completion_selected_color", Color::html("434244")));
 	get_text_edit()->add_color_override("completion_existing_color", EDITOR_DEF("text_editor/completion_existing_color", Color::html("21dfdfdf")));
+	get_text_edit()->add_color_override("completion_scroll_color", EDITOR_DEF("text_editor/completion_scroll_color", Color::html("ffffff")));
+	get_text_edit()->add_color_override("completion_font_color", EDITOR_DEF("text_editor/completion_font_color", Color::html("aaaaaa")));
 	get_text_edit()->add_color_override("font_color",EDITOR_DEF("text_editor/text_color",Color(0,0,0)));
 	get_text_edit()->add_color_override("line_number_color",EDITOR_DEF("text_editor/line_number_color",Color(0,0,0)));
 	get_text_edit()->add_color_override("caret_color",EDITOR_DEF("text_editor/caret_color",Color(0,0,0)));
@@ -585,7 +609,6 @@ void ScriptTextEditor::_code_complete_script(const String& p_code, List<String>*
 	Error err = script->get_language()->complete_code(p_code,script->get_path().get_base_dir(),base,r_options,hint);
 	if (hint!="") {
 		get_text_edit()->set_code_hint(hint);
-		print_line("hint: "+hint.replace(String::chr(0xFFFF),"|"));
 	}
 
 }
@@ -748,9 +771,9 @@ void ScriptEditor::_go_to_tab(int p_idx) {
 	_update_script_colors();
 }
 
-void ScriptEditor::_close_current_tab() {
+void ScriptEditor::_close_tab(int p_idx) {
 
-	int selected = tab_container->get_current_tab();
+	int selected = p_idx;
 	if (selected<0 || selected>=tab_container->get_child_count())
 		return;
 
@@ -796,6 +819,11 @@ void ScriptEditor::_close_current_tab() {
 
 	_update_script_names();
 	EditorNode::get_singleton()->save_layout();
+}
+
+void ScriptEditor::_close_current_tab() {
+
+	_close_tab(tab_container->get_current_tab());
 
 }
 
@@ -845,6 +873,15 @@ void ScriptEditor::_reload_scripts(){
 		if (script->get_path()=="" || script->get_path().find("local://")!=-1 || script->get_path().find("::")!=-1) {
 
 			continue; //internal script, who cares
+		}
+
+
+		uint64_t last_date = script->get_last_modified_time();
+		uint64_t date = FileAccess::get_modified_time(script->get_path());
+
+		//printf("last date: %lli vs date: %lli\n",last_date,date);
+		if (last_date==date) {
+			continue;
 		}
 
 
@@ -1682,6 +1719,33 @@ void ScriptEditor::_notification(int p_what) {
 
 }
 
+
+void ScriptEditor::close_builtin_scripts_from_scene(const String& p_scene) {
+
+
+
+	for(int i=0;i<tab_container->get_child_count();i++) {
+
+		ScriptTextEditor *ste = tab_container->get_child(i)->cast_to<ScriptTextEditor>();
+
+		if (ste) {
+
+			Ref<Script> script = ste->get_edited_script();
+			if (!script.is_valid())
+				continue;
+
+			if (script->get_path().find("::")!=-1 && script->get_path().begins_with(p_scene)) { //is an internal script and belongs to scene being closed
+				_close_tab(i);
+				i--;
+
+			}
+		}
+
+	}
+
+
+}
+
 void ScriptEditor::edited_scene_changed() {
 
 	_update_modified_scripts_for_external_editor();
@@ -2060,10 +2124,17 @@ void ScriptEditor::_update_script_names() {
 
 }
 
+
+
 void ScriptEditor::edit(const Ref<Script>& p_script) {
 
 	if (p_script.is_null())
 		return;
+
+	// refuse to open built-in if scene is not loaded
+
+
+
 
 	// see if already has it
 
@@ -2316,6 +2387,22 @@ void ScriptEditor::_script_split_dragged(float) {
 	EditorNode::get_singleton()->save_layout();
 }
 
+void ScriptEditor::_unhandled_input(const InputEvent& p_event) {
+	if (p_event.key.pressed || !is_visible()) return;
+	if (ED_IS_SHORTCUT("script_editor/next_script", p_event)) {
+		int next_tab = script_list->get_current() + 1;
+		next_tab %= script_list->get_item_count();
+		_go_to_tab(script_list->get_item_metadata(next_tab));
+		_update_script_names();
+	}
+	if (ED_IS_SHORTCUT("script_editor/prev_script", p_event)) {
+		int next_tab = script_list->get_current() - 1;
+		next_tab = next_tab >= 0 ? next_tab : script_list->get_item_count() - 1;
+		_go_to_tab(script_list->get_item_metadata(next_tab));
+		_update_script_names();
+	}
+}
+
 void ScriptEditor::set_window_layout(Ref<ConfigFile> p_layout) {
 
 	if (!bool(EDITOR_DEF("text_editor/restore_scripts_on_load",true))) {
@@ -2335,6 +2422,8 @@ void ScriptEditor::set_window_layout(Ref<ConfigFile> p_layout) {
 	for(int i=0;i<scripts.size();i++) {
 
 		String path = scripts[i];
+		if (!FileAccess::exists(path))
+			continue;
 		Ref<Script> scr = ResourceLoader::load(path);
 		if (scr.is_valid()) {
 			edit(scr);
@@ -2512,7 +2601,7 @@ void ScriptEditor::set_scene_root_script( Ref<Script> p_script ) {
 	if (bool(EditorSettings::get_singleton()->get("external_editor/use_external_editor")))
 		return;
 
-	if (open_dominant && p_script.is_valid()) {
+	if (open_dominant && p_script.is_valid() && _can_open_in_editor(p_script.ptr())) {
 		edit(p_script);
 	}
 }
@@ -2598,6 +2687,7 @@ void ScriptEditor::_bind_methods() {
 	ObjectTypeDB::bind_method("_history_forward",&ScriptEditor::_history_forward);
 	ObjectTypeDB::bind_method("_history_back",&ScriptEditor::_history_back);
 	ObjectTypeDB::bind_method("_live_auto_reload_running_scripts",&ScriptEditor::_live_auto_reload_running_scripts);
+	ObjectTypeDB::bind_method("_unhandled_input",&ScriptEditor::_unhandled_input);
 
 }
 
@@ -2630,6 +2720,10 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 
 
 	tab_container->set_h_size_flags(SIZE_EXPAND_FILL);
+
+	ED_SHORTCUT("script_editor/next_script", TTR("Next script"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_GREATER);
+	ED_SHORTCUT("script_editor/prev_script", TTR("Previous script"), KEY_MASK_CMD | KEY_LESS);
+	set_process_unhandled_input(true);
 
 	file_menu = memnew( MenuButton );
 	menu_hb->add_child(file_menu);
@@ -2894,6 +2988,16 @@ void ScriptEditorPlugin::edit(Object *p_object) {
 }
 
 bool ScriptEditorPlugin::handles(Object *p_object) const {
+
+	if (p_object->cast_to<Script>()) {
+
+		bool valid = _can_open_in_editor(p_object->cast_to<Script>());
+
+		if (!valid) { //user tried to open it by clicking
+			EditorNode::get_singleton()->show_warning(TTR("Built-in scripts can only be edited when the scene they belong to is loaded"));
+		}
+		return valid;
+	}
 
 	return p_object->is_type("Script");
 }

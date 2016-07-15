@@ -852,6 +852,11 @@ void TextEdit::_notification(int p_what) {
 								k++;
 							}
 
+							// check for space between name and bracket
+							while (k < str.length() && (str[k] == '\t' || str[k] == ' ')) {
+								k++;
+							}
+
 							if (str[k] == '(') {
 								in_function_name = true;
 							}
@@ -960,6 +965,12 @@ void TextEdit::_notification(int p_what) {
 							}
 
 							bool in_highlighted_word = (j >= highlighted_text_col && j < highlighted_text_col+highlighted_text.length());
+
+							/* if this is the original highlighted text we don't want to highlight it again */
+							if (cursor.line==line && (cursor.column >= highlighted_text_col && cursor.column <= highlighted_text_col+highlighted_text.length())) {
+								in_highlighted_word = false;
+							}
+
 							if (in_highlighted_word) {
 								VisualServer::get_singleton()->canvas_item_add_rect(ci,Rect2(Point2i( char_ofs+char_margin, ofs_y ), Size2i(char_w, get_row_height())),cache.word_highlighted_color);
 							}
@@ -1100,7 +1111,7 @@ void TextEdit::_notification(int p_what) {
 
 					int l = line_from + i;
 					ERR_CONTINUE( l < 0 || l>= completion_options.size());
-					Color text_color = cache.font_color;
+					Color text_color = cache.completion_font_color;
 					for(int j=0;j<color_regions.size();j++) {
 						if (completion_options[l].begins_with(color_regions[j].begin_key)) {
 							text_color=color_regions[j].color;
@@ -1973,6 +1984,7 @@ void TextEdit::_input_event(const InputEvent& p_input_event) {
 					}
 				} break;
 				case KEY_TAB: {
+					if (k.mod.command) break; // avoid tab when command
 
 					if (readonly)
 						break;
@@ -3300,6 +3312,7 @@ void TextEdit::_update_caches() {
 	cache.completion_background_color=get_color("completion_background_color");
 	cache.completion_selected_color=get_color("completion_selected_color");
 	cache.completion_existing_color=get_color("completion_existing_color");
+	cache.completion_font_color=get_color("completion_font_color");
 	cache.font=get_font("font");
 	cache.caret_color=get_color("caret_color");
 	cache.line_number_color=get_color("line_number_color");
@@ -3595,6 +3608,10 @@ void TextEdit::set_current_search_result(int line, int col) {
 void TextEdit::set_highlight_all_occurrences(const bool p_enabled) {
 	highlight_all_occurrences = p_enabled;
 	update();
+}
+
+bool TextEdit::is_highlight_all_occurrences_enabled() const {
+	return highlight_all_occurrences;
 }
 
 int TextEdit::_get_column_pos_of_word(const String &p_key, const String &p_search, uint32_t p_search_flags, int p_from_column) {
@@ -4116,7 +4133,7 @@ void TextEdit::_update_completion_candidates() {
 		}
 	}
 
-	if (l[cursor.column - 1] == '(' && !pre_keyword && !completion_strings[0].begins_with("\"")) {
+	if (cursor.column > 0 && l[cursor.column - 1] == '(' && !pre_keyword && !completion_strings[0].begins_with("\"")) {
 		cancel = true;
 	}
 
@@ -4131,16 +4148,28 @@ void TextEdit::_update_completion_candidates() {
 	completion_options.clear();
 	completion_index=0;
 	completion_base=s;
-	int ci_match=0;
 	Vector<float> sim_cache;
 	for(int i=0;i<completion_strings.size();i++) {
+		if (s == completion_strings[i]) {
+			// A perfect match, stop completion
+			_cancel_completion();
+			return;
+		}
 		if (s.is_subsequence_ofi(completion_strings[i])) {
 			// don't remove duplicates if no input is provided
 			if (s != "" && completion_options.find(completion_strings[i]) != -1) {
 				continue;
 			}
 			// Calculate the similarity to keep completions in good order
-			float similarity = s.similarity(completion_strings[i]);
+			float similarity;
+			if (completion_strings[i].to_lower().begins_with(s.to_lower())) {
+				// Substrings are the best candidates
+				similarity = 1.1;
+			} else {
+				// Otherwise compute the similarity
+				similarity = s.to_lower().similarity(completion_strings[i].to_lower());
+			}
+
 			int comp_size = completion_options.size();
 			if (comp_size == 0) {
 				completion_options.push_back(completion_strings[i]);
@@ -4150,8 +4179,8 @@ void TextEdit::_update_completion_candidates() {
 				int pos = 0;
 				do {
 					comp_sim = sim_cache[pos++];
-				} while(pos < comp_size && similarity <= comp_sim);
-				pos--; // Pos will be off by one
+				} while(pos < comp_size && similarity < comp_sim);
+				pos = similarity > comp_sim ? pos - 1 : pos; // Pos will be off by one
 				completion_options.insert(pos, completion_strings[i]);
 				sim_cache.insert(pos, similarity);
 			}
@@ -4294,6 +4323,10 @@ void TextEdit::set_show_line_numbers(bool p_show) {
 	update();
 }
 
+bool TextEdit::is_show_line_numbers_enabled() const {
+	return line_numbers;
+}
+
 void TextEdit::set_draw_breakpoint_gutter(bool p_draw) {
 	draw_breakpoint_gutter = p_draw;
 	update();
@@ -4408,6 +4441,12 @@ void TextEdit::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("redo"),&TextEdit::redo);
 	ObjectTypeDB::bind_method(_MD("clear_undo_history"),&TextEdit::clear_undo_history);
 
+	ObjectTypeDB::bind_method(_MD("set_show_line_numbers", "enable"), &TextEdit::set_show_line_numbers);
+	ObjectTypeDB::bind_method(_MD("is_show_line_numbers_enabled"), &TextEdit::is_show_line_numbers_enabled);
+
+	ObjectTypeDB::bind_method(_MD("set_highlight_all_occurrences", "enable"), &TextEdit::set_highlight_all_occurrences);
+	ObjectTypeDB::bind_method(_MD("is_highlight_all_occurrences_enabled"), &TextEdit::is_highlight_all_occurrences_enabled);
+
 	ObjectTypeDB::bind_method(_MD("set_syntax_coloring","enable"),&TextEdit::set_syntax_coloring);
 	ObjectTypeDB::bind_method(_MD("is_syntax_coloring_enabled"),&TextEdit::is_syntax_coloring_enabled);
 
@@ -4420,7 +4459,10 @@ void TextEdit::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("menu_option"),&TextEdit::menu_option);
 	ObjectTypeDB::bind_method(_MD("get_menu:PopupMenu"),&TextEdit::get_menu);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "caret/caret_blink"), _SCS("cursor_set_blink_enabled"), _SCS("cursor_get_blink_enabled"));;
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "show_line_numbers"), _SCS("set_show_line_numbers"), _SCS("is_show_line_numbers_enabled"));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "highlight_all_occurrences"), _SCS("set_highlight_all_occurrences"), _SCS("is_highlight_all_occurrences_enabled"));
+
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "caret/caret_blink"), _SCS("cursor_set_blink_enabled"), _SCS("cursor_get_blink_enabled"));
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL, "caret/caret_blink_speed",PROPERTY_HINT_RANGE,"0.1,10,0.1"), _SCS("cursor_set_blink_speed"),_SCS("cursor_get_blink_speed") );
 
 	ADD_SIGNAL(MethodInfo("cursor_changed"));
@@ -4541,6 +4583,7 @@ TextEdit::TextEdit()  {
 	scroll_past_end_of_file_enabled=false;
 	auto_brace_completion_enabled=false;
 	brace_matching_enabled=false;
+	highlight_all_occurrences=false;
 	auto_indent=false;
 	insert_mode = false;
 	window_has_focus=true;

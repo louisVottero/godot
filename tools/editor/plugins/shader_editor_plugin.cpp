@@ -81,6 +81,8 @@ void ShaderTextEditor::_load_theme_settings() {
 	get_text_edit()->add_color_override("completion_background_color", EDITOR_DEF("text_editor/completion_background_color", Color(0,0,0,0)));
 	get_text_edit()->add_color_override("completion_selected_color", EDITOR_DEF("text_editor/completion_selected_color", Color::html("434244")));
 	get_text_edit()->add_color_override("completion_existing_color", EDITOR_DEF("text_editor/completion_existing_color", Color::html("21dfdfdf")));
+	get_text_edit()->add_color_override("completion_scroll_color", EDITOR_DEF("text_editor/completion_scroll_color", Color::html("ffffff")));
+	get_text_edit()->add_color_override("completion_font_color", EDITOR_DEF("text_editor/completion_font_color", Color::html("aaaaaa")));
 	get_text_edit()->add_color_override("font_color",EDITOR_DEF("text_editor/text_color",Color(0,0,0)));
 	get_text_edit()->add_color_override("line_number_color",EDITOR_DEF("text_editor/line_number_color",Color(0,0,0)));
 	get_text_edit()->add_color_override("caret_color",EDITOR_DEF("text_editor/caret_color",Color(0,0,0)));
@@ -118,9 +120,10 @@ void ShaderTextEditor::_load_theme_settings() {
 
 	get_text_edit()->add_color_region("/*","*/",comment_color,false);
 	get_text_edit()->add_color_region("//","",comment_color,false);
-	//colorize strings
+
+	/*//colorize strings
 	Color string_color = EDITOR_DEF("text_editor/string_color",Color::hex(0x6b6f00ff));
-	/*
+
 	List<String> strings;
 	shader->get_shader_mode()->get_string_delimiters(&strings);
 
@@ -499,7 +502,7 @@ ShaderEditor::ShaderEditor() {
 	edit_menu->set_pos(Point2(5,-1));
 	edit_menu->set_text(TTR("Edit"));
 	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/undo", TTR("Undo"), KEY_MASK_CMD|KEY_Z), EDIT_UNDO);
-	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/redo", TTR("Redo"), KEY_MASK_CMD|KEY_MASK_SHIFT|KEY_Z), EDIT_REDO);
+	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/redo", TTR("Redo"), KEY_MASK_CMD|KEY_Y), EDIT_REDO);
 	edit_menu->get_popup()->add_separator();
 	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/cut", TTR("Cut"), KEY_MASK_CMD|KEY_X), EDIT_CUT);
 	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/copy", TTR("Copy"), KEY_MASK_CMD|KEY_C), EDIT_COPY);
@@ -519,7 +522,7 @@ ShaderEditor::ShaderEditor() {
 	search_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/replace", TTR("Replace.."), KEY_MASK_CMD|KEY_R), SEARCH_REPLACE);
 	search_menu->get_popup()->add_separator();
 //	search_menu->get_popup()->add_item("Locate Symbol..",SEARCH_LOCATE_SYMBOL,KEY_MASK_CMD|KEY_K);
-	search_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/goto_line", TTR("Goto Line.."), KEY_MASK_CMD|KEY_G), SEARCH_GOTO_LINE);
+	search_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/goto_line", TTR("Goto Line.."), KEY_MASK_CMD|KEY_L), SEARCH_GOTO_LINE);
 	search_menu->get_popup()->connect("item_pressed", this,"_menu_option");
 
 
