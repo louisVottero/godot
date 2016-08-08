@@ -966,7 +966,7 @@ Variant SceneTreeEditor::get_drag_data_fw(const Point2& p_point,Control* p_from)
 	drag_data["nodes"]=objs;
 
 	tree->set_drop_mode_flags(Tree::DROP_MODE_INBETWEEN|Tree::DROP_MODE_ON_ITEM);
-
+	emit_signal("nodes_dragged");
 
 	return drag_data;
 }
@@ -981,6 +981,14 @@ bool SceneTreeEditor::can_drop_data_fw(const Point2& p_point,const Variant& p_da
 
 	Dictionary d=p_data;
 	if (!d.has("type"))
+		return false;
+
+	TreeItem *item = tree->get_item_at_pos(p_point);
+	if (!item)
+		return false;
+
+	int section = tree->get_drop_section_at_pos(p_point);
+	if (section<-1 || (section==-1 && !item->get_parent()))
 		return false;
 
 	if (String(d["type"])=="files") {
@@ -1005,15 +1013,7 @@ bool SceneTreeEditor::can_drop_data_fw(const Point2& p_point,const Variant& p_da
 
 
 	if (String(d["type"])=="nodes") {
-		TreeItem *item = tree->get_item_at_pos(p_point);
-		if (!item)
-			return false;
-		int section = tree->get_drop_section_at_pos(p_point);
-		if (section<-1 || (section==-1 && !item->get_parent()))
-			return false;
-
 		return true;
-
 	}
 
 	return false;
@@ -1110,6 +1110,7 @@ void SceneTreeEditor::_bind_methods() {
 	ADD_SIGNAL( MethodInfo("node_renamed") );
 	ADD_SIGNAL( MethodInfo("node_prerename") );
 	ADD_SIGNAL( MethodInfo("node_changed") );
+	ADD_SIGNAL( MethodInfo("nodes_dragged") );
 	ADD_SIGNAL( MethodInfo("nodes_rearranged",PropertyInfo(Variant::ARRAY,"paths"),PropertyInfo(Variant::NODE_PATH,"to_path"),PropertyInfo(Variant::INT,"type") ) );
 	ADD_SIGNAL( MethodInfo("files_dropped",PropertyInfo(Variant::STRING_ARRAY,"files"),PropertyInfo(Variant::NODE_PATH,"to_path"),PropertyInfo(Variant::INT,"type") ) );
 	ADD_SIGNAL( MethodInfo("rmb_pressed",PropertyInfo(Variant::VECTOR2,"pos")) ) ;
