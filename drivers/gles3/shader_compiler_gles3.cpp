@@ -48,7 +48,7 @@ static int _get_datatype_size(SL::DataType p_type) {
 		case SL::TYPE_SAMPLERCUBE: return 16;
 	}
 
-
+	ERR_FAIL_V(0);
 }
 
 
@@ -75,25 +75,81 @@ static String _mkid(const String& p_id) {
 	return "m_"+p_id;
 }
 
+static String f2sp0(float p_float) {
+
+	if (int(p_float)==p_float)
+		return itos(p_float)+".0";
+	else
+		return rtoss(p_float);
+}
+
 static String get_constant_text(SL::DataType p_type, const Vector<SL::ConstantNode::Value>& p_values) {
 
 	switch(p_type) {
 		case SL::TYPE_BOOL:  return p_values[0].boolean?"true":"false";
-		case SL::TYPE_BVEC2:  return String()+"bvec2("+(p_values[0].boolean?"true":"false")+(p_values[1].boolean?"true":"false")+")";
-		case SL::TYPE_BVEC3:  return String()+"bvec3("+(p_values[0].boolean?"true":"false")+","+(p_values[1].boolean?"true":"false")+","+(p_values[2].boolean?"true":"false")+")";
-		case SL::TYPE_BVEC4:  return String()+"bvec4("+(p_values[0].boolean?"true":"false")+","+(p_values[1].boolean?"true":"false")+","+(p_values[2].boolean?"true":"false")+","+(p_values[3].boolean?"true":"false")+")";
-		case SL::TYPE_INT:  return rtos(p_values[0].sint);
-		case SL::TYPE_IVEC2:  return String()+"ivec2("+rtos(p_values[0].sint)+","+rtos(p_values[1].sint)+")";
-		case SL::TYPE_IVEC3:  return String()+"ivec3("+rtos(p_values[0].sint)+","+rtos(p_values[1].sint)+","+rtos(p_values[2].sint)+")";
-		case SL::TYPE_IVEC4:  return String()+"ivec4("+rtos(p_values[0].sint)+","+rtos(p_values[1].sint)+","+rtos(p_values[2].sint)+","+rtos(p_values[3].sint)+")";
-		case SL::TYPE_UINT:  return rtos(p_values[0].real);
-		case SL::TYPE_UVEC2:  return String()+"uvec2("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+")";
-		case SL::TYPE_UVEC3:  return String()+"uvec3("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+","+rtos(p_values[2].real)+")";
-		case SL::TYPE_UVEC4:  return String()+"uvec4("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+","+rtos(p_values[2].real)+","+rtos(p_values[3].real)+")";
-		case SL::TYPE_FLOAT:  return rtos(p_values[0].real);
-		case SL::TYPE_VEC2:  return String()+"vec2("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+")";
-		case SL::TYPE_VEC3:  return String()+"vec3("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+","+rtos(p_values[2].real)+")";
-		case SL::TYPE_VEC4:  return String()+"vec4("+rtos(p_values[0].real)+","+rtos(p_values[1].real)+","+rtos(p_values[2].real)+","+rtos(p_values[3].real)+")";
+		case SL::TYPE_BVEC2:
+		case SL::TYPE_BVEC3:
+		case SL::TYPE_BVEC4: {
+
+
+			String text="bvec"+itos(p_type-SL::TYPE_BOOL+1)+"(";
+			for(int i=0;i<p_values.size();i++) {
+				if (i>0)
+					text+=",";
+
+				text+=p_values[i].boolean?"true":"false";
+			}
+			text+=")";
+			return text;
+		}
+
+		case SL::TYPE_INT:  return itos(p_values[0].sint);
+		case SL::TYPE_IVEC2:
+		case SL::TYPE_IVEC3:
+		case SL::TYPE_IVEC4: {
+
+			String text="ivec"+itos(p_type-SL::TYPE_INT+1)+"(";
+			for(int i=0;i<p_values.size();i++) {
+				if (i>0)
+					text+=",";
+
+				text+=itos(p_values[i].sint);
+			}
+			text+=")";
+			return text;
+
+		} break;
+		case SL::TYPE_UINT:  return itos(p_values[0].uint)+"u";
+		case SL::TYPE_UVEC2:
+		case SL::TYPE_UVEC3:
+		case SL::TYPE_UVEC4:   {
+
+			String text="uvec"+itos(p_type-SL::TYPE_UINT+1)+"(";
+			for(int i=0;i<p_values.size();i++) {
+				if (i>0)
+					text+=",";
+
+				text+=itos(p_values[i].uint)+"u";
+			}
+			text+=")";
+			return text;
+		} break;
+		case SL::TYPE_FLOAT:  return f2sp0(p_values[0].real)+"f";
+		case SL::TYPE_VEC2:
+		case SL::TYPE_VEC3:
+		case SL::TYPE_VEC4:  {
+
+			String text="vec"+itos(p_type-SL::TYPE_FLOAT+1)+"(";
+			for(int i=0;i<p_values.size();i++) {
+				if (i>0)
+					text+=",";
+
+				text+=f2sp0(p_values[i].real);
+			}
+			text+=")";
+			return text;
+
+		} break;
 		default: ERR_FAIL_V(String());
 	}
 }
@@ -189,13 +245,19 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 			}
 
 			r_gen_code.texture_uniforms.resize(max_texture_uniforms);
+			r_gen_code.texture_hints.resize(max_texture_uniforms);
 
 			Vector<int> uniform_sizes;
 			uniform_sizes.resize(max_uniforms);
 
 			for(Map<StringName,SL::ShaderNode::Uniform>::Element *E=pnode->uniforms.front();E;E=E->next()) {
 
-				String ucode="uniform ";
+				String ucode;
+
+				if (SL::is_sampler_type(E->get().type)) {
+					ucode="uniform ";
+				}
+
 				ucode+=_prestr(E->get().precission);
 				ucode+=_typestr(E->get().type);
 				ucode+=" "+_mkid(E->key());
@@ -204,6 +266,7 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 					r_gen_code.vertex_global+=ucode;
 					r_gen_code.fragment_global+=ucode;
 					r_gen_code.texture_uniforms[E->get().texture_order]=_mkid(E->key());
+					r_gen_code.texture_hints[E->get().texture_order]=E->get().hint;
 				} else {
 					if (r_gen_code.uniforms.empty()) {
 
@@ -228,7 +291,7 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 			for(int i=0;i<uniform_sizes.size();i++) {
 
 				if (i>0)
-					r_gen_code.uniform_offsets[i]=uniform_sizes[i]-1;
+					r_gen_code.uniform_offsets[i]=uniform_sizes[i-1];
 				else
 					r_gen_code.uniform_offsets[i]=0;
 			}
@@ -320,7 +383,11 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 			SL::VariableNode *vnode=(SL::VariableNode*)p_node;
 
 			if (p_default_actions.usage_defines.has(vnode->name) && !used_name_defines.has(vnode->name)) {
-				r_gen_code.defines.push_back(p_default_actions.usage_defines[vnode->name].utf8());
+				String define = p_default_actions.usage_defines[vnode->name];
+				if (define.begins_with("@")) {
+					define = p_default_actions.usage_defines[define.substr(1,define.length())];
+				}
+				r_gen_code.defines.push_back(define.utf8());
 				used_name_defines.insert(vnode->name);
 			}
 
@@ -451,6 +518,14 @@ Error ShaderCompilerGLES3::compile(VS::ShaderMode p_mode, const String& p_code, 
 	Error err = parser.compile(p_code,ShaderTypes::get_singleton()->get_functions(p_mode),ShaderTypes::get_singleton()->get_modes(p_mode));
 
 	if (err!=OK) {
+#if 1
+
+		Vector<String> shader = p_code.split("\n");
+		for(int i=0;i<shader.size();i++) {
+			print_line(itos(i)+" "+shader[i]);
+		}
+#endif
+
 		_err_print_error(NULL,p_path.utf8().get_data(),parser.get_error_line(),parser.get_error_text().utf8().get_data(),ERR_HANDLER_SHADER);
 		return err;
 	}
@@ -468,6 +543,7 @@ Error ShaderCompilerGLES3::compile(VS::ShaderMode p_mode, const String& p_code, 
 	used_rmode_defines.clear();
 
 	_dump_node_code(parser.get_shader(),1,r_gen_code,*p_actions,actions[p_mode]);
+
 
 	return OK;
 
@@ -517,6 +593,61 @@ ShaderCompilerGLES3::ShaderCompilerGLES3() {
 	actions[VS::SHADER_CANVAS_ITEM].usage_defines["SHADOW_COLOR"]="#define SHADOW_COLOR_USED\n";
 
 	actions[VS::SHADER_CANVAS_ITEM].render_mode_defines["skip_transform"]="#define SKIP_TRANSFORM_USED\n";
+
+	/** SPATIAL SHADER **/
+
+
+	actions[VS::SHADER_SPATIAL].renames["WORLD_MATRIX"]="world_transform";
+	actions[VS::SHADER_SPATIAL].renames["INV_CAMERA_MATRIX"]="camera_inverse_matrix";
+	actions[VS::SHADER_SPATIAL].renames["PROJECTION_MATRIX"]="projection_matrix";
+
+
+	actions[VS::SHADER_SPATIAL].renames["VERTEX"]="vertex.xyz";
+	actions[VS::SHADER_SPATIAL].renames["NORMAL"]="normal";
+	actions[VS::SHADER_SPATIAL].renames["TANGENT"]="tangent";
+	actions[VS::SHADER_SPATIAL].renames["BINORMAL"]="binormal";
+	actions[VS::SHADER_SPATIAL].renames["UV"]="uv_interp";
+	actions[VS::SHADER_SPATIAL].renames["UV2"]="uv2_interp";
+	actions[VS::SHADER_SPATIAL].renames["COLOR"]="color_interp";
+	actions[VS::SHADER_SPATIAL].renames["POINT_SIZE"]="gl_PointSize";
+	//actions[VS::SHADER_SPATIAL].renames["INSTANCE_ID"]=ShaderLanguage::TYPE_INT;
+
+	//builtins
+
+	actions[VS::SHADER_SPATIAL].renames["TIME"]="time";
+	//actions[VS::SHADER_SPATIAL].renames["VIEWPORT_SIZE"]=ShaderLanguage::TYPE_VEC2;
+
+	actions[VS::SHADER_SPATIAL].renames["FRAGCOORD"]="gl_FragCoord";
+	actions[VS::SHADER_SPATIAL].renames["FRONT_FACING"]="gl_FrotFacing";
+	actions[VS::SHADER_SPATIAL].renames["NORMALMAP"]="normalmap";
+	actions[VS::SHADER_SPATIAL].renames["NORMALMAP_DEPTH"]="normaldepth";
+	actions[VS::SHADER_SPATIAL].renames["ALBEDO"]="albedo";
+	actions[VS::SHADER_SPATIAL].renames["ALPHA"]="alpha";
+	actions[VS::SHADER_SPATIAL].renames["SPECULAR"]="specular";
+	actions[VS::SHADER_SPATIAL].renames["ROUGHNESS"]="roughness";
+	actions[VS::SHADER_SPATIAL].renames["EMISSION"]="emission";
+	actions[VS::SHADER_SPATIAL].renames["SPECIAL"]="special";
+	actions[VS::SHADER_SPATIAL].renames["DISCARD"]="_discard";
+//	actions[VS::SHADER_SPATIAL].renames["SCREEN_UV"]=ShaderLanguage::TYPE_VEC2;
+	actions[VS::SHADER_SPATIAL].renames["POINT_COORD"]="gl_PointCoord";
+
+
+	actions[VS::SHADER_SPATIAL].usage_defines["TANGENT"]="#define ENABLE_TANGENT_INTERP\n";
+	actions[VS::SHADER_SPATIAL].usage_defines["BINORMAL"]="@TANGENT";
+	actions[VS::SHADER_SPATIAL].usage_defines["UV"]="#define ENABLE_UV_INTERP\n";
+	actions[VS::SHADER_SPATIAL].usage_defines["UV2"]="#define ENABLE_UV2_INTERP\n";
+	actions[VS::SHADER_SPATIAL].usage_defines["NORMALMAP"]="#define ENABLE_NORMALMAP\n";
+	actions[VS::SHADER_SPATIAL].usage_defines["NORMALMAP_DEPTH"]="@NORMALMAP";
+	actions[VS::SHADER_SPATIAL].usage_defines["COLOR"]="#define ENABLE_COLOR_INTERP\n";
+
+	actions[VS::SHADER_SPATIAL].render_mode_defines["skip_transform"]="#define SKIP_TRANSFORM_USED\n";
+
+
+
+
+
+
+
 
 	List<String> func_list;
 

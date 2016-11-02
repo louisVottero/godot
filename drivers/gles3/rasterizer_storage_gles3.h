@@ -13,6 +13,9 @@
 class RasterizerCanvasGLES3;
 class RasterizerSceneGLES3;
 
+#define _TEXTURE_SRGB_DECODE_EXT        0x8A48
+#define _DECODE_EXT             0x8A49
+#define _SKIP_DECODE_EXT        0x8A4A
 
 class RasterizerStorageGLES3 : public RasterizerStorage {
 public:
@@ -20,16 +23,15 @@ public:
 	RasterizerCanvasGLES3 *canvas;
 	RasterizerSceneGLES3 *scene;
 
-	enum FBOFormat {
-		FBO_FORMAT_16_BITS,
-		FBO_FORMAT_32_BITS,
-		FBO_FORMAT_FLOAT,
+	enum RenderArchitecture {
+		RENDER_ARCH_MOBILE,
+		RENDER_ARCH_DESKTOP,
 	};
 
 	struct Config {
 
-		FBOFormat fbo_format;
-		bool fbo_deferred;
+		RenderArchitecture render_arch;
+
 		GLuint system_fbo; //on some devices, such as apple, screen is rendered to yet another fbo.
 
 		bool shrink_textures_x2;
@@ -135,10 +137,16 @@ public:
 		bool active;
 		GLuint tex_id;
 
+		bool using_srgb;
+
+		uint16_t stored_cube_sides;
+
 		RenderTarget *render_target;
 
 		Texture() {
 
+			using_srgb=false;
+			stored_cube_sides=0;
 			ignore_mipmaps=false;
 			render_target=NULL;
 			flags=width=height=0;
@@ -184,7 +192,7 @@ public:
 
 	virtual void texture_debug_usage(List<VS::TextureInfo> *r_info);
 
-	virtual RID texture_create_pbr_cubemap(RID p_source,VS::PBRCubeMapMode p_mode,int p_resolution=-1) const;
+	virtual RID texture_create_radiance_cubemap(RID p_source,int p_resolution=-1) const;
 
 
 	/* SHADER API */
@@ -214,6 +222,8 @@ public:
 		SelfList<Shader> dirty_list;
 
 		Map<StringName,RID> default_textures;
+
+		Vector<ShaderLanguage::ShaderNode::Uniform::Hint> texture_hints;
 
 		bool valid;
 
@@ -316,12 +326,14 @@ public:
 		SelfList<Material> list;
 		SelfList<Material> dirty_list;
 		Vector<RID> textures;
+		float line_width;
 
 		uint32_t index;
 		uint64_t last_pass;
 
 		Material() : list(this), dirty_list(this) {
 			shader=NULL;
+			line_width=1.0;
 			ubo_id=0;
 			ubo_size=0;
 			last_pass=0;
@@ -343,6 +355,8 @@ public:
 	virtual void material_set_param(RID p_material, const StringName& p_param, const Variant& p_value);
 	virtual Variant material_get_param(RID p_material, const StringName& p_param) const;
 
+	virtual void material_set_line_width(RID p_material, float p_width);
+
 	void _update_material(Material* material);
 
 	void update_dirty_materials();
@@ -350,13 +364,6 @@ public:
 	/* MESH API */
 
 	struct Instantiable : public RID_Data {
-
-		enum Type {
-			GEOMETRY_INVALID,
-			GEOMETRY_SURFACE,
-			GEOMETRY_IMMEDIATE,
-			GEOMETRY_MULTISURFACE,
-		};
 
 		SelfList<RasterizerScene::InstanceBase>::List instance_list;
 
@@ -582,6 +589,20 @@ public:
 
 	/* Light API */
 
+
+	struct Light : Instantiable {
+
+		VS::LightType type;
+		float param[VS::LIGHT_PARAM_MAX];
+		Color color;
+		bool shadow;
+		bool negative;
+		uint32_t cull_mask;
+		VS::LightDirectionalShadowMode directional_shadow_mode;
+	};
+
+	mutable RID_Owner<Light> light_owner;
+
 	virtual RID light_create(VS::LightType p_type);
 
 	virtual void light_set_color(RID p_light,const Color& p_color);
@@ -645,14 +666,13 @@ public:
 
 		GLuint depth;
 
-		struct Deferred {
+		struct Buffers {
 			GLuint fbo;
-			GLuint fbo_color;
-
-			GLuint albedo_ao;
-			GLuint metal_rough_motion;
-			GLuint normal_special;
-		} deferred;
+			GLuint alpha_fbo; //single buffer, just diffuse (for alpha pass)
+			GLuint specular;
+			GLuint diffuse;
+			GLuint normal_sr;
+		} buffers;
 
 		int width,height;
 
@@ -669,8 +689,8 @@ public:
 			depth=0;
 			front.fbo=0;
 			back.fbo=0;
-			deferred.fbo=0;
-			deferred.fbo_color=0;
+			buffers.fbo=0;
+			buffers.alpha_fbo=0;
 			used_in_frame=false;
 
 			flags[RENDER_TARGET_VFLIP]=false;

@@ -337,8 +337,7 @@ void VisualServerScene::instance_set_base(RID p_instance, RID p_base){
 					light->D=NULL;
 				}
 				VSG::scene_render->free(light->instance);
-
-			}
+			} break;
 		}
 
 		if (instance->base_data) {
@@ -492,12 +491,12 @@ void VisualServerScene::instance_set_base(RID p_instance, RID p_base){
 				light->instance = VSG::scene_render->light_instance_create(p_base);
 
 				instance->base_data=light;
-			}
+			} break;
 			case VS::INSTANCE_MESH: {
 
 				InstanceGeometryData *geom = memnew( InstanceGeometryData );
 				instance->base_data=geom;
-			}
+			} break;
 
 		}
 
@@ -596,7 +595,7 @@ void VisualServerScene::instance_set_scenario(RID p_instance, RID p_scenario){
 					instance->scenario->directional_lights.erase( light->D );
 					light->D=NULL;
 				}
-			}
+			} break;
 		}
 
 		instance->scenario=NULL;
@@ -623,7 +622,7 @@ void VisualServerScene::instance_set_scenario(RID p_instance, RID p_scenario){
 				if (VSG::storage->light_get_type(instance->base)==VS::LIGHT_DIRECTIONAL) {
 					light->D = scenario->directional_lights.push_back(instance);
 				}
-			}
+			} break;
 		}
 
 		_instance_queue_update(instance,true,true);
@@ -693,29 +692,136 @@ void VisualServerScene::instance_set_extra_visibility_margin( RID p_instance, re
 
 }
 
-// don't use these in a game!
-Vector<ObjectID> VisualServerScene::instances_cull_aabb(const AABB& p_aabb, RID p_scenario) const{
+Vector<ObjectID> VisualServerScene::instances_cull_aabb(const AABB& p_aabb, RID p_scenario) const {
 
-	return Vector<ObjectID>();
+
+	Vector<ObjectID> instances;
+	Scenario *scenario=scenario_owner.get(p_scenario);
+	ERR_FAIL_COND_V(!scenario,instances);
+
+	const_cast<VisualServerScene*>(this)->update_dirty_instances(); // check dirty instances before culling
+
+	int culled=0;
+	Instance *cull[1024];
+	culled=scenario->octree.cull_AABB(p_aabb,cull,1024);
+
+	for (int i=0;i<culled;i++) {
+
+		Instance *instance=cull[i];
+		ERR_CONTINUE(!instance);
+		if (instance->object_ID==0)
+			continue;
+
+		instances.push_back(instance->object_ID);
+	}
+
+	return instances;
 }
-
 Vector<ObjectID> VisualServerScene::instances_cull_ray(const Vector3& p_from, const Vector3& p_to, RID p_scenario) const{
 
-	return Vector<ObjectID>();
-}
-Vector<ObjectID> VisualServerScene::instances_cull_convex(const Vector<Plane>& p_convex, RID p_scenario) const {
+	Vector<ObjectID> instances;
+	Scenario *scenario=scenario_owner.get(p_scenario);
+	ERR_FAIL_COND_V(!scenario,instances);
+	const_cast<VisualServerScene*>(this)->update_dirty_instances(); // check dirty instances before culling
 
-	return Vector<ObjectID>();
-}
+	int culled=0;
+	Instance *cull[1024];
+	culled=scenario->octree.cull_segment(p_from,p_to*10000,cull,1024);
 
+
+	for (int i=0;i<culled;i++) {
+		Instance *instance=cull[i];
+		ERR_CONTINUE(!instance);
+		if (instance->object_ID==0)
+			continue;
+
+		instances.push_back(instance->object_ID);
+	}
+
+	return instances;
+
+}
+Vector<ObjectID> VisualServerScene::instances_cull_convex(const Vector<Plane>& p_convex,  RID p_scenario) const{
+
+	Vector<ObjectID> instances;
+	Scenario *scenario=scenario_owner.get(p_scenario);
+	ERR_FAIL_COND_V(!scenario,instances);
+	const_cast<VisualServerScene*>(this)->update_dirty_instances(); // check dirty instances before culling
+
+	int culled=0;
+	Instance *cull[1024];
+
+
+	culled=scenario->octree.cull_convex(p_convex,cull,1024);
+
+	for (int i=0;i<culled;i++) {
+
+		Instance *instance=cull[i];
+		ERR_CONTINUE(!instance);
+		if (instance->object_ID==0)
+			continue;
+
+		instances.push_back(instance->object_ID);
+	}
+
+	return instances;
+
+}
 
 void VisualServerScene::instance_geometry_set_flag(RID p_instance,VS::InstanceFlags p_flags,bool p_enabled){
 
+	Instance *instance = instance_owner.get( p_instance );
+	ERR_FAIL_COND( !instance );
+
+	switch(p_flags) {
+
+		case VS::INSTANCE_FLAG_VISIBLE: {
+
+			instance->visible=p_enabled;
+
+		} break;
+		case VS::INSTANCE_FLAG_BILLBOARD: {
+
+			instance->billboard=p_enabled;
+
+		} break;
+		case VS::INSTANCE_FLAG_BILLBOARD_FIX_Y: {
+
+			instance->billboard_y=p_enabled;
+
+		} break;
+		case VS::INSTANCE_FLAG_CAST_SHADOW: {
+			/*if (p_enabled == true) {
+				instance->cast_shadows = SHADOW_CASTING_SETTING_ON;
+			}
+			else {
+				instance->cast_shadows = SHADOW_CASTING_SETTING_OFF;
+			}*/
+
+		} break;
+		case VS::INSTANCE_FLAG_DEPH_SCALE: {
+
+			instance->depth_scale=p_enabled;
+
+		} break;
+		case VS::INSTANCE_FLAG_VISIBLE_IN_ALL_ROOMS: {
+
+			instance->visible_in_all_rooms=p_enabled;
+
+		} break;
+
+	}
 }
 void VisualServerScene::instance_geometry_set_cast_shadows_setting(RID p_instance, VS::ShadowCastingSetting p_shadow_casting_setting) {
 
 }
 void VisualServerScene::instance_geometry_set_material_override(RID p_instance, RID p_material){
+
+	Instance *instance = instance_owner.get( p_instance );
+	ERR_FAIL_COND( !instance );
+
+	instance->material_override=p_material;
+
 
 }
 
@@ -1001,6 +1107,8 @@ void VisualServerScene::render_camera(RID p_camera, RID p_scenario,Size2 p_viewp
 	render_pass++;
 	uint32_t camera_layer_mask=camera->visible_layers;
 
+	VSG::scene_render->set_scene_pass(render_pass);
+
 
 	/* STEP 1 - SETUP CAMERA */
 	CameraMatrix camera_matrix;
@@ -1151,7 +1259,8 @@ void VisualServerScene::render_camera(RID p_camera, RID p_scenario,Size2 p_viewp
 			//failure
 		} else if (ins->base_type==VS::INSTANCE_LIGHT && ins->visible) {
 
-			if (light_cull_count<MAX_LIGHTS_CULLED) {
+
+			if (ins->visible && light_cull_count<MAX_LIGHTS_CULLED) {
 
 				InstanceLightData * light = static_cast<InstanceLightData*>(ins->base_data);
 
@@ -1159,6 +1268,7 @@ void VisualServerScene::render_camera(RID p_camera, RID p_scenario,Size2 p_viewp
 					//do not add this light if no geometry is affected by it..
 					light_cull_result[light_cull_count]=ins;
 					light_instance_cull_result[light_cull_count]=light->instance;
+					VSG::scene_render->light_instance_mark_visible(light->instance); //mark it visible for shadow allocation later
 
 					light_cull_count++;
 				}
@@ -1252,6 +1362,8 @@ void VisualServerScene::render_camera(RID p_camera, RID p_scenario,Size2 p_viewp
 
 				geom->lighting_dirty=false;
 			}
+
+			ins->depth = near_plane.distance_to(ins->transform.origin);
 
 		}
 
@@ -1377,6 +1489,7 @@ void VisualServerScene::render_camera(RID p_camera, RID p_scenario,Size2 p_viewp
 	}
 		// add geometry
 #endif
+
 
 
 	VSG::scene_render->render_scene(camera->transform, camera_matrix,ortho,(RasterizerScene::InstanceBase**)instance_cull_result,cull_count,light_instance_cull_result,light_cull_count,directional_light_ptr,directional_light_count,environment);

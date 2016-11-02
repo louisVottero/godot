@@ -620,7 +620,7 @@ public:
 	BIND1RC(uint32_t,texture_get_width,RID)
 	BIND1RC(uint32_t,texture_get_height,RID)
 	BIND3(texture_set_size_override,RID,int,int)
-	BIND3RC(RID,texture_create_pbr_cubemap,RID,PBRCubeMapMode,int)
+	BIND2RC(RID,texture_create_radiance_cubemap,RID,int)
 
 
 
@@ -657,6 +657,10 @@ public:
 
 	BIND3(material_set_param,RID, const StringName&, const Variant& )
 	BIND2RC(Variant,material_get_param,RID, const StringName& )
+
+	BIND2(material_set_line_width,RID, float )
+
+
 
 	/* MESH API */
 
@@ -854,7 +858,7 @@ public:
 	BIND0R(RID,environment_create)
 
 	BIND2(environment_set_background,RID ,EnvironmentBG )
-	BIND4(environment_set_skybox,RID,RID ,int,int )
+	BIND3(environment_set_skybox,RID,RID ,int )
 	BIND2(environment_set_skybox_scale,RID,float)
 	BIND2(environment_set_bg_color,RID,const Color& )
 	BIND2(environment_set_bg_energy,RID,float )
@@ -864,11 +868,8 @@ public:
 	BIND7(environment_set_glow,RID,bool ,int ,float ,float ,float ,EnvironmentGlowBlendMode )
 	BIND5(environment_set_fog,RID,bool ,float ,float ,RID )
 
-	BIND8(environment_set_tonemap,RID,bool ,float ,float ,float ,float ,float ,EnvironmentToneMapper )
-	BIND3(environment_set_brightness,RID,bool ,float )
-	BIND3(environment_set_contrast,RID,bool ,float )
-	BIND3(environment_set_saturation,RID,bool ,float )
-	BIND3(environment_set_color_correction,RID,bool ,RID )
+	BIND9(environment_set_tonemap,RID,bool ,float ,float ,float ,float ,float,float ,EnvironmentToneMapper )
+	BIND6(environment_set_adjustment,RID,bool ,float ,float ,float ,RID )
 
 
 	/* SCENARIO API */
