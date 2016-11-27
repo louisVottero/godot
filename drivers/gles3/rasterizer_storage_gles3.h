@@ -6,6 +6,7 @@
 #include "shader_gles3.h"
 #include "shaders/copy.glsl.h"
 #include "shaders/canvas.glsl.h"
+#include "shaders/blend_shape.glsl.h"
 #include "shaders/cubemap_filter.glsl.h"
 #include "self_list.h"
 #include "shader_compiler_gles3.h"
@@ -65,6 +66,8 @@ public:
 
 		CubemapFilterShaderGLES3 cubemap_filter;
 
+		BlendShapeShaderGLES3 blend_shapes;
+
 		ShaderCompilerGLES3::IdentifierActions actions_canvas;
 		ShaderCompilerGLES3::IdentifierActions actions_scene;
 	} shaders;
@@ -74,9 +77,13 @@ public:
 		GLuint white_tex;
 		GLuint black_tex;
 		GLuint normal_tex;
+		GLuint aniso_tex;
 
 		GLuint quadie;
 		GLuint quadie_array;
+
+		GLuint transform_feedback_buffers[2];
+		GLuint transform_feedback_array;
 
 	} resources;
 
@@ -123,17 +130,50 @@ public:
 			}
 		}
 
+		_FORCE_INLINE_ void instance_remove_deps() {
+			SelfList<RasterizerScene::InstanceBase> *instances = instance_list.first();
+			while(instances) {
+
+				SelfList<RasterizerScene::InstanceBase> *next = instances->next();
+				instances->self()->base_removed();
+				instances=next;
+			}
+		}
+
+
 		Instantiable() {  }
 		virtual ~Instantiable() {
 
-			while(instance_list.first()) {
-				instance_list.first()->self()->base_removed();
-			}
 		}
 	};
 
+	struct GeometryOwner : public Instantiable {
+
+		virtual ~GeometryOwner() {}
+	};
+	struct Geometry : Instantiable {
+
+		enum Type {
+			GEOMETRY_INVALID,
+			GEOMETRY_SURFACE,
+			GEOMETRY_IMMEDIATE,
+			GEOMETRY_MULTISURFACE,
+		};
 
 
+		Type type;
+		RID material;
+		uint64_t last_pass;
+		uint32_t index;
+
+		virtual void material_changed_notify() {}
+
+		Geometry() {
+			last_pass=0;
+			index=0;
+		}
+
+	};
 
 
 
@@ -226,6 +266,19 @@ public:
 
 	virtual RID texture_create_radiance_cubemap(RID p_source,int p_resolution=-1) const;
 
+	/* SKYBOX API */
+
+	struct SkyBox : public RID_Data {
+
+		RID cubemap;
+		GLuint radiance;
+		int radiance_size;
+	};
+
+	mutable RID_Owner<SkyBox> skybox_owner;
+
+	virtual RID skybox_create();
+	virtual void skybox_set_texture(RID p_skybox,RID p_cube_map,int p_radiance_size);
 
 	/* SHADER API */
 
@@ -370,7 +423,7 @@ public:
 		uint32_t index;
 		uint64_t last_pass;
 
-		Map<Instantiable*,int> instantiable_owners;
+		Map<Geometry*,int> geometry_owners;
 		Map<RasterizerScene::InstanceBase*,int> instance_owners;
 
 		bool can_cast_shadow_cache;
@@ -390,8 +443,8 @@ public:
 
 	mutable SelfList<Material>::List _material_dirty_list;
 	void _material_make_dirty(Material *p_material) const;
-	void _material_add_instantiable(RID p_material,Instantiable *p_instantiable);
-	void _material_remove_instantiable(RID p_material, Instantiable *p_instantiable);
+	void _material_add_geometry(RID p_material,Geometry *p_instantiable);
+	void _material_remove_geometry(RID p_material, Geometry *p_instantiable);
 
 
 	mutable RID_Owner<Material> material_owner;
@@ -419,31 +472,9 @@ public:
 	/* MESH API */
 
 
-	struct Geometry : Instantiable {
 
-		enum Type {
-			GEOMETRY_INVALID,
-			GEOMETRY_SURFACE,
-			GEOMETRY_IMMEDIATE,
-			GEOMETRY_MULTISURFACE,
-		};
 
-		Type type;
-		RID material;
-		uint64_t last_pass;
-		uint32_t index;
 
-		Geometry() {
-			last_pass=0;
-			index=0;
-		}
-
-	};
-
-	struct GeometryOwner : public Instantiable {
-
-		virtual ~GeometryOwner() {}
-	};
 
 	struct Mesh;
 	struct Surface : public Geometry {
@@ -451,6 +482,7 @@ public:
 		struct Attrib {
 
 			bool enabled;
+			bool integer;
 			GLuint index;
 			GLint size;
 			GLenum type;
@@ -460,13 +492,14 @@ public:
 		};
 
 		Attrib attribs[VS::ARRAY_MAX];
-		Attrib morph_attribs[VS::ARRAY_MAX];
+
 
 
 		Mesh *mesh;
 		uint32_t format;
 
 		GLuint array_id;
+		GLuint instancing_array_id;
 		GLuint vertex_id;
 		GLuint index_id;
 
@@ -495,6 +528,10 @@ public:
 		VS::PrimitiveType primitive;
 
 		bool active;
+
+		virtual void material_changed_notify() {
+			mesh->instance_material_change_notify();
+		}
 
 		Surface() {
 
@@ -574,22 +611,57 @@ public:
 	virtual AABB mesh_get_aabb(RID p_mesh, RID p_skeleton) const;
 	virtual void mesh_clear(RID p_mesh);
 
+	void mesh_render_blend_shapes(Surface *s, float *p_weights);
+
 	/* MULTIMESH API */
 
+	struct MultiMesh : public GeometryOwner {
+		RID mesh;
+		int size;
+		VS::MultimeshTransformFormat transform_format;
+		VS::MultimeshColorFormat color_format;
+		Vector<float> data;
+		AABB aabb;
+		SelfList<MultiMesh> update_list;
+		GLuint buffer;
+		int visible_instances;
+
+		int xform_floats;
+		int color_floats;
+
+		bool dirty_aabb;
+		bool dirty_data;
+
+		MultiMesh() : update_list(this) {
+			dirty_aabb=true;
+			dirty_data=true;
+			xform_floats=0;
+			color_floats=0;
+			visible_instances=-1;
+			size=0;
+			buffer=0;
+			transform_format=VS::MULTIMESH_TRANSFORM_2D;
+			color_format=VS::MULTIMESH_COLOR_NONE;
+		}
+	};
+
+	mutable RID_Owner<MultiMesh> multimesh_owner;
+
+	SelfList<MultiMesh>::List multimesh_update_list;
+
+	void update_dirty_multimeshes();
 
 	virtual RID multimesh_create();
 
-	virtual void multimesh_allocate(RID p_multimesh,int p_instances,VS::MultimeshTransformFormat p_transform_format,VS::MultimeshColorFormat p_color_format,bool p_gen_aabb=true);
+	virtual void multimesh_allocate(RID p_multimesh,int p_instances,VS::MultimeshTransformFormat p_transform_format,VS::MultimeshColorFormat p_color_format);
 	virtual int multimesh_get_instance_count(RID p_multimesh) const;
 
 	virtual void multimesh_set_mesh(RID p_multimesh,RID p_mesh);
-	virtual void multimesh_set_custom_aabb(RID p_multimesh,const AABB& p_aabb);
 	virtual void multimesh_instance_set_transform(RID p_multimesh,int p_index,const Transform& p_transform);
 	virtual void multimesh_instance_set_transform_2d(RID p_multimesh,int p_index,const Matrix32& p_transform);
 	virtual void multimesh_instance_set_color(RID p_multimesh,int p_index,const Color& p_color);
 
 	virtual RID multimesh_get_mesh(RID p_multimesh) const;
-	virtual AABB multimesh_get_custom_aabb(RID p_multimesh) const;
 
 	virtual Transform multimesh_instance_get_transform(RID p_multimesh,int p_index) const;
 	virtual Matrix32 multimesh_instance_get_transform_2d(RID p_multimesh,int p_index) const;
@@ -598,14 +670,45 @@ public:
 	virtual void multimesh_set_visible_instances(RID p_multimesh,int p_visible);
 	virtual int multimesh_get_visible_instances(RID p_multimesh) const;
 
-	virtual AABB multimesh_get_aabb(RID p_mesh) const;
+	virtual AABB multimesh_get_aabb(RID p_multimesh) const;
 
 	/* IMMEDIATE API */
 
+	struct Immediate : public Geometry {
+
+		struct Chunk {
+
+			RID texture;
+			VS::PrimitiveType primitive;
+			Vector<Vector3> vertices;
+			Vector<Vector3> normals;
+			Vector<Plane> tangents;
+			Vector<Color> colors;
+			Vector<Vector2> uvs;
+			Vector<Vector2> uvs2;
+		};
+
+		List<Chunk> chunks;
+		bool building;
+		int mask;
+		AABB aabb;
+
+		Immediate() { type=GEOMETRY_IMMEDIATE; building=false;}
+
+	};
+
+	Vector3 chunk_vertex;
+	Vector3 chunk_normal;
+	Plane chunk_tangent;
+	Color chunk_color;
+	Vector2 chunk_uv;
+	Vector2 chunk_uv2;
+
+	mutable RID_Owner<Immediate> immediate_owner;
+
 	virtual RID immediate_create();
 	virtual void immediate_begin(RID p_immediate,VS::PrimitiveType p_rimitive,RID p_texture=RID());
-	virtual void immediate_vertex(RID p_immediate,const Vector3& p_vertex);
-	virtual void immediate_vertex_2d(RID p_immediate,const Vector3& p_vertex);
+	virtual void immediate_vertex(RID p_immediate,const Vector3& p_vertex);	
 	virtual void immediate_normal(RID p_immediate,const Vector3& p_normal);
 	virtual void immediate_tangent(RID p_immediate,const Plane& p_tangent);
 	virtual void immediate_color(RID p_immediate,const Color& p_color);
@@ -615,8 +718,30 @@ public:
 	virtual void immediate_clear(RID p_immediate);
 	virtual void immediate_set_material(RID p_immediate,RID p_material);
 	virtual RID immediate_get_material(RID p_immediate) const;
+	virtual AABB immediate_get_aabb(RID p_immediate) const;
 
 	/* SKELETON API */
+
+	struct Skeleton : RID_Data {
+		int size;
+		bool use_2d;
+		Vector<float> bones; //4x3 or 4x2 depending on what is needed
+		GLuint ubo;
+		SelfList<Skeleton> update_list;
+		Set<RasterizerScene::InstanceBase*> instances; //instances using skeleton
+
+		Skeleton() : update_list(this) {
+			size=0;
+			use_2d=false;
+			ubo=0;
+		}
+	};
+
+	mutable RID_Owner<Skeleton> skeleton_owner;
+
+	SelfList<Skeleton>::List skeleton_update_list;
+
+	void update_dirty_skeletons();
 
 	virtual RID skeleton_create();
 	virtual void skeleton_allocate(RID p_skeleton,int p_bones,bool p_2d_skeleton=false);
@@ -634,12 +759,15 @@ public:
 		VS::LightType type;
 		float param[VS::LIGHT_PARAM_MAX];
 		Color color;
+		Color shadow_color;
+		RID projector;
 		bool shadow;
 		bool negative;
 		uint32_t cull_mask;
 		VS::LightOmniShadowMode omni_shadow_mode;
 		VS::LightOmniShadowDetail omni_shadow_detail;
 		VS::LightDirectionalShadowMode directional_shadow_mode;
+		bool directional_blend_splits;
 		uint64_t version;
 	};
 
@@ -650,17 +778,19 @@ public:
 	virtual void light_set_color(RID p_light,const Color& p_color);
 	virtual void light_set_param(RID p_light,VS::LightParam p_param,float p_value);
 	virtual void light_set_shadow(RID p_light,bool p_enabled);
+	virtual void light_set_shadow_color(RID p_light,const Color& p_color);
 	virtual void light_set_projector(RID p_light,RID p_texture);
-	virtual void light_set_attenuation_texure(RID p_light,RID p_texture);
 	virtual void light_set_negative(RID p_light,bool p_enable);
 	virtual void light_set_cull_mask(RID p_light,uint32_t p_mask);
-	virtual void light_set_shader(RID p_light,RID p_shader);
+
 
 	virtual void light_omni_set_shadow_mode(RID p_light,VS::LightOmniShadowMode p_mode);
-
 	virtual void light_omni_set_shadow_detail(RID p_light,VS::LightOmniShadowDetail p_detail);
 
 	virtual void light_directional_set_shadow_mode(RID p_light,VS::LightDirectionalShadowMode p_mode);
+	virtual void light_directional_set_blend_splits(RID p_light,bool p_enable);
+	virtual bool light_directional_get_blend_splits(RID p_light) const;
+
 	virtual VS::LightDirectionalShadowMode light_directional_get_shadow_mode(RID p_light);
 	virtual VS::LightOmniShadowMode light_omni_get_shadow_mode(RID p_light);
 
@@ -674,17 +804,50 @@ public:
 
 	/* PROBE API */
 
+	struct ReflectionProbe : Instantiable {
+
+		VS::ReflectionProbeUpdateMode update_mode;
+		float intensity;
+		Color interior_ambient;
+		float interior_ambient_energy;
+		float interior_ambient_probe_contrib;
+		float max_distance;
+		Vector3 extents;
+		Vector3 origin_offset;
+		bool interior;
+		bool box_projection;
+		bool enable_shadows;
+		uint32_t cull_mask;
+
+	};
+
+	mutable RID_Owner<ReflectionProbe> reflection_probe_owner;
+
 	virtual RID reflection_probe_create();
 
+	virtual void reflection_probe_set_update_mode(RID p_probe, VS::ReflectionProbeUpdateMode p_mode);
 	virtual void reflection_probe_set_intensity(RID p_probe, float p_intensity);
-	virtual void reflection_probe_set_clip(RID p_probe, float p_near, float p_far);
-	virtual void reflection_probe_set_min_blend_distance(RID p_probe, float p_distance);
+	virtual void reflection_probe_set_interior_ambient(RID p_probe, const Color& p_ambient);
+	virtual void reflection_probe_set_interior_ambient_energy(RID p_probe, float p_energy);
+	virtual void reflection_probe_set_interior_ambient_probe_contribution(RID p_probe, float p_contrib);
+	virtual void reflection_probe_set_max_distance(RID p_probe, float p_distance);
 	virtual void reflection_probe_set_extents(RID p_probe, const Vector3& p_extents);
 	virtual void reflection_probe_set_origin_offset(RID p_probe, const Vector3& p_offset);
-	virtual void reflection_probe_set_enable_parallax_correction(RID p_probe, bool p_enable);
-	virtual void reflection_probe_set_resolution(RID p_probe, int p_resolution);
-	virtual void reflection_probe_set_hide_skybox(RID p_probe, bool p_hide);
+	virtual void reflection_probe_set_as_interior(RID p_probe, bool p_enable);
+	virtual void reflection_probe_set_enable_box_projection(RID p_probe, bool p_enable);
+	virtual void reflection_probe_set_enable_shadows(RID p_probe, bool p_enable);
 	virtual void reflection_probe_set_cull_mask(RID p_probe, uint32_t p_layers);
+
+	virtual AABB reflection_probe_get_aabb(RID p_probe) const;
+	virtual VS::ReflectionProbeUpdateMode reflection_probe_get_update_mode(RID p_probe) const;
+	virtual uint32_t reflection_probe_get_cull_mask(RID p_probe) const;
+
+	virtual Vector3 reflection_probe_get_extents(RID p_probe) const;
+	virtual Vector3 reflection_probe_get_origin_offset(RID p_probe) const;
+	virtual float reflection_probe_get_origin_max_distance(RID p_probe) const;
+	virtual bool reflection_probe_renders_shadows(RID p_probe) const;
+
+
 
 
 	/* ROOM API */
@@ -704,6 +867,8 @@ public:
 	virtual void portal_set_disable_distance(RID p_portal, float p_distance);
 	virtual void portal_set_disabled_color(RID p_portal, const Color& p_color);
 
+	virtual void instance_add_skeleton(RID p_skeleton,RasterizerScene::InstanceBase *p_instance);
+	virtual void instance_remove_skeleton(RID p_skeleton,RasterizerScene::InstanceBase *p_instance);
 
 	virtual void instance_add_dependency(RID p_base,RasterizerScene::InstanceBase *p_instance);
 	virtual void instance_remove_dependency(RID p_base,RasterizerScene::InstanceBase *p_instance);
@@ -808,6 +973,7 @@ public:
 		Color clear_request_color;
 		int canvas_draw_commands;
 		float time[4];
+		uint64_t count;
 	} frame;
 
 	void initialize();

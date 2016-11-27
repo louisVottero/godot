@@ -87,6 +87,12 @@ protected:
 		int index;
 	};
 
+	struct Feedback {
+
+		const char *name;
+		int conditional;
+	};
+
 	bool uniforms_dirty;
 private:	
 
@@ -95,6 +101,7 @@ private:
 	int texunit_pair_count;
 	int conditional_count;
 	int ubo_count;
+	int feedback_count;
 	int vertex_code_start;
 	int fragment_code_start;
 	int attribute_pair_count;
@@ -162,6 +169,7 @@ private:
 	const AttributePair *attribute_pairs;
 	const TexUnitPair *texunit_pairs;
 	const UBOPair *ubo_pairs;
+	const Feedback *feedbacks;
 	const char* vertex_code;
 	const char* fragment_code;
 	CharString fragment_code0;
@@ -174,6 +182,8 @@ private:
 	CharString vertex_code1;
 	CharString vertex_code2;
 	CharString vertex_code3;
+
+	Vector<CharString> custom_defines;
 
 	int base_material_tex_index;
 
@@ -291,7 +301,7 @@ protected:
 	_FORCE_INLINE_ int _get_uniform(int p_which) const;
 	_FORCE_INLINE_ void _set_conditional(int p_which, bool p_value);
 	
-	void setup(const char** p_conditional_defines, int p_conditional_count,const char** p_uniform_names,int p_uniform_count, const AttributePair* p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count,const char*p_vertex_code, const char *p_fragment_code,int p_vertex_code_start,int p_fragment_code_start);
+	void setup(const char** p_conditional_defines, int p_conditional_count,const char** p_uniform_names,int p_uniform_count, const AttributePair* p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs,int p_ubo_pair_count, const Feedback* p_feedback, int p_feedback_count,const char*p_vertex_code, const char *p_fragment_code,int p_vertex_code_start,int p_fragment_code_start);
 	
 	ShaderGLES3();
 public:
@@ -356,6 +366,10 @@ public:
 	void finish();
 
 	void set_base_material_tex_index(int p_idx);
+
+	void add_custom_define(const String& p_define) {
+		custom_defines.push_back(p_define.utf8());
+	}
 
 	virtual ~ShaderGLES3();
 

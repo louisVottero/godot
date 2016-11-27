@@ -629,7 +629,10 @@ public:
 	BIND1(texture_set_shrink_all_x2_on_set_data,bool)
 	BIND1(texture_debug_usage,List<TextureInfo>*)
 
+	/* SKYBOX API */
 
+	BIND0R(RID,skybox_create)
+	BIND3(skybox_set_texture,RID,RID,int)
 
 	/* SHADER API */
 
@@ -704,17 +707,16 @@ public:
 
 	BIND0R(RID,multimesh_create)
 
-	BIND5(multimesh_allocate,RID,int,MultimeshTransformFormat,MultimeshColorFormat,bool)
+	BIND4(multimesh_allocate,RID,int,MultimeshTransformFormat,MultimeshColorFormat)
 	BIND1RC(int,multimesh_get_instance_count,RID)
 
 	BIND2(multimesh_set_mesh,RID,RID)
-	BIND2(multimesh_set_custom_aabb,RID,const AABB&)
 	BIND3(multimesh_instance_set_transform,RID,int,const Transform&)
 	BIND3(multimesh_instance_set_transform_2d,RID,int,const Matrix32& )
 	BIND3(multimesh_instance_set_color,RID,int,const Color&)
 
 	BIND1RC(RID,multimesh_get_mesh,RID)
-	BIND1RC(AABB,multimesh_get_custom_aabb,RID)
+	BIND1RC(AABB,multimesh_get_aabb,RID)
 
 	BIND2RC(Transform,multimesh_instance_get_transform,RID,int )
 	BIND2RC(Matrix32,multimesh_instance_get_transform_2d,RID,int)
@@ -729,7 +731,6 @@ public:
 	BIND0R(RID,immediate_create)
 	BIND3(immediate_begin,RID,PrimitiveType,RID)
 	BIND2(immediate_vertex,RID,const Vector3&)
-	BIND2(immediate_vertex_2d,RID,const Vector3&)
 	BIND2(immediate_normal,RID,const Vector3&)
 	BIND2(immediate_tangent,RID,const Plane&)
 	BIND2(immediate_color,RID,const Color&)
@@ -757,31 +758,33 @@ public:
 	BIND2(light_set_color,RID,const Color&)
 	BIND3(light_set_param,RID ,LightParam ,float )
 	BIND2(light_set_shadow,RID ,bool )
+	BIND2(light_set_shadow_color,RID ,const Color& )
 	BIND2(light_set_projector,RID,RID )
-	BIND2(light_set_attenuation_texure,RID,RID )
 	BIND2(light_set_negative,RID,bool )
 	BIND2(light_set_cull_mask,RID ,uint32_t )
-	BIND2(light_set_shader,RID ,RID )
 
 	BIND2(light_omni_set_shadow_mode,RID,LightOmniShadowMode)
 	BIND2(light_omni_set_shadow_detail,RID,LightOmniShadowDetail)
 
 	BIND2(light_directional_set_shadow_mode,RID,LightDirectionalShadowMode)
+	BIND2(light_directional_set_blend_splits,RID,bool)
 
 	/* PROBE API */
 
 	BIND0R(RID,reflection_probe_create)
 
+	BIND2(reflection_probe_set_update_mode,RID, ReflectionProbeUpdateMode )
 	BIND2(reflection_probe_set_intensity,RID, float )
-	BIND3(reflection_probe_set_clip,RID, float , float )
-	BIND2(reflection_probe_set_min_blend_distance,RID, float )
+	BIND2(reflection_probe_set_interior_ambient,RID, const Color& )
+	BIND2(reflection_probe_set_interior_ambient_energy,RID, float )
+	BIND2(reflection_probe_set_interior_ambient_probe_contribution,RID, float )
+	BIND2(reflection_probe_set_max_distance,RID, float )
 	BIND2(reflection_probe_set_extents,RID, const Vector3& )
 	BIND2(reflection_probe_set_origin_offset,RID, const Vector3& )
-	BIND2(reflection_probe_set_enable_parallax_correction,RID, bool )
-	BIND2(reflection_probe_set_resolution,RID, int )
-	BIND2(reflection_probe_set_hide_skybox,RID, bool )
+	BIND2(reflection_probe_set_as_interior,RID, bool )
+	BIND2(reflection_probe_set_enable_box_projection,RID, bool )
+	BIND2(reflection_probe_set_enable_shadows,RID, bool )
 	BIND2(reflection_probe_set_cull_mask,RID, uint32_t )
-
 
 	/* ROOM API */
 
@@ -866,7 +869,7 @@ public:
 	BIND0R(RID,environment_create)
 
 	BIND2(environment_set_background,RID ,EnvironmentBG )
-	BIND3(environment_set_skybox,RID,RID ,int )
+	BIND2(environment_set_skybox,RID,RID )
 	BIND2(environment_set_skybox_scale,RID,float)
 	BIND2(environment_set_bg_color,RID,const Color& )
 	BIND2(environment_set_bg_energy,RID,float )
@@ -890,6 +893,7 @@ public:
 
 	BIND2(scenario_set_debug,RID,ScenarioDebugMode )
 	BIND2(scenario_set_environment,RID, RID )
+	BIND3(scenario_set_reflection_atlas_size,RID, int,int )
 	BIND2(scenario_set_fallback_environment,RID, RID )
 
 

@@ -54,7 +54,7 @@ public:
 	virtual RID environment_create()=0;
 
 	virtual void environment_set_background(RID p_env,VS::EnvironmentBG p_bg)=0;
-	virtual void environment_set_skybox(RID p_env,RID p_skybox,int p_radiance_size)=0;
+	virtual void environment_set_skybox(RID p_env,RID p_skybox)=0;
 	virtual void environment_set_skybox_scale(RID p_env,float p_scale)=0;
 	virtual void environment_set_bg_color(RID p_env,const Color& p_color)=0;
 	virtual void environment_set_bg_energy(RID p_env,float p_energy)=0;
@@ -78,11 +78,13 @@ public:
 		Transform transform;
 
 		int depth_layer;
+		uint32_t layer_mask;
 
 		//RID sampled_light;
 
 		Vector<RID> materials;
 		Vector<RID> light_instances;
+		Vector<RID> reflection_probe_instances;
 
 		Vector<float> morph_values;
 
@@ -114,6 +116,7 @@ public:
 			billboard=false;
 			billboard_y=false;
 			depth_layer=0;
+			layer_mask=1;
 
 		}
 	};
@@ -123,7 +126,19 @@ public:
 	virtual void light_instance_set_shadow_transform(RID p_light_instance,const CameraMatrix& p_projection,const Transform& p_transform,float p_far,float p_split,int p_pass)=0;
 	virtual void light_instance_mark_visible(RID p_light_instance)=0;
 
-	virtual void render_scene(const Transform& p_cam_transform,const CameraMatrix& p_cam_projection,bool p_cam_ortogonal,InstanceBase** p_cull_result,int p_cull_count,RID* p_light_cull_result,int p_light_cull_count,RID p_environment,RID p_shadow_atlas)=0;
+	virtual RID reflection_atlas_create()=0;
+	virtual void reflection_atlas_set_size(RID p_ref_atlas,int p_size)=0;
+	virtual void reflection_atlas_set_subdivision(RID p_ref_atlas,int p_subdiv)=0;
+
+	virtual RID reflection_probe_instance_create(RID p_probe)=0;
+	virtual void reflection_probe_instance_set_transform(RID p_instance,const Transform& p_transform)=0;
+	virtual void reflection_probe_release_atlas_index(RID p_instance)=0;
+	virtual bool reflection_probe_instance_needs_redraw(RID p_instance)=0;
+	virtual bool reflection_probe_instance_has_reflection(RID p_instance)=0;
+	virtual bool reflection_probe_instance_begin_render(RID p_instance, RID p_reflection_atlas)=0;
+	virtual bool reflection_probe_instance_postprocess_step(RID p_instance)=0;
+
+	virtual void render_scene(const Transform& p_cam_transform,const CameraMatrix& p_cam_projection,bool p_cam_ortogonal,InstanceBase** p_cull_result,int p_cull_count,RID* p_light_cull_result,int p_light_cull_count,RID* p_reflection_probe_cull_result,int p_reflection_probe_cull_count,RID p_environment,RID p_shadow_atlas,RID p_reflection_atlas,RID p_reflection_probe,int p_reflection_probe_pass)=0;
 	virtual void render_shadow(RID p_light,RID p_shadow_atlas,int p_pass,InstanceBase** p_cull_result,int p_cull_count)=0;
 
 	virtual void set_scene_pass(uint64_t p_pass)=0;
@@ -162,6 +177,11 @@ public:
 	virtual void texture_debug_usage(List<VS::TextureInfo> *r_info)=0;
 
 	virtual RID texture_create_radiance_cubemap(RID p_source,int p_resolution=-1) const=0;
+
+	/* SKYBOX API */
+
+	virtual RID skybox_create()=0;
+	virtual void skybox_set_texture(RID p_skybox,RID p_cube_map,int p_radiance_size)=0;
 
 	/* SHADER API */
 
@@ -241,17 +261,15 @@ public:
 
 	virtual RID multimesh_create()=0;
 
-	virtual void multimesh_allocate(RID p_multimesh,int p_instances,VS::MultimeshTransformFormat p_transform_format,VS::MultimeshColorFormat p_color_format,bool p_gen_aabb=true)=0;
+	virtual void multimesh_allocate(RID p_multimesh,int p_instances,VS::MultimeshTransformFormat p_transform_format,VS::MultimeshColorFormat p_color_format)=0;
 	virtual int multimesh_get_instance_count(RID p_multimesh) const=0;
 
 	virtual void multimesh_set_mesh(RID p_multimesh,RID p_mesh)=0;
-	virtual void multimesh_set_custom_aabb(RID p_multimesh,const AABB& p_aabb)=0;
 	virtual void multimesh_instance_set_transform(RID p_multimesh,int p_index,const Transform& p_transform)=0;
 	virtual void multimesh_instance_set_transform_2d(RID p_multimesh,int p_index,const Matrix32& p_transform)=0;
 	virtual void multimesh_instance_set_color(RID p_multimesh,int p_index,const Color& p_color)=0;
 
 	virtual RID multimesh_get_mesh(RID p_multimesh) const=0;
-	virtual AABB multimesh_get_custom_aabb(RID p_multimesh) const=0;
 
 	virtual Transform multimesh_instance_get_transform(RID p_multimesh,int p_index) const=0;
 	virtual Matrix32 multimesh_instance_get_transform_2d(RID p_multimesh,int p_index) const=0;
@@ -260,14 +278,13 @@ public:
 	virtual void multimesh_set_visible_instances(RID p_multimesh,int p_visible)=0;
 	virtual int multimesh_get_visible_instances(RID p_multimesh) const=0;
 
-	virtual AABB multimesh_get_aabb(RID p_mesh) const=0;
+	virtual AABB multimesh_get_aabb(RID p_multimesh) const=0;
 
 	/* IMMEDIATE API */
 
 	virtual RID immediate_create()=0;
 	virtual void immediate_begin(RID p_immediate,VS::PrimitiveType p_rimitive,RID p_texture=RID())=0;
 	virtual void immediate_vertex(RID p_immediate,const Vector3& p_vertex)=0;
-	virtual void immediate_vertex_2d(RID p_immediate,const Vector3& p_vertex)=0;
 	virtual void immediate_normal(RID p_immediate,const Vector3& p_normal)=0;
 	virtual void immediate_tangent(RID p_immediate,const Plane& p_tangent)=0;
 	virtual void immediate_color(RID p_immediate,const Color& p_color)=0;
@@ -277,6 +294,8 @@ public:
 	virtual void immediate_clear(RID p_immediate)=0;
 	virtual void immediate_set_material(RID p_immediate,RID p_material)=0;
 	virtual RID immediate_get_material(RID p_immediate) const=0;
+	virtual AABB immediate_get_aabb(RID p_immediate) const=0;
+
 
 	/* SKELETON API */
 
@@ -295,16 +314,17 @@ public:
 	virtual void light_set_color(RID p_light,const Color& p_color)=0;
 	virtual void light_set_param(RID p_light,VS::LightParam p_param,float p_value)=0;
 	virtual void light_set_shadow(RID p_light,bool p_enabled)=0;
+	virtual void light_set_shadow_color(RID p_light,const Color& p_color)=0;
 	virtual void light_set_projector(RID p_light,RID p_texture)=0;
-	virtual void light_set_attenuation_texure(RID p_light,RID p_texture)=0;
 	virtual void light_set_negative(RID p_light,bool p_enable)=0;
 	virtual void light_set_cull_mask(RID p_light,uint32_t p_mask)=0;
-	virtual void light_set_shader(RID p_light,RID p_shader)=0;
 
 	virtual void light_omni_set_shadow_mode(RID p_light,VS::LightOmniShadowMode p_mode)=0;
 	virtual void light_omni_set_shadow_detail(RID p_light,VS::LightOmniShadowDetail p_detail)=0;
 
 	virtual void light_directional_set_shadow_mode(RID p_light,VS::LightDirectionalShadowMode p_mode)=0;
+	virtual void light_directional_set_blend_splits(RID p_light,bool p_enable)=0;
+	virtual bool light_directional_get_blend_splits(RID p_light) const=0;
 
 	virtual VS::LightDirectionalShadowMode light_directional_get_shadow_mode(RID p_light)=0;
 	virtual VS::LightOmniShadowMode light_omni_get_shadow_mode(RID p_light)=0;
@@ -321,15 +341,26 @@ public:
 
 	virtual RID reflection_probe_create()=0;
 
+	virtual void reflection_probe_set_update_mode(RID p_probe, VS::ReflectionProbeUpdateMode p_mode)=0;
 	virtual void reflection_probe_set_intensity(RID p_probe, float p_intensity)=0;
-	virtual void reflection_probe_set_clip(RID p_probe, float p_near, float p_far)=0;
-	virtual void reflection_probe_set_min_blend_distance(RID p_probe, float p_distance)=0;
+	virtual void reflection_probe_set_interior_ambient(RID p_probe, const Color& p_ambient)=0;
+	virtual void reflection_probe_set_interior_ambient_energy(RID p_probe, float p_energy)=0;
+	virtual void reflection_probe_set_interior_ambient_probe_contribution(RID p_probe, float p_contrib)=0;
+	virtual void reflection_probe_set_max_distance(RID p_probe, float p_distance)=0;
 	virtual void reflection_probe_set_extents(RID p_probe, const Vector3& p_extents)=0;
 	virtual void reflection_probe_set_origin_offset(RID p_probe, const Vector3& p_offset)=0;
-	virtual void reflection_probe_set_enable_parallax_correction(RID p_probe, bool p_enable)=0;
-	virtual void reflection_probe_set_resolution(RID p_probe, int p_resolution)=0;
-	virtual void reflection_probe_set_hide_skybox(RID p_probe, bool p_hide)=0;
+	virtual void reflection_probe_set_as_interior(RID p_probe, bool p_enable)=0;
+	virtual void reflection_probe_set_enable_box_projection(RID p_probe, bool p_enable)=0;
+	virtual void reflection_probe_set_enable_shadows(RID p_probe, bool p_enable)=0;
 	virtual void reflection_probe_set_cull_mask(RID p_probe, uint32_t p_layers)=0;
+
+	virtual AABB reflection_probe_get_aabb(RID p_probe) const=0;
+	virtual VS::ReflectionProbeUpdateMode reflection_probe_get_update_mode(RID p_probe) const=0;
+	virtual uint32_t reflection_probe_get_cull_mask(RID p_probe) const=0;
+	virtual Vector3 reflection_probe_get_extents(RID p_probe) const=0;
+	virtual Vector3 reflection_probe_get_origin_offset(RID p_probe) const=0;
+	virtual float reflection_probe_get_origin_max_distance(RID p_probe) const=0;
+	virtual bool reflection_probe_renders_shadows(RID p_probe) const=0;
 
 
 	/* ROOM API */
@@ -349,7 +380,8 @@ public:
 	virtual void portal_set_disable_distance(RID p_portal, float p_distance)=0;
 	virtual void portal_set_disabled_color(RID p_portal, const Color& p_color)=0;
 
-
+	virtual void instance_add_skeleton(RID p_skeleton,RasterizerScene::InstanceBase *p_instance)=0;
+	virtual void instance_remove_skeleton(RID p_skeleton,RasterizerScene::InstanceBase *p_instance)=0;
 
 	virtual void instance_add_dependency(RID p_base,RasterizerScene::InstanceBase *p_instance)=0;
 	virtual void instance_remove_dependency(RID p_base,RasterizerScene::InstanceBase *p_instance)=0;
