@@ -92,6 +92,7 @@ private:
 	Vector2 connecting_to;
 	String connecting_target_to;
 	int connecting_target_index;
+	bool just_disconected;
 
 	bool dragging;
 	bool just_selected;
@@ -110,9 +111,12 @@ private:
 	bool setting_scroll_ofs;
 	bool right_disconnects;
 	bool updating;
+	bool awaiting_scroll_offset_update;
 	List<Connection> connections;
 
-	void _draw_cos_line(const Vector2& p_from, const Vector2& p_to, const Color& p_color, const Color &p_to_color);
+	void _bake_segment2d(CanvasItem* p_where,float p_begin, float p_end, const Vector2& p_a, const Vector2& p_out, const Vector2& p_b, const Vector2& p_in, int p_depth, int p_min_depth, int p_max_depth, float p_tol, const Color& p_color, const Color& p_to_color, int &lines) const;
+
+	void _draw_cos_line(CanvasItem* p_where,const Vector2& p_from, const Vector2& p_to, const Color& p_color, const Color &p_to_color);
 
 	void _graph_node_raised(Node* p_gn);
 	void _graph_node_moved(Node *p_gn);
@@ -121,12 +125,18 @@ private:
 	void _scroll_moved(double);
 	void _input_event(const InputEvent& p_ev);
 
+	Control *connections_layer;
 	GraphEditFilter *top_layer;
 	void _top_layer_input(const InputEvent& p_ev);
 	void _top_layer_draw();
+	void _connections_layer_draw();
 	void _update_scroll_offset();
 
 	Array _get_connection_list() const;
+
+	bool lines_on_bg;
+
+
 
 	struct ConnType {
 
@@ -199,6 +209,7 @@ public:
 
 	int get_snap() const;
 	void set_snap(int p_snap);
+
 
 	GraphEdit();
 };
