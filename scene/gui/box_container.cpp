@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -301,9 +301,9 @@ BoxContainer::BoxContainer(bool p_vertical) {
 
 void BoxContainer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("add_spacer","begin"),&BoxContainer::add_spacer);
-	ObjectTypeDB::bind_method(_MD("get_alignment"),&BoxContainer::get_alignment);
-	ObjectTypeDB::bind_method(_MD("set_alignment","alignment"),&BoxContainer::set_alignment);
+	ClassDB::bind_method(_MD("add_spacer","begin"),&BoxContainer::add_spacer);
+	ClassDB::bind_method(_MD("get_alignment"),&BoxContainer::get_alignment);
+	ClassDB::bind_method(_MD("set_alignment","alignment"),&BoxContainer::set_alignment);
 
 	BIND_CONSTANT( ALIGN_BEGIN );
 	BIND_CONSTANT( ALIGN_CENTER );

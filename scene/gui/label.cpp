@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -85,7 +85,7 @@ void Label::_notification(int p_what) {
 		Ref<Font> font = get_font("font");
 		Color font_color = get_color("font_color");
 		Color font_color_shadow = get_color("font_color_shadow");
-		bool use_outlinde = get_constant("shadow_as_outline");
+		bool use_outline = get_constant("shadow_as_outline");
 		Point2 shadow_ofs(get_constant("shadow_offset_x"),get_constant("shadow_offset_y"));
 		int line_spacing = get_constant("line_spacing");
 
@@ -118,19 +118,19 @@ void Label::_notification(int p_what) {
 					//nothing
 				} break;
 				case VALIGN_CENTER: {
-					vbegin=(size.y - lines_visible * font_h) / 2;
+					vbegin=(size.y - (lines_visible * font_h - line_spacing)) / 2;
 					vsep=0;
 
 				} break;
 				case VALIGN_BOTTOM: {
-					vbegin=size.y - lines_visible * font_h;
+					vbegin=size.y - (lines_visible * font_h - line_spacing);
 					vsep=0;
 
 				} break;
 				case VALIGN_FILL: {
 					vbegin=0;
 					if (lines_visible>1) {
-						vsep=(size.y - lines_visible * font_h) / (lines_visible - 1);
+						vsep=(size.y - (lines_visible * font_h - line_spacing)) / (lines_visible - 1);
 					} else {
 						vsep=0;
 					}
@@ -247,7 +247,7 @@ void Label::_notification(int p_what) {
 							}
 
 							float move=font->draw_char(ci, Point2( x_ofs_shadow, y_ofs )+shadow_ofs, c, n,font_color_shadow );
-							if (use_outlinde) {
+							if (use_outline) {
 								font->draw_char(ci, Point2( x_ofs_shadow, y_ofs )+Vector2(-shadow_ofs.x,shadow_ofs.y), c, n,font_color_shadow );
 								font->draw_char(ci, Point2( x_ofs_shadow, y_ofs )+Vector2(shadow_ofs.x,-shadow_ofs.y), c, n,font_color_shadow );
 								font->draw_char(ci, Point2( x_ofs_shadow, y_ofs )+Vector2(-shadow_ofs.x,-shadow_ofs.y), c, n,font_color_shadow );
@@ -641,30 +641,30 @@ int Label::get_total_character_count() const {
 
 void Label::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_align","align"),&Label::set_align);
-	ObjectTypeDB::bind_method(_MD("get_align"),&Label::get_align);
-	ObjectTypeDB::bind_method(_MD("set_valign","valign"),&Label::set_valign);
-	ObjectTypeDB::bind_method(_MD("get_valign"),&Label::get_valign);
-	ObjectTypeDB::bind_method(_MD("set_text","text"),&Label::set_text);
-	ObjectTypeDB::bind_method(_MD("get_text"),&Label::get_text);
-	ObjectTypeDB::bind_method(_MD("set_autowrap","enable"),&Label::set_autowrap);
-	ObjectTypeDB::bind_method(_MD("has_autowrap"),&Label::has_autowrap);
-	ObjectTypeDB::bind_method(_MD("set_clip_text","enable"),&Label::set_clip_text);
-	ObjectTypeDB::bind_method(_MD("is_clipping_text"),&Label::is_clipping_text);
-	ObjectTypeDB::bind_method(_MD("set_uppercase","enable"),&Label::set_uppercase);
-	ObjectTypeDB::bind_method(_MD("is_uppercase"),&Label::is_uppercase);
-	ObjectTypeDB::bind_method(_MD("get_line_height"),&Label::get_line_height);
-	ObjectTypeDB::bind_method(_MD("get_line_count"),&Label::get_line_count);
-	ObjectTypeDB::bind_method(_MD("get_visible_line_count"),&Label::get_visible_line_count);
-	ObjectTypeDB::bind_method(_MD("get_total_character_count"),&Label::get_total_character_count);
-	ObjectTypeDB::bind_method(_MD("set_visible_characters","amount"),&Label::set_visible_characters);
-	ObjectTypeDB::bind_method(_MD("get_visible_characters"),&Label::get_visible_characters);
-	ObjectTypeDB::bind_method(_MD("set_percent_visible","percent_visible"),&Label::set_percent_visible);
-	ObjectTypeDB::bind_method(_MD("get_percent_visible"),&Label::get_percent_visible);
-	ObjectTypeDB::bind_method(_MD("set_lines_skipped","lines_skipped"),&Label::set_lines_skipped);
-	ObjectTypeDB::bind_method(_MD("get_lines_skipped"),&Label::get_lines_skipped);
-	ObjectTypeDB::bind_method(_MD("set_max_lines_visible","lines_visible"),&Label::set_max_lines_visible);
-	ObjectTypeDB::bind_method(_MD("get_max_lines_visible"),&Label::get_max_lines_visible);
+	ClassDB::bind_method(_MD("set_align","align"),&Label::set_align);
+	ClassDB::bind_method(_MD("get_align"),&Label::get_align);
+	ClassDB::bind_method(_MD("set_valign","valign"),&Label::set_valign);
+	ClassDB::bind_method(_MD("get_valign"),&Label::get_valign);
+	ClassDB::bind_method(_MD("set_text","text"),&Label::set_text);
+	ClassDB::bind_method(_MD("get_text"),&Label::get_text);
+	ClassDB::bind_method(_MD("set_autowrap","enable"),&Label::set_autowrap);
+	ClassDB::bind_method(_MD("has_autowrap"),&Label::has_autowrap);
+	ClassDB::bind_method(_MD("set_clip_text","enable"),&Label::set_clip_text);
+	ClassDB::bind_method(_MD("is_clipping_text"),&Label::is_clipping_text);
+	ClassDB::bind_method(_MD("set_uppercase","enable"),&Label::set_uppercase);
+	ClassDB::bind_method(_MD("is_uppercase"),&Label::is_uppercase);
+	ClassDB::bind_method(_MD("get_line_height"),&Label::get_line_height);
+	ClassDB::bind_method(_MD("get_line_count"),&Label::get_line_count);
+	ClassDB::bind_method(_MD("get_visible_line_count"),&Label::get_visible_line_count);
+	ClassDB::bind_method(_MD("get_total_character_count"),&Label::get_total_character_count);
+	ClassDB::bind_method(_MD("set_visible_characters","amount"),&Label::set_visible_characters);
+	ClassDB::bind_method(_MD("get_visible_characters"),&Label::get_visible_characters);
+	ClassDB::bind_method(_MD("set_percent_visible","percent_visible"),&Label::set_percent_visible);
+	ClassDB::bind_method(_MD("get_percent_visible"),&Label::get_percent_visible);
+	ClassDB::bind_method(_MD("set_lines_skipped","lines_skipped"),&Label::set_lines_skipped);
+	ClassDB::bind_method(_MD("get_lines_skipped"),&Label::get_lines_skipped);
+	ClassDB::bind_method(_MD("set_max_lines_visible","lines_visible"),&Label::set_max_lines_visible);
+	ClassDB::bind_method(_MD("get_max_lines_visible"),&Label::get_max_lines_visible);
 
 	BIND_CONSTANT( ALIGN_LEFT );
 	BIND_CONSTANT( ALIGN_CENTER );

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -38,7 +38,7 @@
 
 class ColorRampEdit : public Control {
 
-	OBJ_TYPE(ColorRampEdit,Control);
+	GDCLASS(ColorRampEdit,Control);
 
 	PopupPanel *popup;
 	ColorPicker *picker;
@@ -73,7 +73,7 @@ public:
 
 /*class  ColorRampEditPanel : public Panel
 {
-	OBJ_TYPE(ColorRampEditPanel, Panel );
+	GDCLASS(ColorRampEditPanel, Panel );
 };*/
 
 

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -331,7 +331,7 @@ void EditorAssetInstaller::ok_pressed() {
 
 void EditorAssetInstaller::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_item_edited",&EditorAssetInstaller::_item_edited);
+	ClassDB::bind_method("_item_edited",&EditorAssetInstaller::_item_edited);
 
 }
 

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -148,7 +148,7 @@ bool NavigationPolygonEditor::forward_input_event(const InputEvent& p_event) {
 
 
 			//first check if a point is to be added (segment split)
-			real_t grab_treshold=EDITOR_DEF("poly_editor/point_grab_radius",8);
+			real_t grab_treshold=EDITOR_DEF("editors/poly_editor/point_grab_radius",8);
 
 			switch(mode) {
 
@@ -477,10 +477,10 @@ void NavigationPolygonEditor::edit(Node *p_collision_polygon) {
 
 void NavigationPolygonEditor::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_menu_option"),&NavigationPolygonEditor::_menu_option);
-	ObjectTypeDB::bind_method(_MD("_canvas_draw"),&NavigationPolygonEditor::_canvas_draw);
-	ObjectTypeDB::bind_method(_MD("_node_removed"),&NavigationPolygonEditor::_node_removed);
-	ObjectTypeDB::bind_method(_MD("_create_nav"),&NavigationPolygonEditor::_create_nav);
+	ClassDB::bind_method(_MD("_menu_option"),&NavigationPolygonEditor::_menu_option);
+	ClassDB::bind_method(_MD("_canvas_draw"),&NavigationPolygonEditor::_canvas_draw);
+	ClassDB::bind_method(_MD("_node_removed"),&NavigationPolygonEditor::_node_removed);
+	ClassDB::bind_method(_MD("_create_nav"),&NavigationPolygonEditor::_create_nav);
 
 }
 
@@ -532,7 +532,7 @@ void NavigationPolygonEditorPlugin::edit(Object *p_object) {
 
 bool NavigationPolygonEditorPlugin::handles(Object *p_object) const {
 
-	return p_object->is_type("NavigationPolygonInstance");
+	return p_object->is_class("NavigationPolygonInstance");
 }
 
 void NavigationPolygonEditorPlugin::make_visible(bool p_visible) {

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -45,7 +45,7 @@ class SpatialEditorGizmos;
 
 class SpatialEditorGizmo : public SpatialGizmo {
 
-	OBJ_TYPE(SpatialEditorGizmo,SpatialGizmo);
+	GDCLASS(SpatialEditorGizmo,SpatialGizmo);
 
 	bool selected;
 public:
@@ -66,7 +66,7 @@ public:
 
 class SpatialEditorViewport : public Control {
 
-	OBJ_TYPE( SpatialEditorViewport, Control );
+	GDCLASS( SpatialEditorViewport, Control );
 friend class SpatialEditor;
 	enum {
 
@@ -267,7 +267,7 @@ public:
 
 class SpatialEditorSelectedItem : public Object {
 
-	OBJ_TYPE(SpatialEditorSelectedItem,Object);
+	GDCLASS(SpatialEditorSelectedItem,Object);
 
 public:
 
@@ -283,7 +283,7 @@ public:
 
 class SpatialEditor : public VBoxContainer {
 
-	OBJ_TYPE(SpatialEditor, VBoxContainer );
+	GDCLASS(SpatialEditor, VBoxContainer );
 public:
 
 	enum ToolMode {
@@ -332,8 +332,8 @@ private:
 	bool grid_enabled;
 
 	Ref<Mesh> move_gizmo[3], rotate_gizmo[3];
-	Ref<FixedMaterial> gizmo_color[3];
-	Ref<FixedMaterial> gizmo_hl;
+	Ref<FixedSpatialMaterial> gizmo_color[3];
+	Ref<FixedSpatialMaterial> gizmo_hl;
 
 
 	int over_gizmo_handle;
@@ -345,8 +345,8 @@ private:
 	RID indicators_instance;
 	RID cursor_mesh;
 	RID cursor_instance;
-	RID indicator_mat;
-	RID cursor_material;
+	Ref<FixedSpatialMaterial> indicator_mat;
+	Ref<FixedSpatialMaterial> cursor_material;
 
 /*
 	struct Selected {
@@ -431,7 +431,7 @@ private:
 	float settings_default_light_rot_x;
 	float settings_default_light_rot_y;
 
-	Control *settings_light_base;
+	ViewportContainer *settings_light_base;
 	Viewport *settings_light_vp;
 	ColorPickerButton *settings_ambient_color;
 	Image settings_light_dir_image;
@@ -491,9 +491,9 @@ public:
 	static SpatialEditor *get_singleton() { return singleton; }
 	void snap_cursor_to_plane(const Plane& p_plane);
 
-	float get_znear() const { return settings_znear->get_val(); }
-	float get_zfar() const { return settings_zfar->get_val(); }
-	float get_fov() const { return settings_fov->get_val(); }
+	float get_znear() const { return settings_znear->get_value(); }
+	float get_zfar() const { return settings_zfar->get_value(); }
+	float get_fov() const { return settings_fov->get_value(); }
 
 	Transform get_gizmo_transform() const { return gizmo.transform; }
 	bool is_gizmo_visible() const { return gizmo.visible; }
@@ -546,7 +546,7 @@ public:
 
 class SpatialEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( SpatialEditorPlugin, EditorPlugin );
+	GDCLASS( SpatialEditorPlugin, EditorPlugin );
 
 	SpatialEditor *spatial_editor;
 	EditorNode *editor;

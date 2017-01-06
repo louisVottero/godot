@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -46,7 +46,7 @@ void EditorDirDialog::_update_dir(TreeItem* p_item) {
 
 	List<String> dirs;
 	bool ishidden;
-	bool show_hidden = EditorSettings::get_singleton()->get("file_dialog/show_hidden_files");
+	bool show_hidden = EditorSettings::get_singleton()->get("filesystem/file_dialog/show_hidden_files");
 
 	while(p!="") {
 
@@ -145,7 +145,7 @@ void EditorDirDialog::set_current_path(const String& p_path) {
 	if (p.begins_with("res://"))
 		p = p.replace_first("res://","");
 
-	Vector<String> dirs = p.split("/");
+	Vector<String> dirs = p.split("/",false);
 
 	TreeItem *r=tree->get_root();
 	for(int i=0;i<dirs.size();i++) {
@@ -224,10 +224,10 @@ void EditorDirDialog::_make_dir_confirm() {
 
 void EditorDirDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_item_collapsed"),&EditorDirDialog::_item_collapsed);
-	ObjectTypeDB::bind_method(_MD("_make_dir"),&EditorDirDialog::_make_dir);
-	ObjectTypeDB::bind_method(_MD("_make_dir_confirm"),&EditorDirDialog::_make_dir_confirm);
-	ObjectTypeDB::bind_method(_MD("reload"),&EditorDirDialog::reload);
+	ClassDB::bind_method(_MD("_item_collapsed"),&EditorDirDialog::_item_collapsed);
+	ClassDB::bind_method(_MD("_make_dir"),&EditorDirDialog::_make_dir);
+	ClassDB::bind_method(_MD("_make_dir_confirm"),&EditorDirDialog::_make_dir_confirm);
+	ClassDB::bind_method(_MD("reload"),&EditorDirDialog::reload);
 
 	ADD_SIGNAL(MethodInfo("dir_selected",PropertyInfo(Variant::STRING,"dir")));
 }

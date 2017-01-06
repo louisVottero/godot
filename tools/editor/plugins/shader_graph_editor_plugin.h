@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -43,10 +43,10 @@
 	@author Juan Linietsky <reduzio@gmail.com>
 */
 
-
+#if 0
 class GraphColorRampEdit : public Control {
 
-	OBJ_TYPE(GraphColorRampEdit,Control);
+	GDCLASS(GraphColorRampEdit,Control);
 
 
 	struct Point {
@@ -85,7 +85,7 @@ public:
 
 class GraphCurveMapEdit : public Control {
 
-	OBJ_TYPE(GraphCurveMapEdit,Control);
+	GDCLASS(GraphCurveMapEdit,Control);
 
 
 	struct Point {
@@ -117,7 +117,7 @@ public:
 
 class ShaderGraphView : public Control {
 
-	OBJ_TYPE(ShaderGraphView,Control);
+	GDCLASS(ShaderGraphView,Control);
 
 
 
@@ -198,7 +198,7 @@ public:
 
 class ShaderGraphEditor : public VBoxContainer {
 
-	OBJ_TYPE(ShaderGraphEditor,VBoxContainer);
+	GDCLASS(ShaderGraphEditor,VBoxContainer);
 
 	PopupMenu *popup;
 	TabContainer *tabs;
@@ -220,7 +220,7 @@ public:
 
 class ShaderGraphEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( ShaderGraphEditorPlugin, EditorPlugin );
+	GDCLASS( ShaderGraphEditorPlugin, EditorPlugin );
 
 	bool _2d;
 	ShaderGraphEditor *shader_editor;
@@ -239,4 +239,4 @@ public:
 
 };
 #endif
-
+#endif

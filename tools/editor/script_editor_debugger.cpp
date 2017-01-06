@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -46,7 +46,7 @@
 
 class ScriptEditorDebuggerVariables : public Object {
 
-	OBJ_TYPE( ScriptEditorDebuggerVariables, Object );
+	GDCLASS( ScriptEditorDebuggerVariables, Object );
 
 	List<PropertyInfo> props;
 	Map<StringName,Variant> values;
@@ -114,7 +114,7 @@ public:
 
 class ScriptEditorDebuggerInspectedObject : public Object {
 
-	OBJ_TYPE( ScriptEditorDebuggerInspectedObject, Object);
+	GDCLASS( ScriptEditorDebuggerInspectedObject, Object);
 
 
 
@@ -581,7 +581,6 @@ void ScriptEditorDebugger::_parse_message(const String& p_msg,const Array& p_dat
 			//LOG
 
 			if (EditorNode::get_log()->is_hidden()) {
-				log_forced_visible=true;
 				if (EditorNode::get_singleton()->are_bottom_panels_hidden()) {
 					EditorNode::get_singleton()->make_bottom_panel_item_visible(EditorNode::get_log());
 				}
@@ -957,7 +956,6 @@ void ScriptEditorDebugger::_notification(int p_what) {
 						break;
 
 					EditorNode::get_log()->add_message("** Debug Process Started **");
-					log_forced_visible=false;
 
 					ppeer->set_stream_peer(connection);
 
@@ -1089,11 +1087,11 @@ void ScriptEditorDebugger::start() {
 
 	stop();
 
-	if (!EditorNode::get_log()->is_visible()) {
-		EditorNode::get_singleton()->make_bottom_panel_item_visible(EditorNode::get_log());
+	if (is_visible()) {
+		EditorNode::get_singleton()->make_bottom_panel_item_visible(this);
 	}
 
-	uint16_t port = GLOBAL_DEF("debug/remote_port",6007);
+	uint16_t port = GLOBAL_GET("network/debug/remote_port");
 	perf_history.clear();
 	for(int i=0;i<Performance::MONITOR_MAX;i++) {
 
@@ -1131,13 +1129,6 @@ void ScriptEditorDebugger::stop(){
 
 	pending_in_queue=0;
 	message.clear();
-
-	if (log_forced_visible) {
-		//EditorNode::get_singleton()->make_bottom_panel_item_visible(this);
-		if (EditorNode::get_log()->is_visible())
-			EditorNode::get_singleton()->hide_bottom_panel();
-		log_forced_visible=false;
-	}
 
 	node_path_cache.clear();
 	res_path_cache.clear();
@@ -1643,39 +1634,39 @@ void ScriptEditorDebugger::_paused() {
 
 void ScriptEditorDebugger::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_stack_dump_frame_selected"),&ScriptEditorDebugger::_stack_dump_frame_selected);
-	ObjectTypeDB::bind_method(_MD("debug_next"),&ScriptEditorDebugger::debug_next);
-	ObjectTypeDB::bind_method(_MD("debug_step"),&ScriptEditorDebugger::debug_step);
-	ObjectTypeDB::bind_method(_MD("debug_break"),&ScriptEditorDebugger::debug_break);
-	ObjectTypeDB::bind_method(_MD("debug_continue"),&ScriptEditorDebugger::debug_continue);
-	ObjectTypeDB::bind_method(_MD("_output_clear"),&ScriptEditorDebugger::_output_clear);
-	ObjectTypeDB::bind_method(_MD("_performance_draw"),&ScriptEditorDebugger::_performance_draw);
-	ObjectTypeDB::bind_method(_MD("_performance_select"),&ScriptEditorDebugger::_performance_select);
-	ObjectTypeDB::bind_method(_MD("_scene_tree_request"),&ScriptEditorDebugger::_scene_tree_request);
-	ObjectTypeDB::bind_method(_MD("_video_mem_request"),&ScriptEditorDebugger::_video_mem_request);
-	ObjectTypeDB::bind_method(_MD("_live_edit_set"),&ScriptEditorDebugger::_live_edit_set);
-	ObjectTypeDB::bind_method(_MD("_live_edit_clear"),&ScriptEditorDebugger::_live_edit_clear);
+	ClassDB::bind_method(_MD("_stack_dump_frame_selected"),&ScriptEditorDebugger::_stack_dump_frame_selected);
+	ClassDB::bind_method(_MD("debug_next"),&ScriptEditorDebugger::debug_next);
+	ClassDB::bind_method(_MD("debug_step"),&ScriptEditorDebugger::debug_step);
+	ClassDB::bind_method(_MD("debug_break"),&ScriptEditorDebugger::debug_break);
+	ClassDB::bind_method(_MD("debug_continue"),&ScriptEditorDebugger::debug_continue);
+	ClassDB::bind_method(_MD("_output_clear"),&ScriptEditorDebugger::_output_clear);
+	ClassDB::bind_method(_MD("_performance_draw"),&ScriptEditorDebugger::_performance_draw);
+	ClassDB::bind_method(_MD("_performance_select"),&ScriptEditorDebugger::_performance_select);
+	ClassDB::bind_method(_MD("_scene_tree_request"),&ScriptEditorDebugger::_scene_tree_request);
+	ClassDB::bind_method(_MD("_video_mem_request"),&ScriptEditorDebugger::_video_mem_request);
+	ClassDB::bind_method(_MD("_live_edit_set"),&ScriptEditorDebugger::_live_edit_set);
+	ClassDB::bind_method(_MD("_live_edit_clear"),&ScriptEditorDebugger::_live_edit_clear);
 
-	ObjectTypeDB::bind_method(_MD("_error_selected"),&ScriptEditorDebugger::_error_selected);
-	ObjectTypeDB::bind_method(_MD("_error_stack_selected"),&ScriptEditorDebugger::_error_stack_selected);
-	ObjectTypeDB::bind_method(_MD("_profiler_activate"),&ScriptEditorDebugger::_profiler_activate);
-	ObjectTypeDB::bind_method(_MD("_profiler_seeked"),&ScriptEditorDebugger::_profiler_seeked);
+	ClassDB::bind_method(_MD("_error_selected"),&ScriptEditorDebugger::_error_selected);
+	ClassDB::bind_method(_MD("_error_stack_selected"),&ScriptEditorDebugger::_error_stack_selected);
+	ClassDB::bind_method(_MD("_profiler_activate"),&ScriptEditorDebugger::_profiler_activate);
+	ClassDB::bind_method(_MD("_profiler_seeked"),&ScriptEditorDebugger::_profiler_seeked);
 
-	ObjectTypeDB::bind_method(_MD("_paused"),&ScriptEditorDebugger::_paused);
+	ClassDB::bind_method(_MD("_paused"),&ScriptEditorDebugger::_paused);
 
-	ObjectTypeDB::bind_method(_MD("_scene_tree_selected"),&ScriptEditorDebugger::_scene_tree_selected);
-	ObjectTypeDB::bind_method(_MD("_scene_tree_folded"),&ScriptEditorDebugger::_scene_tree_folded);
+	ClassDB::bind_method(_MD("_scene_tree_selected"),&ScriptEditorDebugger::_scene_tree_selected);
+	ClassDB::bind_method(_MD("_scene_tree_folded"),&ScriptEditorDebugger::_scene_tree_folded);
 
 
-	ObjectTypeDB::bind_method(_MD("live_debug_create_node"),&ScriptEditorDebugger::live_debug_create_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_instance_node"),&ScriptEditorDebugger::live_debug_instance_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_remove_node"),&ScriptEditorDebugger::live_debug_remove_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_remove_and_keep_node"),&ScriptEditorDebugger::live_debug_remove_and_keep_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_restore_node"),&ScriptEditorDebugger::live_debug_restore_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_duplicate_node"),&ScriptEditorDebugger::live_debug_duplicate_node);
-	ObjectTypeDB::bind_method(_MD("live_debug_reparent_node"),&ScriptEditorDebugger::live_debug_reparent_node);
-	ObjectTypeDB::bind_method(_MD("_scene_tree_property_select_object"),&ScriptEditorDebugger::_scene_tree_property_select_object);
-	ObjectTypeDB::bind_method(_MD("_scene_tree_property_value_edited"),&ScriptEditorDebugger::_scene_tree_property_value_edited);
+	ClassDB::bind_method(_MD("live_debug_create_node"),&ScriptEditorDebugger::live_debug_create_node);
+	ClassDB::bind_method(_MD("live_debug_instance_node"),&ScriptEditorDebugger::live_debug_instance_node);
+	ClassDB::bind_method(_MD("live_debug_remove_node"),&ScriptEditorDebugger::live_debug_remove_node);
+	ClassDB::bind_method(_MD("live_debug_remove_and_keep_node"),&ScriptEditorDebugger::live_debug_remove_and_keep_node);
+	ClassDB::bind_method(_MD("live_debug_restore_node"),&ScriptEditorDebugger::live_debug_restore_node);
+	ClassDB::bind_method(_MD("live_debug_duplicate_node"),&ScriptEditorDebugger::live_debug_duplicate_node);
+	ClassDB::bind_method(_MD("live_debug_reparent_node"),&ScriptEditorDebugger::live_debug_reparent_node);
+	ClassDB::bind_method(_MD("_scene_tree_property_select_object"),&ScriptEditorDebugger::_scene_tree_property_select_object);
+	ClassDB::bind_method(_MD("_scene_tree_property_value_edited"),&ScriptEditorDebugger::_scene_tree_property_value_edited);
 
 	ADD_SIGNAL(MethodInfo("goto_script_line"));
 	ADD_SIGNAL(MethodInfo("breaked",PropertyInfo(Variant::BOOL,"reallydid"),PropertyInfo(Variant::BOOL,"can_debug")));
@@ -1979,8 +1970,6 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor){
 
 	msgdialog = memnew( AcceptDialog );
 	add_child(msgdialog);
-
-	log_forced_visible=false;
 
 	p_editor->get_undo_redo()->set_method_notify_callback(_method_changeds,this);
 	p_editor->get_undo_redo()->set_property_notify_callback(_property_changeds,this);

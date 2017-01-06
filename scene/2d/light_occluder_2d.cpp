@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -78,14 +78,14 @@ RID OccluderPolygon2D::get_rid() const {
 void OccluderPolygon2D::_bind_methods() {
 
 
-	ObjectTypeDB::bind_method(_MD("set_closed","closed"),&OccluderPolygon2D::set_closed);
-	ObjectTypeDB::bind_method(_MD("is_closed"),&OccluderPolygon2D::is_closed);
+	ClassDB::bind_method(_MD("set_closed","closed"),&OccluderPolygon2D::set_closed);
+	ClassDB::bind_method(_MD("is_closed"),&OccluderPolygon2D::is_closed);
 
-	ObjectTypeDB::bind_method(_MD("set_cull_mode","cull_mode"),&OccluderPolygon2D::set_cull_mode);
-	ObjectTypeDB::bind_method(_MD("get_cull_mode"),&OccluderPolygon2D::get_cull_mode);
+	ClassDB::bind_method(_MD("set_cull_mode","cull_mode"),&OccluderPolygon2D::set_cull_mode);
+	ClassDB::bind_method(_MD("get_cull_mode"),&OccluderPolygon2D::get_cull_mode);
 
-	ObjectTypeDB::bind_method(_MD("set_polygon","polygon"),&OccluderPolygon2D::set_polygon);
-	ObjectTypeDB::bind_method(_MD("get_polygon"),&OccluderPolygon2D::get_polygon);
+	ClassDB::bind_method(_MD("set_polygon","polygon"),&OccluderPolygon2D::set_polygon);
+	ClassDB::bind_method(_MD("get_polygon"),&OccluderPolygon2D::get_polygon);
 
 	ADD_PROPERTY( PropertyInfo(Variant::BOOL,"closed"),_SCS("set_closed"),_SCS("is_closed"));
 	ADD_PROPERTY( PropertyInfo(Variant::INT,"cull_mode",PROPERTY_HINT_ENUM,"Disabled,ClockWise,CounterClockWise"),_SCS("set_cull_mode"),_SCS("get_cull_mode"));
@@ -224,14 +224,14 @@ String LightOccluder2D::get_configuration_warning() const {
 
 void LightOccluder2D::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_occluder_polygon","polygon:OccluderPolygon2D"),&LightOccluder2D::set_occluder_polygon);
-	ObjectTypeDB::bind_method(_MD("get_occluder_polygon:OccluderPolygon2D"),&LightOccluder2D::get_occluder_polygon);
+	ClassDB::bind_method(_MD("set_occluder_polygon","polygon:OccluderPolygon2D"),&LightOccluder2D::set_occluder_polygon);
+	ClassDB::bind_method(_MD("get_occluder_polygon:OccluderPolygon2D"),&LightOccluder2D::get_occluder_polygon);
 
-	ObjectTypeDB::bind_method(_MD("set_occluder_light_mask","mask"),&LightOccluder2D::set_occluder_light_mask);
-	ObjectTypeDB::bind_method(_MD("get_occluder_light_mask"),&LightOccluder2D::get_occluder_light_mask);
+	ClassDB::bind_method(_MD("set_occluder_light_mask","mask"),&LightOccluder2D::set_occluder_light_mask);
+	ClassDB::bind_method(_MD("get_occluder_light_mask"),&LightOccluder2D::get_occluder_light_mask);
 
 #ifdef DEBUG_ENABLED
-	ObjectTypeDB::bind_method("_poly_changed",&LightOccluder2D::_poly_changed);
+	ClassDB::bind_method("_poly_changed",&LightOccluder2D::_poly_changed);
 #endif
 
 	ADD_PROPERTY( PropertyInfo(Variant::OBJECT,"occluder",PROPERTY_HINT_RESOURCE_TYPE,"OccluderPolygon2D"),_SCS("set_occluder_polygon"),_SCS("get_occluder_polygon"));

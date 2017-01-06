@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,7 +37,7 @@ class EditorSampleImportDialog;
 
 class EditorSampleImportPlugin : public EditorImportPlugin {
 
-	OBJ_TYPE(EditorSampleImportPlugin,EditorImportPlugin);
+	GDCLASS(EditorSampleImportPlugin,EditorImportPlugin);
 
 	EditorSampleImportDialog *dialog;
 	void _compress_ima_adpcm(const Vector<float>& p_data,DVector<uint8_t>& dst_data);
@@ -59,7 +59,7 @@ public:
 
 class EditorSampleExportPlugin : public EditorExportPlugin {
 
-	OBJ_TYPE( EditorSampleExportPlugin, EditorExportPlugin);
+	GDCLASS( EditorSampleExportPlugin, EditorExportPlugin);
 
 
 public:

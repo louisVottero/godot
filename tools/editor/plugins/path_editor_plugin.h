@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,9 +32,10 @@
 
 #include "tools/editor/spatial_editor_gizmos.h"
 #include "scene/3d/path.h"
+# if 0
 class PathSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(PathSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(PathSpatialGizmo,EditorSpatialGizmo);
 
 	Path* path;
 	mutable Vector3 original;
@@ -53,7 +54,7 @@ public:
 
 class PathEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( PathEditorPlugin, EditorPlugin );
+	GDCLASS( PathEditorPlugin, EditorPlugin );
 
 
 	Separator *sep;
@@ -78,8 +79,8 @@ public:
 	Path *get_edited_path() { return path; }
 
 	static PathEditorPlugin* singleton;
-	Ref<FixedMaterial> path_material;
-	Ref<FixedMaterial> path_thin_material;
+	Ref<FixedSpatialMaterial> path_material;
+	Ref<FixedSpatialMaterial> path_thin_material;
 	virtual bool forward_spatial_input_event(Camera* p_camera,const InputEvent& p_event);
 
 //	virtual bool forward_input_event(const InputEvent& p_event) { return collision_polygon_editor->forward_input_event(p_event); }
@@ -95,5 +96,5 @@ public:
 
 };
 
-
+#endif
 #endif // PATH_EDITOR_PLUGIN_H

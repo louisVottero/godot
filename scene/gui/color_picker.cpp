@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -34,41 +34,20 @@
 #include "os/input.h"
 #include "os/keyboard.h"
 
-void update_material(Ref<CanvasItemMaterial>mat,const Color& p_color,float h,float s,float v) {
-	if (!mat.is_valid())
-		return;
-	Ref<Shader> sdr = mat->get_shader();
-	if (!sdr.is_valid())
-		return;
-
-	mat->set_shader_param("R",p_color.r);
-	mat->set_shader_param("G",p_color.g);
-	mat->set_shader_param("B",p_color.b);
-	mat->set_shader_param("H",h);
-	mat->set_shader_param("S",s);
-	mat->set_shader_param("V",v);
-	mat->set_shader_param("A",p_color.a);
-}
 
 void ColorPicker::_notification(int p_what) {
 
 
 	switch(p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
-			uv_material->set_shader(get_shader("uv_editor"));
-			w_material->set_shader(get_shader("w_editor"));
-			update_material(uv_material,color,h,s,v);
-			update_material(w_material,color,h,s,v);
+			//sample->set_texture(get_icon("color_sample"));
+
 			_update_controls();
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
 			btn_pick->set_icon(get_icon("screen_picker", "ColorPicker"));
-			update_material(uv_material, color,h,s,v);
-			update_material(w_material, color,h,s,v);
 
-			uv_edit->get_child(0)->cast_to<Control>()->update();
-			w_edit->get_child(0)->cast_to<Control>()->update();
 			_update_color();
 		}
 
@@ -109,9 +88,7 @@ void ColorPicker::set_color(const Color& p_color) {
 	if (!is_inside_tree())
 		return;
 
-	update_material(uv_material, color,h,s,v);
-	update_material(w_material, color,h,s,v);
-
+	return; //it crashes, so returning
 	uv_edit->get_child(0)->cast_to<Control>()->update();
 	w_edit->get_child(0)->cast_to<Control>()->update();
 	_update_color();
@@ -141,7 +118,7 @@ void ColorPicker::_value_changed(double) {
 		return;
 
 	for(int i=0;i<4;i++) {
-		color.components[i] = scroll[i]->get_val()/(raw_mode_enabled?1.0:255.0);
+		color.components[i] = scroll[i]->get_value()/(raw_mode_enabled?1.0:255.0);
 	}
 
 	set_color(color);
@@ -162,7 +139,7 @@ void ColorPicker::_html_entered(const String& p_html) {
 	if (!is_inside_tree())
 		return;
 
-	_update_color();
+	set_color(color);
 	emit_signal("color_changed",color);
 }
 
@@ -176,9 +153,9 @@ void ColorPicker::_update_color() {
 		if (raw_mode_enabled) {
 			if (i == 3)
 				scroll[i]->set_max(1);
-			scroll[i]->set_val(color.components[i]);
+			scroll[i]->set_value(color.components[i]);
 		} else {
-			scroll[i]->set_val(color.components[i] * 255);
+			scroll[i]->set_value(color.components[i] * 255);
 		}
 	}
 
@@ -192,10 +169,24 @@ void ColorPicker::_update_presets()
 {
 	Size2 size=bt_add_preset->get_size();
 	preset->set_custom_minimum_size(Size2(size.width*presets.size(),size.height));
-	Image i(size.x*presets.size(),size.y, false, Image::FORMAT_RGB);
-	for (int y=0;y<size.y;y++)
-		for (int x=0;x<size.x*presets.size();x++)
-			i.put_pixel(x,y,presets[(int)x/size.x]);
+
+	DVector<uint8_t> img;
+	img.resize(size.x*presets.size()*size.y*3);
+
+	{
+		DVector<uint8_t>::Write w=img.write();
+		for (int y=0;y<size.y;y++) {
+			for (int x=0;x<size.x*presets.size();x++) {
+				int ofs = (y*(size.x*presets.size())+x)*3;
+				w[ofs+0]=uint8_t(CLAMP(presets[(int)x/size.x].r*255.0,0,255));
+				w[ofs+1]=uint8_t(CLAMP(presets[(int)x/size.x].g*255.0,0,255));
+				w[ofs+2]=uint8_t(CLAMP(presets[(int)x/size.x].b*255.0,0,255));
+			}
+		}
+	}
+
+	Image i(size.x*presets.size(),size.y, false, Image::FORMAT_RGB8,img);
+
 	Ref<ImageTexture> t;
 	t.instance();
 	t->create_from_image(i);
@@ -278,14 +269,39 @@ void ColorPicker::_hsv_draw(int p_wich,Control* c)
 	if (!c)
 		return;
 	if (p_wich==0) {
+		Vector<Point2> points;
+		points.push_back(Vector2());
+		points.push_back(Vector2(c->get_size().x,0));
+		points.push_back(c->get_size());
+		points.push_back(Vector2(0,c->get_size().y));
+		Vector<Color> colors;
+		colors.push_back(Color(1,1,1));
+		colors.push_back(Color(1,1,1));
+		colors.push_back(Color());
+		colors.push_back(Color());
+		c->draw_polygon(points,colors);
+		Vector<Color> colors2;
+		Color col = color;
+		col.set_hsv(color.get_h(),1,1);
+		col.a = 0;
+		colors2.push_back(col);
+		col.a = 1;
+		colors2.push_back(col);
+		col.set_hsv(color.get_h(),1,0);
+		colors2.push_back(col);
+		col.a = 0;
+		colors2.push_back(col);
+		c->draw_polygon(points,colors);
 		int x = CLAMP(c->get_size().x * s, 0, c->get_size().x);
 		int y = CLAMP(c->get_size().y-c->get_size().y * v, 0, c->get_size().y);
-		Color col = color;
+		col = color;
 		col.a=1;
 		c->draw_line(Point2(x,0),Point2(x,c->get_size().y),col.inverted());
 		c->draw_line(Point2(0, y),Point2(c->get_size().x, y),col.inverted());
 		c->draw_line(Point2(x,y),Point2(x,y),Color(1,1,1),2);
 	} else if (p_wich==1) {
+		Ref<Texture> hue = get_icon("color_hue","ColorPicker");
+		c->draw_texture_rect(hue,Rect2(Point2(),c->get_size()));
 		int y=c->get_size().y-c->get_size().y*h;
 		Color col=Color();
 		col.set_hsv(h,1,1);
@@ -296,7 +312,7 @@ void ColorPicker::_hsv_draw(int p_wich,Control* c)
 void ColorPicker::_uv_input(const InputEvent &ev) {
 	if (ev.type == InputEvent::MOUSE_BUTTON) {
 		const InputEventMouseButton &bev = ev.mouse_button;
-		if (bev.pressed) {
+		if (bev.pressed && bev.button_index==BUTTON_LEFT) {
 			changing_color = true;
 			float x = CLAMP((float)bev.x,0,256);
 			float y = CLAMP((float)bev.y,0,256);
@@ -329,7 +345,7 @@ void ColorPicker::_uv_input(const InputEvent &ev) {
 void ColorPicker::_w_input(const InputEvent &ev) {
 	if (ev.type == InputEvent::MOUSE_BUTTON) {
 		const InputEventMouseButton &bev = ev.mouse_button;
-		if (bev.pressed) {
+		if (bev.pressed && bev.button_index==BUTTON_LEFT) {
 			changing_color = true;
 			h=1-((float)bev.y)/256.0;
 
@@ -394,15 +410,23 @@ void ColorPicker::_screen_input(const InputEvent &ev)
 	} else if (ev.type==InputEvent::MOUSE_MOTION) {
 		const InputEventMouse &mev = ev.mouse_motion;
 		Viewport *r=get_tree()->get_root();
-		if (!r->get_rect().has_point(Point2(mev.global_x,mev.global_y)))
+		if (!r->get_visible_rect().has_point(Point2(mev.global_x,mev.global_y)))
 			return;
 		Image img =r->get_screen_capture();
 		if (!img.empty()) {
 			last_capture=img;
 			r->queue_screen_capture();
 		}
-		if (!last_capture.empty())
-			set_color(last_capture.get_pixel(mev.global_x,mev.global_y));
+		if (!last_capture.empty()) {
+			int pw = last_capture.get_format()==Image::FORMAT_RGBA8?4:3;
+			int ofs = (mev.global_y*last_capture.get_width()+mev.global_x)*pw;
+
+			DVector<uint8_t>::Read r = last_capture.get_data().read();
+
+			Color c( r[ofs+0]/255.0, r[ofs+1]/255.0, r[ofs+2]/255.0 );
+
+			set_color(c);
+		}
 	}
 }
 
@@ -427,24 +451,24 @@ void ColorPicker::_screen_pick_pressed()
 
 void ColorPicker::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_color","color"),&ColorPicker::set_color);
-	ObjectTypeDB::bind_method(_MD("get_color"),&ColorPicker::get_color);
-	ObjectTypeDB::bind_method(_MD("set_raw_mode","mode"),&ColorPicker::set_raw_mode);
-	ObjectTypeDB::bind_method(_MD("is_raw_mode"),&ColorPicker::is_raw_mode);
-	ObjectTypeDB::bind_method(_MD("set_edit_alpha","show"),&ColorPicker::set_edit_alpha);
-	ObjectTypeDB::bind_method(_MD("is_editing_alpha"),&ColorPicker::is_editing_alpha);
-	ObjectTypeDB::bind_method(_MD("add_preset"), &ColorPicker::add_preset);
-	ObjectTypeDB::bind_method(_MD("_value_changed"),&ColorPicker::_value_changed);
-	ObjectTypeDB::bind_method(_MD("_html_entered"),&ColorPicker::_html_entered);
-	ObjectTypeDB::bind_method(_MD("_text_type_toggled"),&ColorPicker::_text_type_toggled);
-	ObjectTypeDB::bind_method(_MD("_add_preset_pressed"), &ColorPicker::_add_preset_pressed);
-	ObjectTypeDB::bind_method(_MD("_screen_pick_pressed"), &ColorPicker::_screen_pick_pressed);
-	ObjectTypeDB::bind_method(_MD("_sample_draw"),&ColorPicker::_sample_draw);
-	ObjectTypeDB::bind_method(_MD("_hsv_draw"),&ColorPicker::_hsv_draw);
-	ObjectTypeDB::bind_method(_MD("_uv_input"),&ColorPicker::_uv_input);
-	ObjectTypeDB::bind_method(_MD("_w_input"),&ColorPicker::_w_input);
-	ObjectTypeDB::bind_method(_MD("_preset_input"),&ColorPicker::_preset_input);
-	ObjectTypeDB::bind_method(_MD("_screen_input"),&ColorPicker::_screen_input);
+	ClassDB::bind_method(_MD("set_color","color"),&ColorPicker::set_color);
+	ClassDB::bind_method(_MD("get_color"),&ColorPicker::get_color);
+	ClassDB::bind_method(_MD("set_raw_mode","mode"),&ColorPicker::set_raw_mode);
+	ClassDB::bind_method(_MD("is_raw_mode"),&ColorPicker::is_raw_mode);
+	ClassDB::bind_method(_MD("set_edit_alpha","show"),&ColorPicker::set_edit_alpha);
+	ClassDB::bind_method(_MD("is_editing_alpha"),&ColorPicker::is_editing_alpha);
+	ClassDB::bind_method(_MD("add_preset"), &ColorPicker::add_preset);
+	ClassDB::bind_method(_MD("_value_changed"),&ColorPicker::_value_changed);
+	ClassDB::bind_method(_MD("_html_entered"),&ColorPicker::_html_entered);
+	ClassDB::bind_method(_MD("_text_type_toggled"),&ColorPicker::_text_type_toggled);
+	ClassDB::bind_method(_MD("_add_preset_pressed"), &ColorPicker::_add_preset_pressed);
+	ClassDB::bind_method(_MD("_screen_pick_pressed"), &ColorPicker::_screen_pick_pressed);
+	ClassDB::bind_method(_MD("_sample_draw"),&ColorPicker::_sample_draw);
+	ClassDB::bind_method(_MD("_hsv_draw"),&ColorPicker::_hsv_draw);
+	ClassDB::bind_method(_MD("_uv_input"),&ColorPicker::_uv_input);
+	ClassDB::bind_method(_MD("_w_input"),&ColorPicker::_w_input);
+	ClassDB::bind_method(_MD("_preset_input"),&ColorPicker::_preset_input);
+	ClassDB::bind_method(_MD("_screen_input"),&ColorPicker::_screen_input);
 
 	ADD_SIGNAL( MethodInfo("color_changed",PropertyInfo(Variant::COLOR,"color")));
 }
@@ -473,50 +497,30 @@ ColorPicker::ColorPicker() :
 
 	HBoxContainer *hb_edit = memnew( HBoxContainer );
 
-	uv_edit= memnew ( TextureFrame );
-	Image i(256, 256, false, Image::FORMAT_RGB);
-	for (int y=0;y<256;y++)
-		for (int x=0;x<256;x++)
-			i.put_pixel(x,y,Color());
-	Ref<ImageTexture> t;
-	t.instance();
-	t->create_from_image(i);
-	uv_edit->set_texture(t);
+	uv_edit= memnew ( Control );
+
+
+
 	uv_edit->set_ignore_mouse(false);
-	uv_edit->set_custom_minimum_size(Size2(256,256));
 	uv_edit->connect("input_event", this, "_uv_input");
-	Control *c= memnew( Control );
-	uv_edit->add_child(c);
-	c->set_area_as_parent_rect();
-	c->set_stop_mouse(false);
-	c->set_material(memnew ( CanvasItemMaterial ));
+	uv_edit->set_stop_mouse(false);
+	uv_edit->set_custom_minimum_size(Size2 (256,256));
 	Vector<Variant> args=Vector<Variant>();
 	args.push_back(0);
-	args.push_back(c);
-	c->connect("draw",this,"_hsv_draw",args);
+	args.push_back(uv_edit);
+	uv_edit->connect("draw",this,"_hsv_draw",args);
 
 	add_child(hb_edit);
-	w_edit= memnew( TextureFrame );
-	i = Image(15, 256, false, Image::FORMAT_RGB);
-	for (int y=0;y<256;y++)
-		for (int x=0;x<15;x++)
-			i.put_pixel(x,y,Color());
-	Ref<ImageTexture> tw;
-	tw.instance();
-	tw->create_from_image(i);
-	w_edit->set_texture(tw);
+
+	w_edit= memnew( Control );
 	w_edit->set_ignore_mouse(false);
-	w_edit->set_custom_minimum_size(Size2(15,256));
+	w_edit->set_custom_minimum_size(Size2(30,256));
 	w_edit->connect("input_event", this, "_w_input");
-	c= memnew( Control );
-	w_edit->add_child(c);
-	c->set_area_as_parent_rect();
-	c->set_stop_mouse(false);
-	c->set_material(memnew ( CanvasItemMaterial ));
 	args.clear();
 	args.push_back(1);
-	args.push_back(c);
-	c->connect("draw",this,"_hsv_draw",args);
+	args.push_back(w_edit);
+	w_edit->connect("draw",this,"_hsv_draw",args);
+
 
 	hb_edit->add_child(uv_edit);
 	hb_edit->add_child(memnew( VSeparator ));
@@ -580,31 +584,8 @@ ColorPicker::ColorPicker() :
 	//_update_color();
 	updating=false;
 
-	uv_material.instance();
-	Ref<Shader> s_uv = get_shader("uv_editor");
-	uv_material->set_shader(s_uv);
-
-	w_material.instance();
-
-	Ref<Shader> s_w = get_shader("w_editor");
-	w_material->set_shader(s_w);
-
-	uv_edit->set_material(uv_material);
-	w_edit->set_material(w_material);
-
 	set_color(Color(1,1,1));
 
-	i.create(256,20,false,Image::FORMAT_RGB);
-	for (int y=0;y<20;y++)
-		for(int x=0;x<256;x++)
-			if ((x/4+y/4)%2)
-				i.put_pixel(x,y,Color(1,1,1));
-			else
-				i.put_pixel(x,y,Color(0.6,0.6,0.6));
-	Ref<ImageTexture> t_smpl;
-	t_smpl.instance();
-	t_smpl->create_from_image(i);
-	sample->set_texture(t_smpl);
 
 	HBoxContainer *bbc = memnew( HBoxContainer );
 	add_child(bbc);
@@ -660,6 +641,7 @@ void ColorPickerButton::set_color(const Color& p_color){
 
 	picker->set_color(p_color);
 	update();
+	emit_signal("color_changed",p_color);
 }
 Color ColorPickerButton::get_color() const{
 
@@ -683,12 +665,12 @@ ColorPicker *ColorPickerButton::get_picker() {
 
 void ColorPickerButton::_bind_methods(){
 
-	ObjectTypeDB::bind_method(_MD("set_color","color"),&ColorPickerButton::set_color);
-	ObjectTypeDB::bind_method(_MD("get_color"),&ColorPickerButton::get_color);
-	ObjectTypeDB::bind_method(_MD("get_picker:ColorPicker"),&ColorPickerButton::get_picker);
-	ObjectTypeDB::bind_method(_MD("set_edit_alpha","show"),&ColorPickerButton::set_edit_alpha);
-	ObjectTypeDB::bind_method(_MD("is_editing_alpha"),&ColorPickerButton::is_editing_alpha);
-	ObjectTypeDB::bind_method(_MD("_color_changed"),&ColorPickerButton::_color_changed);
+	ClassDB::bind_method(_MD("set_color","color"),&ColorPickerButton::set_color);
+	ClassDB::bind_method(_MD("get_color"),&ColorPickerButton::get_color);
+	ClassDB::bind_method(_MD("get_picker:ColorPicker"),&ColorPickerButton::get_picker);
+	ClassDB::bind_method(_MD("set_edit_alpha","show"),&ColorPickerButton::set_edit_alpha);
+	ClassDB::bind_method(_MD("is_editing_alpha"),&ColorPickerButton::is_editing_alpha);
+	ClassDB::bind_method(_MD("_color_changed"),&ColorPickerButton::_color_changed);
 
 	ADD_SIGNAL( MethodInfo("color_changed",PropertyInfo(Variant::COLOR,"color")));
 	ADD_PROPERTY( PropertyInfo(Variant::COLOR,"color"),_SCS("set_color"),_SCS("get_color") );

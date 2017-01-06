@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -719,9 +719,9 @@ SpaceSW::SpaceSW() {
 	contact_max_allowed_penetration= 0.01;
 
 	constraint_bias = 0.01;
-	body_linear_velocity_sleep_threshold=GLOBAL_DEF("physics/sleep_threshold_linear",0.1);
-	body_angular_velocity_sleep_threshold=GLOBAL_DEF("physics/sleep_threshold_angular", (8.0 / 180.0 * Math_PI) );
-	body_time_to_sleep=GLOBAL_DEF("physics/time_before_sleep",0.5);
+	body_linear_velocity_sleep_threshold=GLOBAL_DEF("physics/3d/sleep_threshold_linear",0.1);
+	body_angular_velocity_sleep_threshold=GLOBAL_DEF("physics/3d/sleep_threshold_angular", (8.0 / 180.0 * Math_PI) );
+	body_time_to_sleep=GLOBAL_DEF("physics/3d/time_before_sleep",0.5);
 	body_angular_velocity_damp_ratio=10;
 
 

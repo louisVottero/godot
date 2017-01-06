@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -311,7 +311,7 @@ void SampleEditor::generate_preview_texture(const Ref<Sample>& p_sample,Ref<Imag
 	imgdata = DVector<uint8_t>::Write();
 
 
-	p_texture->set_data(Image(w,h,0,Image::FORMAT_RGB,img));
+	p_texture->set_data(Image(w,h,0,Image::FORMAT_RGB8,img));
 
 }
 
@@ -348,9 +348,9 @@ void SampleEditor::edit(Ref<Sample> p_sample) {
 
 void SampleEditor::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_input_event"),&SampleEditor::_input_event);
-	ObjectTypeDB::bind_method(_MD("_play_pressed"),&SampleEditor::_play_pressed);
-	ObjectTypeDB::bind_method(_MD("_stop_pressed"),&SampleEditor::_stop_pressed);
+	ClassDB::bind_method(_MD("_input_event"),&SampleEditor::_input_event);
+	ClassDB::bind_method(_MD("_play_pressed"),&SampleEditor::_play_pressed);
+	ClassDB::bind_method(_MD("_stop_pressed"),&SampleEditor::_stop_pressed);
 
 }
 
@@ -392,7 +392,7 @@ SampleEditor::SampleEditor() {
 	add_child(stop);
 
 	peakdisplay=Ref<ImageTexture>( memnew( ImageTexture) );
-	peakdisplay->create( EDITOR_DEF("audio/sample_editor_preview_width",512),EDITOR_DEF("audio/sample_editor_preview_height",128),Image::FORMAT_RGB);
+	peakdisplay->create( EDITOR_DEF("editors/sample_editor/preview_width",512),EDITOR_DEF("editors/sample_editor/preview_height",128),Image::FORMAT_RGB8);
 	sample_texframe->set_expand(true);
 	sample_texframe->set_texture(peakdisplay);
 
@@ -415,7 +415,7 @@ void SampleEditorPlugin::edit(Object *p_object) {
 
 bool SampleEditorPlugin::handles(Object *p_object) const {
 
-	return p_object->is_type("Sample");
+	return p_object->is_class("Sample");
 }
 
 void SampleEditorPlugin::make_visible(bool p_visible) {

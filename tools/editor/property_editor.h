@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -53,7 +53,7 @@ class PropertySelector;
 
 class CustomPropertyEditor : public Popup {
 
-	OBJ_TYPE( CustomPropertyEditor, Popup );
+	GDCLASS( CustomPropertyEditor, Popup );
 
 	enum {
 		MAX_VALUE_EDITORS=12,
@@ -163,7 +163,7 @@ public:
 
 class PropertyEditor : public Control {
 
-	OBJ_TYPE( PropertyEditor, Control );
+	GDCLASS( PropertyEditor, Control );
 
 	Tree *tree;
 	Label *top_label;
@@ -174,7 +174,7 @@ class PropertyEditor : public Control {
 
 	Object* obj;
 
-	Array _prop_edited_name;
+
 	StringName _prop_edited;
 
 	bool capitalize_paths;
@@ -219,6 +219,8 @@ class PropertyEditor : public Control {
 	void _edit_button(Object *p_item, int p_column, int p_button);
 
 	void _node_removed(Node *p_node);
+
+friend class ProjectExportDialog;
 	void _edit_set(const String& p_name, const Variant& p_value);
 	void _draw_flags(Object *ti,const Rect2& p_rect);
 
@@ -287,17 +289,19 @@ class SectionedPropertyEditorFilter;
 class SectionedPropertyEditor : public HBoxContainer {
 
 
-	OBJ_TYPE(SectionedPropertyEditor,HBoxContainer);
+	GDCLASS(SectionedPropertyEditor,HBoxContainer);
 
 	ObjectID obj;
 
-	ItemList *sections;
+	Tree *sections;
 	SectionedPropertyEditorFilter *filter;
+
+	Map<String,TreeItem*> section_map;
 	PropertyEditor *editor;
 
 
 	static void _bind_methods();
-	void _section_selected(int p_which);
+	void _section_selected();
 
 public:
 
@@ -315,7 +319,7 @@ public:
 };
 
 class PropertyValueEvaluator : public ValueEvaluator {
-	OBJ_TYPE( PropertyValueEvaluator, ValueEvaluator );
+	GDCLASS( PropertyValueEvaluator, ValueEvaluator );
 
 	Object *obj;
 	ScriptLanguage *script_language;

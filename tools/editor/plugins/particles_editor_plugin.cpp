@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -26,6 +26,8 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
+#if 0
 #include "particles_editor_plugin.h"
 #include "io/resource_loader.h"
 #include "servers/visual/particle_system_sw.h"
@@ -330,12 +332,12 @@ void ParticlesEditor::_generate_emission_points() {
 
 void ParticlesEditor::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_menu_option",&ParticlesEditor::_menu_option);
-	ObjectTypeDB::bind_method("_resource_seleted",&ParticlesEditor::_resource_seleted);
-	ObjectTypeDB::bind_method("_node_selected",&ParticlesEditor::_node_selected);
-	ObjectTypeDB::bind_method("_generate_emission_points",&ParticlesEditor::_generate_emission_points);
+	ClassDB::bind_method("_menu_option",&ParticlesEditor::_menu_option);
+	ClassDB::bind_method("_resource_seleted",&ParticlesEditor::_resource_seleted);
+	ClassDB::bind_method("_node_selected",&ParticlesEditor::_node_selected);
+	ClassDB::bind_method("_generate_emission_points",&ParticlesEditor::_generate_emission_points);
 
-	//ObjectTypeDB::bind_method("_populate",&ParticlesEditor::_populate);
+	//ClassDB::bind_method("_populate",&ParticlesEditor::_populate);
 
 }
 
@@ -456,3 +458,4 @@ ParticlesEditorPlugin::~ParticlesEditorPlugin()
 }
 
 
+#endif

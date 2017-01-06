@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,6 +32,8 @@
 #include "tools/editor/editor_settings.h"
 #include "scene/3d/camera.h"
 #include "canvas_item_editor_plugin.h"
+
+#if 0
 
 void CollisionPolygonEditor::_notification(int p_what) {
 
@@ -145,7 +147,7 @@ bool CollisionPolygonEditor::forward_spatial_input_event(Camera* p_camera,const 
 			Vector<Vector2> poly = node->get_polygon();
 
 			//first check if a point is to be added (segment split)
-			real_t grab_treshold=EDITOR_DEF("poly_editor/point_grab_radius",8);
+			real_t grab_treshold=EDITOR_DEF("editors/poly_editor/point_grab_radius",8);
 
 			switch(mode) {
 
@@ -527,9 +529,9 @@ void CollisionPolygonEditor::edit(Node *p_collision_polygon) {
 
 void CollisionPolygonEditor::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_menu_option"),&CollisionPolygonEditor::_menu_option);
-	ObjectTypeDB::bind_method(_MD("_polygon_draw"),&CollisionPolygonEditor::_polygon_draw);
-	ObjectTypeDB::bind_method(_MD("_node_removed"),&CollisionPolygonEditor::_node_removed);
+	ClassDB::bind_method(_MD("_menu_option"),&CollisionPolygonEditor::_menu_option);
+	ClassDB::bind_method(_MD("_polygon_draw"),&CollisionPolygonEditor::_polygon_draw);
+	ClassDB::bind_method(_MD("_node_removed"),&CollisionPolygonEditor::_node_removed);
 
 }
 
@@ -568,25 +570,25 @@ CollisionPolygonEditor::CollisionPolygonEditor(EditorNode *p_editor) {
 	imgeom->set_transform(Transform(Matrix3(),Vector3(0,0,0.00001)));
 
 
-	line_material = Ref<FixedMaterial>( memnew( FixedMaterial ));
+	line_material = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));
 	line_material->set_flag(Material::FLAG_UNSHADED, true);
 	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(FixedMaterial::PARAM_DIFFUSE,Color(1,1,1));
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA, true);
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
+	line_material->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,Color(1,1,1));
 
 
 
 
-	handle_material = Ref<FixedMaterial>( memnew( FixedMaterial ));
+	handle_material = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));
 	handle_material->set_flag(Material::FLAG_UNSHADED, true);
-	handle_material->set_fixed_flag(FixedMaterial::FLAG_USE_POINT_SIZE, true);
-	handle_material->set_parameter(FixedMaterial::PARAM_DIFFUSE,Color(1,1,1));
-	handle_material->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA, true);
-	handle_material->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY, false);
+	handle_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_POINT_SIZE, true);
+	handle_material->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,Color(1,1,1));
+	handle_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA, true);
+	handle_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY, false);
 	Ref<Texture> handle=editor->get_gui_base()->get_icon("Editor3DHandle","EditorIcons");
 	handle_material->set_point_size(handle->get_width());
-	handle_material->set_texture(FixedMaterial::PARAM_DIFFUSE,handle);
+	handle_material->set_texture(FixedSpatialMaterial::PARAM_DIFFUSE,handle);
 
 	pointsm = memnew( MeshInstance );
 	imgeom->add_child(pointsm);
@@ -642,3 +644,4 @@ CollisionPolygonEditorPlugin::~CollisionPolygonEditorPlugin()
 {
 }
 
+#endif

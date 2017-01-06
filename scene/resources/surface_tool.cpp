@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -355,7 +355,30 @@ Ref<Mesh> SurfaceTool::commit(const Ref<Mesh>& p_existing) {
 				w=DVector<Color>::Write();
 				a[i]=array;
 			} break;
-			case Mesh::ARRAY_FORMAT_BONES:
+			case Mesh::ARRAY_FORMAT_BONES: {
+
+
+				DVector<int> array;
+				array.resize(varr_len*4);
+				DVector<int>::Write w = array.write();
+
+				int idx=0;
+				for(List< Vertex >::Element *E=vertex_array.front();E;E=E->next(),idx+=4) {
+
+					const Vertex &v=E->get();
+
+					ERR_CONTINUE( v.bones.size()!=4 );
+
+					for(int j=0;j<4;j++) {
+						w[idx+j]=v.bones[j];
+					}
+
+				}
+
+				w=DVector<int>::Write();
+				a[i]=array;
+
+			} break;
 			case Mesh::ARRAY_FORMAT_WEIGHTS: {
 
 
@@ -367,18 +390,11 @@ Ref<Mesh> SurfaceTool::commit(const Ref<Mesh>& p_existing) {
 				for(List< Vertex >::Element *E=vertex_array.front();E;E=E->next(),idx+=4) {
 
 					const Vertex &v=E->get();
+					ERR_CONTINUE( v.weights.size()!=4 );
 
 					for(int j=0;j<4;j++) {
-						switch(i) {
-							case Mesh::ARRAY_WEIGHTS: {
-								ERR_CONTINUE( v.weights.size()!=4 );
-								w[idx+j]=v.weights[j];
-							} break;
-							case Mesh::ARRAY_BONES: {
-								ERR_CONTINUE( v.bones.size()!=4 );
-								w[idx+j]=v.bones[j];
-							} break;
-						}
+
+						w[idx+j]=v.weights[j];
 					}
 
 				}
@@ -410,7 +426,7 @@ Ref<Mesh> SurfaceTool::commit(const Ref<Mesh>& p_existing) {
 
 	}
 
-	mesh->add_surface(primitive,a);
+	mesh->add_surface_from_arrays(primitive,a);
 	if (material.is_valid())
 		mesh->surface_set_material(surface,material);
 
@@ -844,25 +860,25 @@ void SurfaceTool::clear() {
 
 void SurfaceTool::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("begin","primitive"),&SurfaceTool::begin);
-	ObjectTypeDB::bind_method(_MD("add_vertex","vertex"),&SurfaceTool::add_vertex);
-	ObjectTypeDB::bind_method(_MD("add_color","color"),&SurfaceTool::add_color);
-	ObjectTypeDB::bind_method(_MD("add_normal","normal"),&SurfaceTool::add_normal);
-	ObjectTypeDB::bind_method(_MD("add_tangent","tangent"),&SurfaceTool::add_tangent);
-	ObjectTypeDB::bind_method(_MD("add_uv","uv"),&SurfaceTool::add_uv);
-	ObjectTypeDB::bind_method(_MD("add_uv2","uv2"),&SurfaceTool::add_uv2);
-	ObjectTypeDB::bind_method(_MD("add_bones","bones"),&SurfaceTool::add_bones);
-	ObjectTypeDB::bind_method(_MD("add_weights","weights"),&SurfaceTool::add_weights);
-	ObjectTypeDB::bind_method(_MD("add_smooth_group","smooth"),&SurfaceTool::add_smooth_group);
-	ObjectTypeDB::bind_method(_MD("add_triangle_fan", "vertexes", "uvs", "colors", "uv2s", "normals", "tangents"),&SurfaceTool::add_triangle_fan, DEFVAL(Vector<Vector2>()), DEFVAL(Vector<Color>()), DEFVAL(Vector<Vector2>()),DEFVAL(Vector<Vector3>()), DEFVAL(Vector<Plane>()));
-	ObjectTypeDB::bind_method(_MD("set_material","material:Material"),&SurfaceTool::set_material);
-	ObjectTypeDB::bind_method(_MD("index"),&SurfaceTool::index);
-	ObjectTypeDB::bind_method(_MD("deindex"),&SurfaceTool::deindex);
-	///ObjectTypeDB::bind_method(_MD("generate_flat_normals"),&SurfaceTool::generate_flat_normals);
-	ObjectTypeDB::bind_method(_MD("generate_normals"),&SurfaceTool::generate_normals);
-	ObjectTypeDB::bind_method(_MD("add_index", "index"), &SurfaceTool::add_index);
-	ObjectTypeDB::bind_method(_MD("commit:Mesh","existing:Mesh"),&SurfaceTool::commit,DEFVAL(Variant()));
-	ObjectTypeDB::bind_method(_MD("clear"),&SurfaceTool::clear);
+	ClassDB::bind_method(_MD("begin","primitive"),&SurfaceTool::begin);
+	ClassDB::bind_method(_MD("add_vertex","vertex"),&SurfaceTool::add_vertex);
+	ClassDB::bind_method(_MD("add_color","color"),&SurfaceTool::add_color);
+	ClassDB::bind_method(_MD("add_normal","normal"),&SurfaceTool::add_normal);
+	ClassDB::bind_method(_MD("add_tangent","tangent"),&SurfaceTool::add_tangent);
+	ClassDB::bind_method(_MD("add_uv","uv"),&SurfaceTool::add_uv);
+	ClassDB::bind_method(_MD("add_uv2","uv2"),&SurfaceTool::add_uv2);
+	ClassDB::bind_method(_MD("add_bones","bones"),&SurfaceTool::add_bones);
+	ClassDB::bind_method(_MD("add_weights","weights"),&SurfaceTool::add_weights);
+	ClassDB::bind_method(_MD("add_smooth_group","smooth"),&SurfaceTool::add_smooth_group);
+	ClassDB::bind_method(_MD("add_triangle_fan", "vertexes", "uvs", "colors", "uv2s", "normals", "tangents"),&SurfaceTool::add_triangle_fan, DEFVAL(Vector<Vector2>()), DEFVAL(Vector<Color>()), DEFVAL(Vector<Vector2>()),DEFVAL(Vector<Vector3>()), DEFVAL(Vector<Plane>()));
+	ClassDB::bind_method(_MD("set_material","material:Material"),&SurfaceTool::set_material);
+	ClassDB::bind_method(_MD("index"),&SurfaceTool::index);
+	ClassDB::bind_method(_MD("deindex"),&SurfaceTool::deindex);
+	///ClassDB::bind_method(_MD("generate_flat_normals"),&SurfaceTool::generate_flat_normals);
+	ClassDB::bind_method(_MD("generate_normals"),&SurfaceTool::generate_normals);
+	ClassDB::bind_method(_MD("add_index", "index"), &SurfaceTool::add_index);
+	ClassDB::bind_method(_MD("commit:Mesh","existing:Mesh"),&SurfaceTool::commit,DEFVAL(Variant()));
+	ClassDB::bind_method(_MD("clear"),&SurfaceTool::clear);
 
 }
 

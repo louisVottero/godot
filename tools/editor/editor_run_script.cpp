@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -86,8 +86,8 @@ void EditorScript::set_editor(EditorNode *p_editor) {
 
 void EditorScript::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("add_root_node","node"),&EditorScript::add_root_node);
-	ObjectTypeDB::bind_method(_MD("get_scene"),&EditorScript::get_scene);
+	ClassDB::bind_method(_MD("add_root_node","node"),&EditorScript::add_root_node);
+	ClassDB::bind_method(_MD("get_scene"),&EditorScript::get_scene);
 	BIND_VMETHOD( MethodInfo("_run") );
 
 

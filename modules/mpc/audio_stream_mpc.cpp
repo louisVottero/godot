@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -351,8 +351,8 @@ void AudioStreamPlaybackMPC::seek_pos(float p_time) {
 
 void AudioStreamPlaybackMPC::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_file","name"),&AudioStreamPlaybackMPC::set_file);
-	ObjectTypeDB::bind_method(_MD("get_file"),&AudioStreamPlaybackMPC::get_file);
+	ClassDB::bind_method(_MD("set_file","name"),&AudioStreamPlaybackMPC::set_file);
+	ClassDB::bind_method(_MD("get_file"),&AudioStreamPlaybackMPC::get_file);
 
 	ADD_PROPERTYNZ( PropertyInfo(Variant::STRING,"file",PROPERTY_HINT_FILE,"mpc"), _SCS("set_file"), _SCS("get_file"));
 

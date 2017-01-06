@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -42,7 +42,7 @@ class CanvasItemEditor;
 
 class Path2DEditor : public HBoxContainer {
 
-	OBJ_TYPE(Path2DEditor, HBoxContainer);
+	GDCLASS(Path2DEditor, HBoxContainer);
 
 	UndoRedo *undo_redo;
 
@@ -101,7 +101,7 @@ public:
 
 class Path2DEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( Path2DEditorPlugin, EditorPlugin );
+	GDCLASS( Path2DEditorPlugin, EditorPlugin );
 
 	Path2DEditor *path2d_editor;
 	EditorNode *editor;

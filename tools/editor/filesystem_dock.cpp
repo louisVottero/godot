@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -174,7 +174,7 @@ void FileSystemDock::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_PROCESS: {
 			if (EditorFileSystem::get_singleton()->is_scanning()) {
-				scanning_progress->set_val(EditorFileSystem::get_singleton()->get_scanning_progress()*100);
+				scanning_progress->set_value(EditorFileSystem::get_singleton()->get_scanning_progress()*100);
 			}
 		} break;
 		case NOTIFICATION_EXIT_TREE: {
@@ -201,7 +201,7 @@ void FileSystemDock::_notification(int p_what) {
 		} break;
 		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
 
-			int new_mode = int(EditorSettings::get_singleton()->get("filesystem_dock/display_mode"));
+			int new_mode = int(EditorSettings::get_singleton()->get("docks/filesystem/display_mode"));
 
 			if (new_mode != display_mode) {
 				set_display_mode(new_mode);
@@ -234,13 +234,6 @@ void FileSystemDock::_dir_selected() {
 
 
 	button_favorite->set_pressed(found);
-	if (ti->get_parent() && ti->get_parent()->get_parent()==tree->get_root() && !ti->get_parent()->get_prev()) {
-
-		//a favorite!!!
-	} else {
-
-
-	}
 
 	if (!split_mode) {
 		_open_pressed(); //go directly to dir
@@ -330,7 +323,7 @@ void FileSystemDock::_change_file_display() {
 		button_display_mode->set_icon( get_icon("FileList","EditorIcons"));
 	}
 
-	EditorSettings::get_singleton()->set("filesystem_dock/display_mode", display_mode);
+	EditorSettings::get_singleton()->set("docks/filesystem/display_mode", display_mode);
 
 	_update_files(true);
 }
@@ -404,7 +397,7 @@ void FileSystemDock::_update_files(bool p_keep_selection) {
 	if (!efd)
 		return;
 
-	int thumbnail_size = EditorSettings::get_singleton()->get("filesystem_dock/thumbnail_size");
+	int thumbnail_size = EditorSettings::get_singleton()->get("docks/filesystem/thumbnail_size");
 	thumbnail_size*=EDSCALE;
 	Ref<Texture> folder_thumbnail;
 	Ref<Texture> file_thumbnail;
@@ -675,9 +668,9 @@ void FileSystemDock::_set_scannig_mode() {
 	scanning_vb->show();
 	set_process(true);
 	if (EditorFileSystem::get_singleton()->is_scanning()) {
-		scanning_progress->set_val(EditorFileSystem::get_singleton()->get_scanning_progress()*100);
+		scanning_progress->set_value(EditorFileSystem::get_singleton()->get_scanning_progress()*100);
 	} else {
-		scanning_progress->set_val(0);
+		scanning_progress->set_value(0);
 	}
 
 }
@@ -934,7 +927,7 @@ void FileSystemDock::_file_option(int p_option) {
 
 			String path = files->get_item_metadata(idx);
 			if (p_option == FILE_SHOW_IN_EXPLORER) {
-				String dir = Globals::get_singleton()->globalize_path(path);
+				String dir = GlobalConfig::get_singleton()->globalize_path(path);
 				dir = dir.substr(0, dir.find_last("/"));
 				OS::get_singleton()->shell_open(String("file://")+dir);
 				return;
@@ -1588,33 +1581,33 @@ void FileSystemDock::_files_list_rmb_select(int p_item,const Vector2& p_pos) {
 
 void FileSystemDock::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_update_tree"),&FileSystemDock::_update_tree);
-	ObjectTypeDB::bind_method(_MD("_rescan"),&FileSystemDock::_rescan);
-	ObjectTypeDB::bind_method(_MD("_favorites_pressed"),&FileSystemDock::_favorites_pressed);
-//	ObjectTypeDB::bind_method(_MD("_instance_pressed"),&ScenesDock::_instance_pressed);
-	ObjectTypeDB::bind_method(_MD("_open_pressed"),&FileSystemDock::_open_pressed);
+	ClassDB::bind_method(_MD("_update_tree"),&FileSystemDock::_update_tree);
+	ClassDB::bind_method(_MD("_rescan"),&FileSystemDock::_rescan);
+	ClassDB::bind_method(_MD("_favorites_pressed"),&FileSystemDock::_favorites_pressed);
+//	ClassDB::bind_method(_MD("_instance_pressed"),&ScenesDock::_instance_pressed);
+	ClassDB::bind_method(_MD("_open_pressed"),&FileSystemDock::_open_pressed);
 
-	ObjectTypeDB::bind_method(_MD("_thumbnail_done"),&FileSystemDock::_thumbnail_done);
-	ObjectTypeDB::bind_method(_MD("_select_file"), &FileSystemDock::_select_file);
-	ObjectTypeDB::bind_method(_MD("_go_to_tree"), &FileSystemDock::_go_to_tree);
-	ObjectTypeDB::bind_method(_MD("_go_to_dir"), &FileSystemDock::_go_to_dir);
-	ObjectTypeDB::bind_method(_MD("_change_file_display"), &FileSystemDock::_change_file_display);
-	ObjectTypeDB::bind_method(_MD("_fw_history"), &FileSystemDock::_fw_history);
-	ObjectTypeDB::bind_method(_MD("_bw_history"), &FileSystemDock::_bw_history);
-	ObjectTypeDB::bind_method(_MD("_fs_changed"), &FileSystemDock::_fs_changed);
-	ObjectTypeDB::bind_method(_MD("_dir_selected"), &FileSystemDock::_dir_selected);
-	ObjectTypeDB::bind_method(_MD("_file_option"), &FileSystemDock::_file_option);
-	ObjectTypeDB::bind_method(_MD("_move_operation"), &FileSystemDock::_move_operation);
-	ObjectTypeDB::bind_method(_MD("_rename_operation"), &FileSystemDock::_rename_operation);
+	ClassDB::bind_method(_MD("_thumbnail_done"),&FileSystemDock::_thumbnail_done);
+	ClassDB::bind_method(_MD("_select_file"), &FileSystemDock::_select_file);
+	ClassDB::bind_method(_MD("_go_to_tree"), &FileSystemDock::_go_to_tree);
+	ClassDB::bind_method(_MD("_go_to_dir"), &FileSystemDock::_go_to_dir);
+	ClassDB::bind_method(_MD("_change_file_display"), &FileSystemDock::_change_file_display);
+	ClassDB::bind_method(_MD("_fw_history"), &FileSystemDock::_fw_history);
+	ClassDB::bind_method(_MD("_bw_history"), &FileSystemDock::_bw_history);
+	ClassDB::bind_method(_MD("_fs_changed"), &FileSystemDock::_fs_changed);
+	ClassDB::bind_method(_MD("_dir_selected"), &FileSystemDock::_dir_selected);
+	ClassDB::bind_method(_MD("_file_option"), &FileSystemDock::_file_option);
+	ClassDB::bind_method(_MD("_move_operation"), &FileSystemDock::_move_operation);
+	ClassDB::bind_method(_MD("_rename_operation"), &FileSystemDock::_rename_operation);
 
-	ObjectTypeDB::bind_method(_MD("_search_changed"), &FileSystemDock::_search_changed);
+	ClassDB::bind_method(_MD("_search_changed"), &FileSystemDock::_search_changed);
 
-	ObjectTypeDB::bind_method(_MD("get_drag_data_fw"), &FileSystemDock::get_drag_data_fw);
-	ObjectTypeDB::bind_method(_MD("can_drop_data_fw"), &FileSystemDock::can_drop_data_fw);
-	ObjectTypeDB::bind_method(_MD("drop_data_fw"), &FileSystemDock::drop_data_fw);
-	ObjectTypeDB::bind_method(_MD("_files_list_rmb_select"),&FileSystemDock::_files_list_rmb_select);
+	ClassDB::bind_method(_MD("get_drag_data_fw"), &FileSystemDock::get_drag_data_fw);
+	ClassDB::bind_method(_MD("can_drop_data_fw"), &FileSystemDock::can_drop_data_fw);
+	ClassDB::bind_method(_MD("drop_data_fw"), &FileSystemDock::drop_data_fw);
+	ClassDB::bind_method(_MD("_files_list_rmb_select"),&FileSystemDock::_files_list_rmb_select);
 
-	ObjectTypeDB::bind_method(_MD("_preview_invalidated"),&FileSystemDock::_preview_invalidated);
+	ClassDB::bind_method(_MD("_preview_invalidated"),&FileSystemDock::_preview_invalidated);
 
 
 	ADD_SIGNAL(MethodInfo("instance", PropertyInfo(Variant::STRING_ARRAY, "files")));

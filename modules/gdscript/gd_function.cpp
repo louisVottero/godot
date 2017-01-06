@@ -119,9 +119,9 @@ static String _get_var_type(const Variant* p_type) {
 #ifdef DEBUG_ENABLED
 			if (ObjectDB::instance_validate(bobj)) {
 				if (bobj->get_script_instance())
-					basestr= bobj->get_type()+" ("+bobj->get_script_instance()->get_script()->get_path().get_file()+")";
+					basestr= bobj->get_class()+" ("+bobj->get_script_instance()->get_script()->get_path().get_file()+")";
 				else
-					basestr = bobj->get_type();
+					basestr = bobj->get_class();
 			} else {
 				basestr="previously freed instance";
 			}
@@ -395,11 +395,11 @@ Variant GDFunction::call(GDInstance *p_instance, const Variant **p_args, int p_a
 
 					if (!nc) {
 
-						err_text="Right operand of 'extends' is not a class (type: '"+obj_B->get_type()+"').";
+						err_text="Right operand of 'extends' is not a class (type: '"+obj_B->get_class()+"').";
 						break;
 					}
 
-					extends_ok=ObjectTypeDB::is_type(obj_A->get_type_name(),nc->get_name());
+					extends_ok=ClassDB::is_parent_class(obj_A->get_class_name(),nc->get_name());
 				}
 
 				*dst=extends_ok;
@@ -487,7 +487,7 @@ Variant GDFunction::call(GDInstance *p_instance, const Variant **p_args, int p_a
 			case OPCODE_GET_NAMED: {
 
 
-				CHECK_SPACE(3);
+				CHECK_SPACE(4);
 
 				GET_VARIANT_PTR(src,1);
 				GET_VARIANT_PTR(dst,3);
@@ -518,6 +518,46 @@ Variant GDFunction::call(GDInstance *p_instance, const Variant **p_args, int p_a
 				*dst=ret;
 #endif
 				ip+=4;
+			} continue;
+			case OPCODE_SET_MEMBER: {
+
+				CHECK_SPACE(3);
+				int indexname = _code_ptr[ip+1];
+				ERR_BREAK(indexname<0 || indexname>=_global_names_count);
+				const StringName *index = &_global_names_ptr[indexname];
+				GET_VARIANT_PTR(src,2);
+
+				bool valid;
+				bool ok = ClassDB::set_property(p_instance->owner,*index,*src,&valid);
+#ifdef DEBUG_ENABLED
+				if (!ok) {
+					err_text="Internal error setting property: "+String(*index);
+					break;
+				} else if (!valid) {
+					err_text="Error setting property '"+String(*index)+"' with value of type "+Variant::get_type_name(src->get_type())+".";
+					break;
+
+				}
+#endif
+				ip+=3;
+			} continue;
+			case OPCODE_GET_MEMBER: {
+
+				CHECK_SPACE(3);
+				int indexname = _code_ptr[ip+1];
+				ERR_BREAK(indexname<0 || indexname>=_global_names_count);
+				const StringName *index = &_global_names_ptr[indexname];
+				GET_VARIANT_PTR(dst,2);
+				bool ok = ClassDB::get_property(p_instance->owner,*index,*dst);
+
+#ifdef DEBUG_ENABLED
+				if (!ok) {
+					err_text="Internal error getting property: "+String(*index);
+					break;
+				}
+#endif
+				ip+=3;
+
 			} continue;
 			case OPCODE_ASSIGN: {
 
@@ -788,7 +828,7 @@ Variant GDFunction::call(GDInstance *p_instance, const Variant **p_args, int p_a
 
 					if (*methodname!=GDScriptLanguage::get_singleton()->strings._init) {
 
-						MethodBind *mb = ObjectTypeDB::get_method(gds->native->get_name(),*methodname);
+						MethodBind *mb = ClassDB::get_method(gds->native->get_name(),*methodname);
 						if (!mb) {
 							err.error=Variant::CallError::CALL_ERROR_INVALID_METHOD;
 						} else {
@@ -1435,9 +1475,9 @@ Variant GDFunctionState::resume(const Variant& p_arg) {
 
 void GDFunctionState::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("resume:Variant","arg"),&GDFunctionState::resume,DEFVAL(Variant()));
-	ObjectTypeDB::bind_method(_MD("is_valid"),&GDFunctionState::is_valid);
-	ObjectTypeDB::bind_vararg_method(METHOD_FLAGS_DEFAULT,"_signal_callback",&GDFunctionState::_signal_callback,MethodInfo("_signal_callback"));
+	ClassDB::bind_method(_MD("resume:Variant","arg"),&GDFunctionState::resume,DEFVAL(Variant()));
+	ClassDB::bind_method(_MD("is_valid"),&GDFunctionState::is_valid);
+	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT,"_signal_callback",&GDFunctionState::_signal_callback,MethodInfo("_signal_callback"));
 
 }
 

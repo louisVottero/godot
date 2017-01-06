@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -62,12 +62,12 @@ Ref<Theme> create_custom_theme()
 {
 	Ref<Theme> theme;
 
-	String custom_theme = EditorSettings::get_singleton()->get("global/custom_theme");
+	String custom_theme = EditorSettings::get_singleton()->get("interface/custom_theme");
 	if (custom_theme!="") {
 		theme = ResourceLoader::load(custom_theme);
 	}
 
-	String global_font = EditorSettings::get_singleton()->get("global/custom_font");
+	String global_font = EditorSettings::get_singleton()->get("interface/custom_font");
 	if (global_font!="") {
 		Ref<Font> fnt = ResourceLoader::load(global_font);
 		if (fnt.is_valid()) {

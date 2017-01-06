@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -368,8 +368,8 @@ void AnimationCache::set_animation(const Ref<Animation>& p_animation) {
 
 void AnimationCache::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_node_exit_tree"),&AnimationCache::_node_exit_tree);
-	ObjectTypeDB::bind_method(_MD("_animation_changed"),&AnimationCache::_animation_changed);
+	ClassDB::bind_method(_MD("_node_exit_tree"),&AnimationCache::_node_exit_tree);
+	ClassDB::bind_method(_MD("_animation_changed"),&AnimationCache::_animation_changed);
 }
 
 void AnimationCache::set_root(Node* p_root) {

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -536,7 +536,7 @@ void GDFunctions::call(Function p_func,const Variant **p_args,int p_arg_count,Va
 		case TYPE_EXISTS: {
 
 			VALIDATE_ARG_COUNT(1);
-			r_ret = ObjectTypeDB::type_exists(*p_args[0]);
+			r_ret = ClassDB::class_exists(*p_args[0]);
 
 		} break;
 		case TEXT_CHAR: {

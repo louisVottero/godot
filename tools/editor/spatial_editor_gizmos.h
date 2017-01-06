@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -45,6 +45,8 @@
 #include "scene/3d/portal.h"
 #include "scene/3d/ray_cast.h"
 #include "scene/3d/navigation_mesh.h"
+#include "scene/3d/reflection_probe.h"
+#include "scene/3d/gi_probe.h"
 
 #include "scene/3d/vehicle_body.h"
 #include "scene/3d/collision_polygon.h"
@@ -55,7 +57,7 @@ class Camera;
 
 class EditorSpatialGizmo  : public SpatialEditorGizmo {
 
-	OBJ_TYPE(EditorSpatialGizmo,SpatialGizmo);
+	GDCLASS(EditorSpatialGizmo,SpatialGizmo);
 
 	struct Instance{
 
@@ -127,7 +129,7 @@ public:
 
 class LightSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(LightSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(LightSpatialGizmo,EditorSpatialGizmo);
 
 	Light* light;
 
@@ -146,7 +148,7 @@ public:
 
 class ListenerSpatialGizmo : public EditorSpatialGizmo {
 
-	OBJ_TYPE(ListenerSpatialGizmo, EditorSpatialGizmo);
+	GDCLASS(ListenerSpatialGizmo, EditorSpatialGizmo);
 
 	Listener* listener;
 
@@ -159,7 +161,7 @@ public:
 
 class CameraSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(CameraSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(CameraSpatialGizmo,EditorSpatialGizmo);
 
 	Camera* camera;
 
@@ -180,7 +182,7 @@ public:
 
 class MeshInstanceSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(MeshInstanceSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(MeshInstanceSpatialGizmo,EditorSpatialGizmo);
 
 	MeshInstance* mesh;
 
@@ -193,7 +195,7 @@ public:
 
 class Position3DSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(Position3DSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(Position3DSpatialGizmo,EditorSpatialGizmo);
 
 	Position3D* p3d;
 
@@ -206,7 +208,7 @@ public:
 
 class SkeletonSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(SkeletonSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(SkeletonSpatialGizmo,EditorSpatialGizmo);
 
 	Skeleton* skel;
 
@@ -222,7 +224,7 @@ public:
 
 class SpatialPlayerSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(SpatialPlayerSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(SpatialPlayerSpatialGizmo,EditorSpatialGizmo);
 
 	SpatialPlayer* splayer;
 
@@ -237,7 +239,7 @@ public:
 
 class TestCubeSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(TestCubeSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(TestCubeSpatialGizmo,EditorSpatialGizmo);
 
 	TestCube* tc;
 
@@ -250,7 +252,7 @@ public:
 
 class RoomSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(RoomSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(RoomSpatialGizmo,EditorSpatialGizmo);
 
 
 	struct _EdgeKey {
@@ -275,7 +277,7 @@ public:
 
 class PortalSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(PortalSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(PortalSpatialGizmo,EditorSpatialGizmo);
 
 	Portal* portal;
 
@@ -289,7 +291,7 @@ public:
 
 class VisibilityNotifierGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(VisibilityNotifierGizmo ,EditorSpatialGizmo);
+	GDCLASS(VisibilityNotifierGizmo ,EditorSpatialGizmo);
 
 
 	VisibilityNotifier* notifier;
@@ -307,10 +309,48 @@ public:
 };
 
 
+class ReflectionProbeGizmo  : public EditorSpatialGizmo {
+
+	GDCLASS(ReflectionProbeGizmo ,EditorSpatialGizmo);
+
+
+	ReflectionProbe* probe;
+
+public:
+
+	virtual String get_handle_name(int p_idx) const;
+	virtual Variant get_handle_value(int p_idx) const;
+	virtual void set_handle(int p_idx,Camera *p_camera, const Point2& p_point);
+	virtual void commit_handle(int p_idx,const Variant& p_restore,bool p_cancel=false);
+
+	void redraw();
+	ReflectionProbeGizmo(ReflectionProbe* p_notifier=NULL);
+
+};
+
+class GIProbeGizmo  : public EditorSpatialGizmo {
+
+	GDCLASS(GIProbeGizmo ,EditorSpatialGizmo);
+
+
+	GIProbe* probe;
+
+public:
+
+	virtual String get_handle_name(int p_idx) const;
+	virtual Variant get_handle_value(int p_idx) const;
+	virtual void set_handle(int p_idx,Camera *p_camera, const Point2& p_point);
+	virtual void commit_handle(int p_idx,const Variant& p_restore,bool p_cancel=false);
+
+	void redraw();
+	GIProbeGizmo(GIProbe* p_notifier=NULL);
+
+};
+
 
 class CollisionShapeSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(CollisionShapeSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(CollisionShapeSpatialGizmo,EditorSpatialGizmo);
 
 	CollisionShape* cs;
 
@@ -327,7 +367,7 @@ public:
 
 class CollisionPolygonSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(CollisionPolygonSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(CollisionPolygonSpatialGizmo,EditorSpatialGizmo);
 
 	CollisionPolygon* polygon;
 
@@ -339,9 +379,10 @@ public:
 };
 
 
+
 class RayCastSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(RayCastSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(RayCastSpatialGizmo,EditorSpatialGizmo);
 
 	RayCast* raycast;
 
@@ -356,7 +397,7 @@ public:
 
 class VehicleWheelSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(VehicleWheelSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(VehicleWheelSpatialGizmo,EditorSpatialGizmo);
 
 	VehicleWheel* car_wheel;
 
@@ -370,7 +411,7 @@ public:
 
 class NavigationMeshSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(NavigationMeshSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(NavigationMeshSpatialGizmo,EditorSpatialGizmo);
 
 
 	struct _EdgeKey {
@@ -395,7 +436,7 @@ public:
 
 class PinJointSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(PinJointSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(PinJointSpatialGizmo,EditorSpatialGizmo);
 
 	PinJoint* p3d;
 
@@ -409,7 +450,7 @@ public:
 
 class HingeJointSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(HingeJointSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(HingeJointSpatialGizmo,EditorSpatialGizmo);
 
 	HingeJoint* p3d;
 
@@ -422,7 +463,7 @@ public:
 
 class SliderJointSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(SliderJointSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(SliderJointSpatialGizmo,EditorSpatialGizmo);
 
 	SliderJoint* p3d;
 
@@ -435,7 +476,7 @@ public:
 
 class ConeTwistJointSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(ConeTwistJointSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(ConeTwistJointSpatialGizmo,EditorSpatialGizmo);
 
 	ConeTwistJoint* p3d;
 
@@ -449,7 +490,7 @@ public:
 
 class Generic6DOFJointSpatialGizmo  : public EditorSpatialGizmo {
 
-	OBJ_TYPE(Generic6DOFJointSpatialGizmo,EditorSpatialGizmo);
+	GDCLASS(Generic6DOFJointSpatialGizmo,EditorSpatialGizmo);
 
 	Generic6DOFJoint* p3d;
 
@@ -464,34 +505,38 @@ public:
 class SpatialEditorGizmos  {
 public:
 
-	Ref<FixedMaterial> create_line_material(const Color& p_base_color);
-	Ref<FixedMaterial> create_solid_material(const Color& p_base_color);
-	Ref<FixedMaterial> handle2_material;
-	Ref<FixedMaterial> handle_material;
-	Ref<FixedMaterial> light_material;
-	Ref<FixedMaterial> light_material_omni_icon;
-	Ref<FixedMaterial> light_material_directional_icon;
-	Ref<FixedMaterial> camera_material;
-	Ref<FixedMaterial> skeleton_material;
-	Ref<FixedMaterial> room_material;
-	Ref<FixedMaterial> portal_material;
-	Ref<FixedMaterial> raycast_material;
-	Ref<FixedMaterial> visibility_notifier_material;
-	Ref<FixedMaterial> car_wheel_material;
-	Ref<FixedMaterial> joint_material;
+	Ref<FixedSpatialMaterial> create_line_material(const Color& p_base_color);
+	Ref<FixedSpatialMaterial> create_solid_material(const Color& p_base_color);
+	Ref<FixedSpatialMaterial> handle2_material;
+	Ref<FixedSpatialMaterial> handle_material;
+	Ref<FixedSpatialMaterial> light_material;
+	Ref<FixedSpatialMaterial> light_material_omni_icon;
+	Ref<FixedSpatialMaterial> light_material_directional_icon;
+	Ref<FixedSpatialMaterial> camera_material;
+	Ref<FixedSpatialMaterial> skeleton_material;
+	Ref<FixedSpatialMaterial> reflection_probe_material;
+	Ref<FixedSpatialMaterial> reflection_probe_material_internal;
+	Ref<FixedSpatialMaterial> gi_probe_material;
+	Ref<FixedSpatialMaterial> gi_probe_material_internal;
+	Ref<FixedSpatialMaterial> room_material;
+	Ref<FixedSpatialMaterial> portal_material;
+	Ref<FixedSpatialMaterial> raycast_material;
+	Ref<FixedSpatialMaterial> visibility_notifier_material;
+	Ref<FixedSpatialMaterial> car_wheel_material;
+	Ref<FixedSpatialMaterial> joint_material;
 
-	Ref<FixedMaterial> navmesh_edge_material;
-	Ref<FixedMaterial> navmesh_solid_material;
-	Ref<FixedMaterial> navmesh_edge_material_disabled;
-	Ref<FixedMaterial> navmesh_solid_material_disabled;
+	Ref<FixedSpatialMaterial> navmesh_edge_material;
+	Ref<FixedSpatialMaterial> navmesh_solid_material;
+	Ref<FixedSpatialMaterial> navmesh_edge_material_disabled;
+	Ref<FixedSpatialMaterial> navmesh_solid_material_disabled;
 
-	Ref<FixedMaterial> listener_icon;
+	Ref<FixedSpatialMaterial> listener_icon;
 
-	Ref<FixedMaterial> sample_player_icon;
-	Ref<FixedMaterial> stream_player_icon;
-	Ref<FixedMaterial> visibility_notifier_icon;
+	Ref<FixedSpatialMaterial> sample_player_icon;
+	Ref<FixedSpatialMaterial> stream_player_icon;
+	Ref<FixedSpatialMaterial> visibility_notifier_icon;
 
-	Ref<FixedMaterial> shape_material;
+	Ref<FixedSpatialMaterial> shape_material;
 	Ref<Texture> handle_t;
 
 	Ref<Mesh> pos3d_mesh;
@@ -505,5 +550,4 @@ public:
 
 	SpatialEditorGizmos();
 };
-
 #endif // SPATIAL_EDITOR_GIZMOS_H

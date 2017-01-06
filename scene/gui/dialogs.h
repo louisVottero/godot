@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -42,7 +42,7 @@
 
 class WindowDialog : public Popup {
 
-	OBJ_TYPE(WindowDialog,Popup);
+	GDCLASS(WindowDialog,Popup);
 
 	TextureButton *close_button;
 	String title;
@@ -73,7 +73,7 @@ public:
 
 class PopupDialog : public Popup {
 
-	OBJ_TYPE(PopupDialog,Popup);
+	GDCLASS(PopupDialog,Popup);
 
 protected:
 	void _notification(int p_what);
@@ -89,7 +89,7 @@ class LineEdit;
 
 class AcceptDialog : public WindowDialog {
 
-	OBJ_TYPE(AcceptDialog,WindowDialog);
+	GDCLASS(AcceptDialog,WindowDialog);
 
 	Control *child;
 	HBoxContainer *hbc;
@@ -150,7 +150,7 @@ public:
 
 class ConfirmationDialog : public AcceptDialog {
 
-	OBJ_TYPE(ConfirmationDialog,AcceptDialog);
+	GDCLASS(ConfirmationDialog,AcceptDialog);
 	Button *cancel;
 protected:
 	static void _bind_methods();

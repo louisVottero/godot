@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -38,7 +38,7 @@
 
 
 class _ResourceLoader : public Object  {
-	OBJ_TYPE(_ResourceLoader,Object);
+	GDCLASS(_ResourceLoader,Object);
 
 protected:
 
@@ -60,7 +60,7 @@ public:
 };
 
 class _ResourceSaver : public Object  {
-	OBJ_TYPE(_ResourceSaver,Object);
+	GDCLASS(_ResourceSaver,Object);
 
 protected:
 
@@ -90,7 +90,7 @@ public:
 class MainLoop;
 
 class _OS : public Object  {
-	OBJ_TYPE(_OS,Object);
+	GDCLASS(_OS,Object);
 
 protected:
 
@@ -318,7 +318,7 @@ public:
 	Error set_thread_name(const String& p_name);
 
 	void set_use_vsync(bool p_enable);
-	bool is_vsnc_enabled() const;
+	bool is_vsync_enabled() const;
 
 	Dictionary get_engine_version() const;
 
@@ -333,7 +333,7 @@ VARIANT_ENUM_CAST(_OS::ScreenOrientation);
 
 class _Geometry : public Object {
 
-	OBJ_TYPE(_Geometry, Object);
+	GDCLASS(_Geometry, Object);
 
 	static _Geometry *singleton;
 protected:
@@ -371,7 +371,7 @@ public:
 
 class _File : public Reference {
 
-	OBJ_TYPE(_File,Reference);
+	GDCLASS(_File,Reference);
 	FileAccess *f;
 	bool eswap;
 protected:
@@ -460,7 +460,7 @@ public:
 
 class _Directory : public Reference {
 
-	OBJ_TYPE(_Directory,Reference);
+	GDCLASS(_Directory,Reference);
 	DirAccess *d;
 protected:
 
@@ -501,7 +501,9 @@ public:
 
 class _Marshalls : public Reference {
 
-	OBJ_TYPE(_Marshalls,Reference);
+	GDCLASS(_Marshalls,Reference);
+
+	static _Marshalls* singleton;
 
 protected:
 
@@ -509,6 +511,8 @@ protected:
 
 
 public:
+
+	static _Marshalls* get_singleton();
 
 	String variant_to_base64(const Variant& p_var);
 	Variant base64_to_variant(const String& p_str);
@@ -519,13 +523,14 @@ public:
 	String utf8_to_base64(const String& p_str);
 	String base64_to_utf8(const String& p_str);
 
-	_Marshalls() {};
+	_Marshalls() { singleton = this; }
+	~_Marshalls() { singleton = NULL; }
 };
 
 
 class _Mutex : public Reference {
 
-	OBJ_TYPE(_Mutex,Reference);
+	GDCLASS(_Mutex,Reference);
 	Mutex *mutex;
 
 	static void _bind_methods();
@@ -541,7 +546,7 @@ public:
 
 class _Semaphore : public Reference {
 
-	OBJ_TYPE(_Semaphore,Reference);
+	GDCLASS(_Semaphore,Reference);
 	Semaphore *semaphore;
 
 	static void _bind_methods();
@@ -556,7 +561,7 @@ public:
 
 class _Thread : public Reference {
 
-	OBJ_TYPE(_Thread,Reference);
+	GDCLASS(_Thread,Reference);
 
 protected:
 
@@ -584,6 +589,44 @@ public:
 
 	_Thread();
 	~_Thread();
+};
+
+class _ClassDB : public Object {
+
+	GDCLASS(_ClassDB,Object)
+
+protected:
+	static void _bind_methods();
+public:
+
+	StringArray get_class_list() const;
+	StringArray get_inheriters_from_class( const StringName& p_class) const;
+	StringName get_parent_class(const StringName& p_class) const;
+	bool class_exists(const StringName &p_class) const;
+	bool is_parent_class(const StringName &p_class,const StringName& p_inherits) const;
+	bool can_instance(const StringName &p_class) const;
+	Variant instance(const StringName &p_class) const;
+
+	bool has_signal(StringName p_class,StringName p_signal) const;
+	Dictionary get_signal(StringName p_class,StringName p_signal) const;
+	Array get_signal_list(StringName p_class,bool p_no_inheritance=false) const;
+
+	Array get_property_list(StringName p_class, bool p_no_inheritance=false) const;
+
+	bool has_method(StringName p_class,StringName p_method,bool p_no_inheritance=false) const;
+
+
+	Array get_method_list(StringName p_class,bool p_no_inheritance=false) const;
+
+	StringArray get_integer_constant_list(const StringName& p_class, bool p_no_inheritance=false) const;
+	bool has_integer_constant(const StringName& p_class, const StringName &p_name) const;
+	int get_integer_constant(const StringName& p_class, const StringName &p_name) const;
+	StringName get_category(const StringName& p_node) const;
+
+	bool is_class_enabled(StringName p_class) const;
+
+	_ClassDB();
+	~_ClassDB();
 };
 
 #endif // CORE_BIND_H

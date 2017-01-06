@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -110,8 +110,8 @@ DVector<Vector3> ConcavePolygonShape::get_faces() const {
 
 void ConcavePolygonShape::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_faces","faces"),&ConcavePolygonShape::set_faces);
-	ObjectTypeDB::bind_method(_MD("get_faces"),&ConcavePolygonShape::get_faces);
+	ClassDB::bind_method(_MD("set_faces","faces"),&ConcavePolygonShape::set_faces);
+	ClassDB::bind_method(_MD("get_faces"),&ConcavePolygonShape::get_faces);
 }
 
 ConcavePolygonShape::ConcavePolygonShape() : Shape( PhysicsServer::get_singleton()->shape_create(PhysicsServer::SHAPE_CONCAVE_POLYGON)) {

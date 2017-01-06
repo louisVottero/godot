@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -68,6 +68,7 @@ void OS::print_error(const char* p_function,const char* p_file,int p_line,const 
 		case ERR_ERROR: err_type="**ERROR**"; break;
 		case ERR_WARNING: err_type="**WARNING**"; break;
 		case ERR_SCRIPT: err_type="**SCRIPT ERROR**"; break;
+		case ERR_SHADER: err_type="**SHADER ERROR**"; break;
 	}
 
 	if (p_rationale && *p_rationale)
@@ -197,7 +198,7 @@ static void _OS_printres(Object *p_obj) {
 	if (!res)
 		return;
 
-	String str = itos(res->get_instance_ID())+String(res->get_type())+":"+String(res->get_name())+" - "+res->get_path();
+	String str = itos(res->get_instance_ID())+String(res->get_class())+":"+String(res->get_name())+" - "+res->get_path();
 	if (_OSPRF)
 		_OSPRF->store_line(str);
 	else
@@ -296,7 +297,7 @@ String OS::get_locale() const {
 
 String OS::get_resource_dir() const {
 
-	return Globals::get_singleton()->get_resource_path();
+	return GlobalConfig::get_singleton()->get_resource_path();
 }
 
 
@@ -306,7 +307,7 @@ String OS::get_system_dir(SystemDir p_dir) const {
 }
 
 String OS::get_safe_application_name() const {
-	String an = Globals::get_singleton()->get("application/name");
+	String an = GlobalConfig::get_singleton()->get("application/name");
 	Vector<String> invalid_char = String("\\ / : * ? \" < > |").split(" ");
 	for (int i=0;i<invalid_char.size();i++) {
 		an = an.replace(invalid_char[i],"-");
@@ -542,7 +543,7 @@ void OS::set_use_vsync(bool p_enable) {
 
 }
 
-bool OS::is_vsnc_enabled() const{
+bool OS::is_vsync_enabled() const{
 
 	return true;
 }

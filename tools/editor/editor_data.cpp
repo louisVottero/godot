@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -667,7 +667,7 @@ String EditorData::get_scene_type(int p_idx) const {
 	ERR_FAIL_INDEX_V(p_idx,edited_scene.size(),String());
 	if (!edited_scene[p_idx].root)
 		return "";
-	return edited_scene[p_idx].root->get_type();
+	return edited_scene[p_idx].root->get_class();
 
 }
 void EditorData::move_edited_scene_to_index(int p_idx) {
@@ -903,12 +903,12 @@ Array EditorSelection::_get_selected_nodes() {
 
 void EditorSelection::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_node_removed"),&EditorSelection::_node_removed);
-	ObjectTypeDB::bind_method(_MD("clear"),&EditorSelection::clear);
-	ObjectTypeDB::bind_method(_MD("add_node","node:Node"),&EditorSelection::add_node);
-	ObjectTypeDB::bind_method(_MD("remove_node","node:Node"),&EditorSelection::remove_node);
-	ObjectTypeDB::bind_method(_MD("get_selected_nodes"),&EditorSelection::_get_selected_nodes);
-	ObjectTypeDB::bind_method(_MD("get_transformable_selected_nodes"),&EditorSelection::_get_transformable_selected_nodes);
+	ClassDB::bind_method(_MD("_node_removed"),&EditorSelection::_node_removed);
+	ClassDB::bind_method(_MD("clear"),&EditorSelection::clear);
+	ClassDB::bind_method(_MD("add_node","node:Node"),&EditorSelection::add_node);
+	ClassDB::bind_method(_MD("remove_node","node:Node"),&EditorSelection::remove_node);
+	ClassDB::bind_method(_MD("get_selected_nodes"),&EditorSelection::_get_selected_nodes);
+	ClassDB::bind_method(_MD("get_transformable_selected_nodes"),&EditorSelection::_get_transformable_selected_nodes);
 	ADD_SIGNAL( MethodInfo("selection_changed") );
 
 }

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -92,8 +92,8 @@ void CenterContainer::_notification(int p_what) {
 
 void CenterContainer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_use_top_left","enable"),&CenterContainer::set_use_top_left);
-	ObjectTypeDB::bind_method(_MD("is_using_top_left"),&CenterContainer::is_using_top_left);
+	ClassDB::bind_method(_MD("set_use_top_left","enable"),&CenterContainer::set_use_top_left);
+	ClassDB::bind_method(_MD("is_using_top_left"),&CenterContainer::is_using_top_left);
 
 	ADD_PROPERTY( PropertyInfo(Variant::BOOL,"use_top_left"),_SCS("set_use_top_left"),_SCS("is_using_top_left"));
 }

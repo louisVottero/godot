@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -141,13 +141,13 @@ TextureButton *WindowDialog::get_close_button() {
 
 void WindowDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method( _MD("_input_event"),&WindowDialog::_input_event);
-	ObjectTypeDB::bind_method( _MD("set_title","title"),&WindowDialog::set_title);
-	ObjectTypeDB::bind_method( _MD("get_title"),&WindowDialog::get_title);
-	ObjectTypeDB::bind_method( _MD("_closed"),&WindowDialog::_closed);
-	ObjectTypeDB::bind_method( _MD("get_close_button:TextureButton"),&WindowDialog::get_close_button);
+	ClassDB::bind_method( _MD("_input_event"),&WindowDialog::_input_event);
+	ClassDB::bind_method( _MD("set_title","title"),&WindowDialog::set_title);
+	ClassDB::bind_method( _MD("get_title"),&WindowDialog::get_title);
+	ClassDB::bind_method( _MD("_closed"),&WindowDialog::_closed);
+	ClassDB::bind_method( _MD("get_close_button:TextureButton"),&WindowDialog::get_close_button);
 
-	ADD_PROPERTY( PropertyInfo(Variant::STRING,"window/title",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_DEFAULT_INTL),_SCS("set_title"),_SCS("get_title"));
+	ADD_PROPERTY( PropertyInfo(Variant::STRING,"window_title",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_DEFAULT_INTL),_SCS("set_title"),_SCS("get_title"));
 }
 
 WindowDialog::WindowDialog() {
@@ -254,52 +254,40 @@ void AcceptDialog::register_text_enter(Node *p_line_edit) {
 }
 
 void AcceptDialog::_update_child_rect() {
-
-	const int margin = get_constant("margin","Dialogs");
-	const Size2 size = get_size();
+	Size2 label_size=label->get_minimum_size();
+	if (label->get_text().empty()) {
+		label_size.height = 0;
+	}
+	int margin = get_constant("margin","Dialogs");
+	Size2 size = get_size();
 	Size2 hminsize = hbc->get_combined_minimum_size();
 
-	const Size2 max_csize(
-		size.width - margin * 2,
-		size.height - margin * 3 - hminsize.height);
-	hminsize.width = max_csize.width;
+	Vector2 cpos(margin,margin+label_size.height);
+	Vector2 csize(size.x-margin*2,size.y-margin*3-hminsize.y-label_size.height);
 
-	Point2 cpos(margin, margin);
-	Size2 csize = label->get_combined_minimum_size();
-	if(label->get_text().empty())
-		csize.y = 0;
-	csize.x = MIN(csize.width, max_csize.width);
-	csize.y = MIN(csize.height, max_csize.height);
-	label->set_pos(cpos);
-	label->set_size(csize);
-
-	if(child) {
-		const float child_y_offset = csize.height + (csize.height > 0 ? margin : 0);
-		cpos.y += child_y_offset;
-		csize = max_csize;
-		csize.height -= child_y_offset;
+	if (child) {
 
 		child->set_pos(cpos);
 		child->set_size(csize);
 	}
 
-	cpos.y += csize.height + margin;
+	cpos.y+=csize.y+margin;
+	csize.y=hminsize.y;
 
 	hbc->set_pos(cpos);
-	hbc->set_size(hminsize);
+	hbc->set_size(csize);
+
 }
 
 Size2 AcceptDialog::get_minimum_size() const {
 
 	int margin = get_constant("margin","Dialogs");
 	Size2 minsize = label->get_combined_minimum_size();
-	if(label->get_text().empty())
-		minsize.y = 0;
 	if (child) {
 
 		Size2 cminsize = child->get_combined_minimum_size();
 		minsize.x=MAX(cminsize.x,minsize.x);
-		minsize.y += cminsize.y + (minsize.y > 0 ? margin : 0);
+		minsize.y=MAX(cminsize.y,minsize.y);
 	}
 
 	Size2 hminsize = hbc->get_combined_minimum_size();
@@ -371,25 +359,26 @@ Button* AcceptDialog::add_cancel(const String &p_cancel) {
 
 void AcceptDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_ok"),&AcceptDialog::_ok_pressed);
-	ObjectTypeDB::bind_method(_MD("get_ok"),&AcceptDialog::get_ok);
-	ObjectTypeDB::bind_method(_MD("get_label"),&AcceptDialog::get_label);
-	ObjectTypeDB::bind_method(_MD("set_hide_on_ok","enabled"),&AcceptDialog::set_hide_on_ok);
-	ObjectTypeDB::bind_method(_MD("get_hide_on_ok"),&AcceptDialog::get_hide_on_ok);
-	ObjectTypeDB::bind_method(_MD("add_button:Button","text","right","action"),&AcceptDialog::add_button,DEFVAL(false),DEFVAL(""));
-	ObjectTypeDB::bind_method(_MD("add_cancel:Button","name"),&AcceptDialog::add_cancel);
-	ObjectTypeDB::bind_method(_MD("_builtin_text_entered"),&AcceptDialog::_builtin_text_entered);
-	ObjectTypeDB::bind_method(_MD("register_text_enter:LineEdit","line_edit"),&AcceptDialog::register_text_enter);
-	ObjectTypeDB::bind_method(_MD("_custom_action"),&AcceptDialog::_custom_action);
-	ObjectTypeDB::bind_method(_MD("set_text","text"),&AcceptDialog::set_text);
-	ObjectTypeDB::bind_method(_MD("get_text"),&AcceptDialog::get_text);
-	ObjectTypeDB::bind_method(_MD("set_child_rect","child:Control"),&AcceptDialog::set_child_rect);
+	ClassDB::bind_method(_MD("_ok"),&AcceptDialog::_ok_pressed);
+	ClassDB::bind_method(_MD("get_ok"),&AcceptDialog::get_ok);
+	ClassDB::bind_method(_MD("get_label"),&AcceptDialog::get_label);
+	ClassDB::bind_method(_MD("set_hide_on_ok","enabled"),&AcceptDialog::set_hide_on_ok);
+	ClassDB::bind_method(_MD("get_hide_on_ok"),&AcceptDialog::get_hide_on_ok);
+	ClassDB::bind_method(_MD("add_button:Button","text","right","action"),&AcceptDialog::add_button,DEFVAL(false),DEFVAL(""));
+	ClassDB::bind_method(_MD("add_cancel:Button","name"),&AcceptDialog::add_cancel);
+	ClassDB::bind_method(_MD("_builtin_text_entered"),&AcceptDialog::_builtin_text_entered);
+	ClassDB::bind_method(_MD("register_text_enter:LineEdit","line_edit"),&AcceptDialog::register_text_enter);
+	ClassDB::bind_method(_MD("_custom_action"),&AcceptDialog::_custom_action);
+	ClassDB::bind_method(_MD("set_text","text"),&AcceptDialog::set_text);
+	ClassDB::bind_method(_MD("get_text"),&AcceptDialog::get_text);
+	ClassDB::bind_method(_MD("set_child_rect","child:Control"),&AcceptDialog::set_child_rect);
 
 	ADD_SIGNAL( MethodInfo("confirmed") );
 	ADD_SIGNAL( MethodInfo("custom_action",PropertyInfo(Variant::STRING,"action")) );
 
-	ADD_PROPERTYNZ( PropertyInfo(Variant::STRING,"dialog/text",PROPERTY_HINT_MULTILINE_TEXT,"",PROPERTY_USAGE_DEFAULT_INTL),_SCS("set_text"),_SCS("get_text"));
-	ADD_PROPERTY( PropertyInfo(Variant::BOOL, "dialog/hide_on_ok"),_SCS("set_hide_on_ok"),_SCS("get_hide_on_ok") );
+	ADD_GROUP("Dialog","dialog");
+	ADD_PROPERTYNZ( PropertyInfo(Variant::STRING,"dialog_text",PROPERTY_HINT_MULTILINE_TEXT,"",PROPERTY_USAGE_DEFAULT_INTL),_SCS("set_text"),_SCS("get_text"));
+	ADD_PROPERTY( PropertyInfo(Variant::BOOL, "dialog_hide_on_ok"),_SCS("set_hide_on_ok"),_SCS("get_hide_on_ok") );
 
 }
 
@@ -441,7 +430,7 @@ AcceptDialog::~AcceptDialog()
 
 void ConfirmationDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_cancel:Button"),&ConfirmationDialog::get_cancel);
+	ClassDB::bind_method(_MD("get_cancel:Button"),&ConfirmationDialog::get_cancel);
 }
 
 Button *ConfirmationDialog::get_cancel() {

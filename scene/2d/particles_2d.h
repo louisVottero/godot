@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,7 +36,7 @@
 class Particles2D;
 class ParticleAttractor2D : public Node2D {
 
-	OBJ_TYPE(ParticleAttractor2D,Node2D);
+	GDCLASS(ParticleAttractor2D,Node2D);
 
 
 friend class Particles2D;
@@ -84,7 +84,7 @@ public:
 
 class Particles2D : public Node2D {
 
-	OBJ_TYPE(Particles2D, Node2D);
+	GDCLASS(Particles2D, Node2D);
 public:
 
 	enum Parameter {
@@ -117,7 +117,6 @@ private:
 	float randomness[PARAM_MAX];
 
 	struct Particle {
-
 		bool active;
 		Point2 pos;
 		Vector2 velocity;

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -368,7 +368,7 @@ static GDCompletionIdentifier _get_type_from_variant(const Variant& p_variant) {
 			//	t.obj_type=obj->cast_to<GDNativeClass>()->get_name();
 			//	t.value=Variant();
 			//} else {
-				t.obj_type=obj->get_type();
+				t.obj_type=obj->get_class();
 			//}
 		}
 	}
@@ -614,10 +614,10 @@ static bool _guess_expression_type(GDCompletionContext& context,const GDParser::
 						}
 					}
 
-					if (ObjectTypeDB::has_method(base.obj_type,id)) {
+					if (ClassDB::has_method(base.obj_type,id)) {
 
 #ifdef TOOLS_ENABLED
-						MethodBind *mb = ObjectTypeDB::get_method(base.obj_type,id);
+						MethodBind *mb = ClassDB::get_method(base.obj_type,id);
 						PropertyInfo pi = mb->get_argument_info(-1);
 
 						//try calling the function if constant and all args are constant, should not crash..
@@ -643,14 +643,14 @@ static bool _guess_expression_type(GDCompletionContext& context,const GDParser::
 								}
 							}
 
-							if (all_valid && String(id)=="get_node" && ObjectTypeDB::is_type(base.obj_type,"Node") && args.size()) {
+							if (all_valid && String(id)=="get_node" && ClassDB::is_parent_class(base.obj_type,"Node") && args.size()) {
 
 								String arg1=args[0];
 								if (arg1.begins_with("/root/")) {
 									String which = arg1.get_slice("/",2);
 									if (which!="") {
 										List<PropertyInfo> props;
-										Globals::get_singleton()->get_property_list(&props);
+										GlobalConfig::get_singleton()->get_property_list(&props);
 										//print_line("find singleton");
 
 										for(List<PropertyInfo>::Element *E=props.front();E;E=E->next()) {
@@ -662,7 +662,7 @@ static bool _guess_expression_type(GDCompletionContext& context,const GDParser::
 											String name = s.get_slice("/",1);
 											//print_line("name: "+name+", which: "+which);
 											if (name==which) {
-												String script = Globals::get_singleton()->get(s);
+												String script = GlobalConfig::get_singleton()->get(s);
 
 												if (!script.begins_with("res://")) {
 													script="res://"+script;
@@ -940,6 +940,15 @@ static bool _guess_expression_type(GDCompletionContext& context,const GDParser::
 static bool _guess_identifier_type_in_block(GDCompletionContext& context,int p_line,const StringName& p_identifier,GDCompletionIdentifier &r_type) {
 
 
+	GDCompletionIdentifier gdi = _get_native_class(context);
+	if (gdi.obj_type!=StringName()) {
+		bool valid;
+		Variant::Type t = ClassDB::get_property_type(gdi.obj_type,p_identifier,&valid);
+		if (t!=Variant::NIL && valid) {
+			r_type.type=t;
+			return true;
+		}
+	}
 
 	const GDParser::Node *last_assign=NULL;
 	int last_assign_line=-1;
@@ -1068,7 +1077,7 @@ static bool _guess_identifier_type(GDCompletionContext& context,int p_line,const
 				//this kinda sucks but meh
 
 				List<MethodInfo> vmethods;
-				ObjectTypeDB::get_virtual_methods(id.obj_type,&vmethods);
+				ClassDB::get_virtual_methods(id.obj_type,&vmethods);
 				for (List<MethodInfo>::Element *E=vmethods.front();E;E=E->next()) {
 
 
@@ -1142,7 +1151,7 @@ static bool _guess_identifier_type(GDCompletionContext& context,int p_line,const
 
 	//autoloads as singletons
 	List<PropertyInfo> props;
-	Globals::get_singleton()->get_property_list(&props);
+	GlobalConfig::get_singleton()->get_property_list(&props);
 
 	for(List<PropertyInfo>::Element *E=props.front();E;E=E->next()) {
 
@@ -1152,7 +1161,7 @@ static bool _guess_identifier_type(GDCompletionContext& context,int p_line,const
 		String name = s.get_slice("/",1);
 		if (name==String(p_identifier)) {
 
-			String path = Globals::get_singleton()->get(s);
+			String path = GlobalConfig::get_singleton()->get(s);
 			if (path.begins_with("*")) {
 				String script =path.substr(1,path.length());
 
@@ -1298,26 +1307,43 @@ static void _find_identifiers_in_class(GDCompletionContext& context,bool p_stati
 				base=script->get_native();
 		} else if (nc.is_valid()) {
 
+			StringName type = nc->get_name();
+
 			if (!p_only_functions) {
 
-				StringName type = nc->get_name();
+
 				List<String> constants;
-				ObjectTypeDB::get_integer_constant_list(type,&constants);
+				ClassDB::get_integer_constant_list(type,&constants);
 				for(List<String>::Element *E=constants.front();E;E=E->next()) {
 					result.insert(E->get());
 				}
 
-				List<MethodInfo> methods;
-				ObjectTypeDB::get_method_list(type,&methods);
-				for(List<MethodInfo>::Element *E=methods.front();E;E=E->next()) {
-					if (E->get().name.begins_with("_"))
+				List<PropertyInfo> pinfo;
+
+				ClassDB::get_property_list(type,&pinfo);
+
+				for (List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
+					if (E->get().usage&(PROPERTY_USAGE_GROUP|PROPERTY_USAGE_CATEGORY))
 						continue;
-					if (E->get().arguments.size())
-						result.insert(E->get().name+"(");
-					else
-						result.insert(E->get().name+"()");
+					if (E->get().name.find("/")!=-1)
+						continue;
+					result.insert(E->get().name);
 				}
+
 			}
+			List<MethodInfo> methods;
+			ClassDB::get_method_list(type,&methods);
+			for(List<MethodInfo>::Element *E=methods.front();E;E=E->next()) {
+				if (E->get().name.begins_with("_"))
+					continue;
+				if (E->get().arguments.size())
+					result.insert(E->get().name+"(");
+				else
+					result.insert(E->get().name+"()");
+			}
+
+
+
 			break;
 		} else
 			break;
@@ -1377,7 +1403,7 @@ static void _find_identifiers(GDCompletionContext& context,int p_line,bool p_onl
 
 	//autoload singletons
 	List<PropertyInfo> props;
-	Globals::get_singleton()->get_property_list(&props);
+	GlobalConfig::get_singleton()->get_property_list(&props);
 
 	for(List<PropertyInfo>::Element *E=props.front();E;E=E->next()) {
 
@@ -1385,7 +1411,7 @@ static void _find_identifiers(GDCompletionContext& context,int p_line,bool p_onl
 		if (!s.begins_with("autoload/"))
 			continue;
 		String name = s.get_slice("/",1);
-		String path = Globals::get_singleton()->get(s);
+		String path = GlobalConfig::get_singleton()->get(s);
 		if (path.begins_with("*")) {
 			result.insert(name);
 		}
@@ -1470,7 +1496,7 @@ static void _find_type_arguments(GDCompletionContext& context,const GDParser::No
 	if (id.type==Variant::INPUT_EVENT && String(p_method)=="is_action" && p_argidx==0) {
 
 		List<PropertyInfo> pinfo;
-		Globals::get_singleton()->get_property_list(&pinfo);
+		GlobalConfig::get_singleton()->get_property_list(&pinfo);
 
 		for(List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
 			const PropertyInfo &pi=E->get();
@@ -1486,7 +1512,7 @@ static void _find_type_arguments(GDCompletionContext& context,const GDParser::No
 	} else if (id.type==Variant::OBJECT && id.obj_type!=StringName()) {
 
 
-		MethodBind *m = ObjectTypeDB::get_method(id.obj_type,p_method);
+		MethodBind *m = ClassDB::get_method(id.obj_type,p_method);
 		if (!m) {
 			//not in static method, see script
 
@@ -1699,7 +1725,7 @@ static void _find_type_arguments(GDCompletionContext& context,const GDParser::No
 
 				if (p_argidx==0) {
 					List<MethodInfo> sigs;
-					ObjectTypeDB::get_signal_list(id.obj_type,&sigs);
+					ClassDB::get_signal_list(id.obj_type,&sigs);
 
 					if (id.script.is_valid()) {
 						id.script->get_script_signal_list(&sigs);
@@ -1735,10 +1761,10 @@ static void _find_type_arguments(GDCompletionContext& context,const GDParser::No
 				}*/
 			} else {
 
-				if (p_argidx==0 && (String(p_method)=="get_node" || String(p_method)=="has_node") && ObjectTypeDB::is_type(id.obj_type,"Node")) {
+				if (p_argidx==0 && (String(p_method)=="get_node" || String(p_method)=="has_node") && ClassDB::is_parent_class(id.obj_type,"Node")) {
 
 					List<PropertyInfo> props;
-					Globals::get_singleton()->get_property_list(&props);
+					GlobalConfig::get_singleton()->get_property_list(&props);
 
 					for(List<PropertyInfo>::Element *E=props.front();E;E=E->next()) {
 
@@ -1970,7 +1996,7 @@ static void _find_call_arguments(GDCompletionContext& context,const GDParser::No
 						//guess type..
 						/*
 						List<MethodInfo> methods;
-						ObjectTypeDB::get_method_list(type,&methods);
+						ClassDB::get_method_list(type,&methods);
 						for(List<MethodInfo>::Element *E=methods.front();E;E=E->next()) {
 							//if (E->get().arguments.size())
 							//	result.insert(E->get().name+"(");
@@ -2063,13 +2089,13 @@ static void _find_call_arguments(GDCompletionContext& context,const GDParser::No
 
 				StringName type = nc->get_name();
 				List<String> constants;
-				ObjectTypeDB::get_integer_constant_list(type,&constants);
+				ClassDB::get_integer_constant_list(type,&constants);
 				for(List<String>::Element *E=constants.front();E;E=E->next()) {
 					result.insert(E->get());
 				}
 
 				List<MethodInfo> methods;
-				ObjectTypeDB::get_method_list(type,&methods);
+				ClassDB::get_method_list(type,&methods);
 				for(List<MethodInfo>::Element *E=methods.front();E;E=E->next()) {
 					if (E->get().arguments.size())
 						result.insert(E->get().name+"(");
@@ -2149,9 +2175,20 @@ Error GDScriptLanguage::complete_code(const String& p_code, const String& p_base
 					if (gdn.is_valid()) {
 						StringName cn = gdn->get_name();
 						List<String> cnames;
-						ObjectTypeDB::get_integer_constant_list(cn,&cnames);
+						ClassDB::get_integer_constant_list(cn,&cnames);
 						for (List<String>::Element *E=cnames.front();E;E=E->next()) {
 							options.insert(E->get());
+						}
+
+						List<PropertyInfo> pinfo;
+						ClassDB::get_property_list(cn,&pinfo);
+
+						for (List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
+							if (E->get().usage&(PROPERTY_USAGE_GROUP|PROPERTY_USAGE_CATEGORY))
+								continue;
+							if (E->get().name.find("/")!=-1)
+								continue;
+							options.insert(E->get().name);
 						}
 					}
 				} else if (t.type==Variant::OBJECT && t.obj_type!=StringName()) {
@@ -2288,10 +2325,23 @@ Error GDScriptLanguage::complete_code(const String& p_code, const String& p_base
 
 
 					if (!isfunction) {
-						ObjectTypeDB::get_integer_constant_list(t.obj_type,r_options);
+						ClassDB::get_integer_constant_list(t.obj_type,r_options);
+
+						List<PropertyInfo> pinfo;
+						ClassDB::get_property_list(t.obj_type,&pinfo);
+
+						for (List<PropertyInfo>::Element *E=pinfo.front();E;E=E->next()) {
+							if (E->get().usage&(PROPERTY_USAGE_GROUP|PROPERTY_USAGE_CATEGORY))
+								continue;
+							if (E->get().name.find("/")!=-1)
+								continue;
+							r_options->push_back(E->get().name);
+						}
 					}
+
+
 					List<MethodInfo> mi;
-					ObjectTypeDB::get_method_list(t.obj_type,&mi);
+					ClassDB::get_method_list(t.obj_type,&mi);
 					for (List<MethodInfo>::Element *E=mi.front();E;E=E->next()) {
 
 						if (E->get().name.begins_with("_"))
@@ -2397,7 +2447,7 @@ Error GDScriptLanguage::complete_code(const String& p_code, const String& p_base
 
 			if (cid.obj_type!=StringName()) {
 				List<MethodInfo> vm;
-				ObjectTypeDB::get_virtual_methods(cid.obj_type,&vm);
+				ClassDB::get_virtual_methods(cid.obj_type,&vm);
 				for(List<MethodInfo>::Element *E=vm.front();E;E=E->next()) {
 
 					MethodInfo &mi=E->get();
@@ -2433,7 +2483,7 @@ Error GDScriptLanguage::complete_code(const String& p_code, const String& p_base
 			if (t.type==Variant::OBJECT && t.obj_type!=StringName()) {
 
 				List<MethodInfo> sigs;
-				ObjectTypeDB::get_signal_list(t.obj_type,&sigs);
+				ClassDB::get_signal_list(t.obj_type,&sigs);
 				for (List<MethodInfo>::Element *E=sigs.front();E;E=E->next()) {
 					options.insert("\""+E->get().name+"\"");
 				}
@@ -2531,7 +2581,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 
 
 	//before parsing, try the usual stuff
-	if (ObjectTypeDB::type_exists(p_symbol)) {
+	if (ClassDB::class_exists(p_symbol)) {
 		r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS;
 		r_result.class_name=p_symbol;
 		return OK;
@@ -2612,7 +2662,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 			GDCompletionIdentifier identifier = _get_native_class(context);
 			print_line("identifier: "+String(identifier.obj_type));
 
-			if (ObjectTypeDB::has_method(identifier.obj_type,p_symbol)) {
+			if (ClassDB::has_method(identifier.obj_type,p_symbol)) {
 
 				r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_METHOD;
 				r_result.class_name=identifier.obj_type;
@@ -2653,7 +2703,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 				GDCompletionIdentifier identifier = _get_native_class(context);
 
 
-				if (ObjectTypeDB::has_method(identifier.obj_type,p_symbol)) {
+				if (ClassDB::has_method(identifier.obj_type,p_symbol)) {
 
 					r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_METHOD;
 					r_result.class_name=identifier.obj_type;
@@ -2662,6 +2712,19 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 				}
 			} else {
 
+
+				GDCompletionIdentifier gdi = _get_native_class(context);
+				if (gdi.obj_type!=StringName()) {
+					bool valid;
+					Variant::Type t = ClassDB::get_property_type(gdi.obj_type,p_symbol,&valid);
+					if (t!=Variant::NIL && valid) {
+						r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_PROPERTY;
+						r_result.class_name=gdi.obj_type;
+						r_result.class_member=p_symbol;
+						return OK;
+
+					}
+				}
 
 				const GDParser::BlockNode *block=context.block;
 				//search in blocks going up (local var?)
@@ -2731,7 +2794,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 
 				//guess in autoloads as singletons
 				List<PropertyInfo> props;
-				Globals::get_singleton()->get_property_list(&props);
+				GlobalConfig::get_singleton()->get_property_list(&props);
 
 				for(List<PropertyInfo>::Element *E=props.front();E;E=E->next()) {
 
@@ -2741,7 +2804,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 					String name = s.get_slice("/",1);
 					if (name==String(p_symbol)) {
 
-						String path = Globals::get_singleton()->get(s);
+						String path = GlobalConfig::get_singleton()->get(s);
 						if (path.begins_with("*")) {
 							String script =path.substr(1,path.length());
 
@@ -2777,7 +2840,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 
 								} else {
 									r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS;
-									r_result.class_name=obj->get_type();
+									r_result.class_name=obj->get_class();
 								}
 								return OK;
 							}
@@ -2858,7 +2921,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 						}
 					}
 
-					if (ObjectTypeDB::has_method(t.obj_type,p_symbol)) {
+					if (ClassDB::has_method(t.obj_type,p_symbol)) {
 
 						r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_METHOD;
 						r_result.class_name=t.obj_type;
@@ -2868,7 +2931,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 					}
 
 					bool success;
-					ObjectTypeDB::get_integer_constant(t.obj_type,p_symbol,&success);
+					ClassDB::get_integer_constant(t.obj_type,p_symbol,&success);
 					if (success) {
 						r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_CONSTANT;
 						r_result.class_name=t.obj_type;
@@ -2876,7 +2939,8 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 						return OK;
 					}
 
-					ObjectTypeDB::get_property_type(t.obj_type,p_symbol,&success);
+
+					ClassDB::get_property_type(t.obj_type,p_symbol,&success);
 
 					if (success) {
 						r_result.type=ScriptLanguage::LookupResult::RESULT_CLASS_PROPERTY;
@@ -2936,7 +3000,7 @@ Error GDScriptLanguage::lookup_code(const String& p_code, const String& p_symbol
 
 			if (cid.obj_type!=StringName()) {
 				List<MethodInfo> vm;
-				ObjectTypeDB::get_virtual_methods(cid.obj_type,&vm);
+				ClassDB::get_virtual_methods(cid.obj_type,&vm);
 				for(List<MethodInfo>::Element *E=vm.front();E;E=E->next()) {
 
 					if (p_symbol==E->get().name) {

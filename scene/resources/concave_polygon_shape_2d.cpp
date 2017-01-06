@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -82,8 +82,8 @@ Rect2 ConcavePolygonShape2D::get_rect() const {
 
 void ConcavePolygonShape2D::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_segments","segments"),&ConcavePolygonShape2D::set_segments);
-	ObjectTypeDB::bind_method(_MD("get_segments"),&ConcavePolygonShape2D::get_segments);
+	ClassDB::bind_method(_MD("set_segments","segments"),&ConcavePolygonShape2D::set_segments);
+	ClassDB::bind_method(_MD("get_segments"),&ConcavePolygonShape2D::get_segments);
 
 	ADD_PROPERTY( PropertyInfo(Variant::VECTOR2_ARRAY,"segments"),_SCS("set_segments"),_SCS("get_segments") );
 

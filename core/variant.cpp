@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1665,7 +1665,7 @@ Variant::operator String() const {
 						};
 					};
 				#endif
-				return "["+_get_obj().obj->get_type()+":"+itos(_get_obj().obj->get_instance_ID())+"]";
+				return "["+_get_obj().obj->get_class()+":"+itos(_get_obj().obj->get_instance_ID())+"]";
 			} else
 				return "[Object:null]";
 
@@ -3066,7 +3066,7 @@ String Variant::get_call_error_text(Object* p_base, const StringName& p_method,c
 		return "Call OK";
 	}
 
-	String class_name = p_base->get_type();
+	String class_name = p_base->get_class();
 	Ref<Script> script = p_base->get_script();
 	if (script.is_valid() && script->get_path().is_resource_file()) {
 

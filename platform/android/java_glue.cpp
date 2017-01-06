@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -410,7 +410,7 @@ Variant _jobject_to_variant(JNIEnv * env, jobject obj) {
 
 class JNISingleton : public Object {
 
-	OBJ_TYPE( JNISingleton, Object );
+	GDCLASS( JNISingleton, Object );
 
 
 	struct MethodData {
@@ -679,6 +679,7 @@ static jmethodID _isVideoPlaying=0;
 static jmethodID _pauseVideo=0;
 static jmethodID _stopVideo=0;
 static jmethodID _setKeepScreenOn=0;
+static jmethodID _alertDialog=0;
 
 static void _gfx_init_func(void* ud, bool gl2) {
 
@@ -783,6 +784,13 @@ static void _set_keep_screen_on(bool p_enabled) {
 	env->CallVoidMethod(_godot_instance, _setKeepScreenOn, p_enabled);
 }
 
+static void _alert(const String& p_message, const String& p_title) {
+	JNIEnv* env = ThreadAndroid::get_env();
+	jstring jStrMessage = env->NewStringUTF(p_message.utf8().get_data());
+	jstring jStrTitle = env->NewStringUTF(p_title.utf8().get_data());
+	env->CallVoidMethod(_godot_instance, _alertDialog, jStrMessage, jStrTitle);
+}
+
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv * env, jobject obj, jobject activity,jboolean p_need_reload_hook, jobjectArray p_cmdline,jobject p_asset_manager) {
 
 	__android_log_print(ANDROID_LOG_INFO,"godot","**INIT EVENT! - %p\n",env);
@@ -820,6 +828,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv * e
 
 		_on_video_init = env->GetMethodID(cls, "onVideoInit", "(Z)V");
 		_setKeepScreenOn = env->GetMethodID(cls,"setKeepScreenOn","(Z)V");
+		_alertDialog = env->GetMethodID(cls,"alert","(Ljava/lang/String;Ljava/lang/String;)V");
 
 		jclass clsio = env->FindClass("org/godotengine/godot/Godot");
 		if (cls) {
@@ -883,7 +892,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv * e
 
 	__android_log_print(ANDROID_LOG_INFO,"godot","CMDLINE LEN %i - APK EXPANSION %I\n",cmdlen,int(use_apk_expansion));
 
-	os_android = new OS_Android(_gfx_init_func,env,_open_uri,_get_data_dir,_get_locale, _get_model, _get_screen_dpi, _show_vk, _hide_vk,_set_screen_orient,_get_unique_id, _get_system_dir, _play_video,_is_video_playing, _pause_video, _stop_video, _set_keep_screen_on, use_apk_expansion);
+	os_android = new OS_Android(_gfx_init_func,env,_open_uri,_get_data_dir,_get_locale, _get_model, _get_screen_dpi, _show_vk, _hide_vk,_set_screen_orient,_get_unique_id, _get_system_dir, _play_video,_is_video_playing, _pause_video, _stop_video, _set_keep_screen_on, _alert, use_apk_expansion);
 	os_android->set_need_reload_hooks(p_need_reload_hook);
 
 	char wd[500];
@@ -912,7 +921,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv * e
 	__android_log_print(ANDROID_LOG_INFO,"godot","*****SETUP OK");
 
 	//video driver is determined here, because once initialized, it cant be changed
-	String vd = Globals::get_singleton()->get("display/driver");
+	String vd = GlobalConfig::get_singleton()->get("display/driver");
 
 
 	env->CallVoidMethod(_godot_instance, _on_video_init, (jboolean)true);
@@ -967,7 +976,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_quit(JNIEnv * env, jo
 
 static void _initialize_java_modules() {
 
-	String modules = Globals::get_singleton()->get("android/modules");
+	String modules = GlobalConfig::get_singleton()->get("android/modules");
 	Vector<String> mods = modules.split(",",false);
     print_line("ANDROID MODULES : " + modules);
 	__android_log_print(ANDROID_LOG_INFO,"godot","mod count: %i",mods.size());
@@ -1042,7 +1051,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv * env, jo
 		// because of the way android forces you to do everything with threads
 
 		java_class_wrapper = memnew( JavaClassWrapper(_godot_instance ));
-		Globals::get_singleton()->add_singleton(Globals::Singleton("JavaClassWrapper",java_class_wrapper));
+		GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("JavaClassWrapper",java_class_wrapper));
 		_initialize_java_modules();
 
 		Main::setup2();
@@ -1561,8 +1570,8 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_singleton(JNIEnv * en
 	s->set_instance(env->NewGlobalRef(p_object));
 	jni_singletons[singname]=s;
 
-	Globals::get_singleton()->add_singleton(Globals::Singleton(singname,s));
-	Globals::get_singleton()->set(singname,s);
+	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton(singname,s));
+	GlobalConfig::get_singleton()->set(singname,s);
 
 }
 
@@ -1640,7 +1649,7 @@ JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getGlobal(JNIEnv *
 
 	String js = env->GetStringUTFChars( path, NULL );
 
-	return env->NewStringUTF(Globals::get_singleton()->get(js).operator String().utf8().get_data());
+	return env->NewStringUTF(GlobalConfig::get_singleton()->get(js).operator String().utf8().get_data());
 
 
 }

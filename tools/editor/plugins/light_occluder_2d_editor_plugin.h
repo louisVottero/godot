@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -44,7 +44,7 @@ class CanvasItemEditor;
 
 class LightOccluder2DEditor : public HBoxContainer {
 
-	OBJ_TYPE(LightOccluder2DEditor, HBoxContainer );
+	GDCLASS(LightOccluder2DEditor, HBoxContainer );
 
 	UndoRedo *undo_redo;
 	enum Mode {
@@ -92,7 +92,7 @@ public:
 
 class LightOccluder2DEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( LightOccluder2DEditorPlugin, EditorPlugin );
+	GDCLASS( LightOccluder2DEditorPlugin, EditorPlugin );
 
 	LightOccluder2DEditor *collision_polygon_editor;
 	EditorNode *editor;

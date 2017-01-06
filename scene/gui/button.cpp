@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -215,16 +215,16 @@ Button::TextAlign Button::get_text_align() const {
 
 void Button::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_text","text"),&Button::set_text);
-	ObjectTypeDB::bind_method(_MD("get_text"),&Button::get_text);
-	ObjectTypeDB::bind_method(_MD("set_button_icon","texture:Texture"),&Button::set_icon);
-	ObjectTypeDB::bind_method(_MD("get_button_icon:Texture"),&Button::get_icon);
-	ObjectTypeDB::bind_method(_MD("set_flat","enabled"),&Button::set_flat);
-	ObjectTypeDB::bind_method(_MD("set_clip_text","enabled"),&Button::set_clip_text);
-	ObjectTypeDB::bind_method(_MD("get_clip_text"),&Button::get_clip_text);
-	ObjectTypeDB::bind_method(_MD("set_text_align","align"),&Button::set_text_align);
-	ObjectTypeDB::bind_method(_MD("get_text_align"),&Button::get_text_align);
-	ObjectTypeDB::bind_method(_MD("is_flat"),&Button::is_flat);
+	ClassDB::bind_method(_MD("set_text","text"),&Button::set_text);
+	ClassDB::bind_method(_MD("get_text"),&Button::get_text);
+	ClassDB::bind_method(_MD("set_button_icon","texture:Texture"),&Button::set_icon);
+	ClassDB::bind_method(_MD("get_button_icon:Texture"),&Button::get_icon);
+	ClassDB::bind_method(_MD("set_flat","enabled"),&Button::set_flat);
+	ClassDB::bind_method(_MD("set_clip_text","enabled"),&Button::set_clip_text);
+	ClassDB::bind_method(_MD("get_clip_text"),&Button::get_clip_text);
+	ClassDB::bind_method(_MD("set_text_align","align"),&Button::set_text_align);
+	ClassDB::bind_method(_MD("get_text_align"),&Button::get_text_align);
+	ClassDB::bind_method(_MD("is_flat"),&Button::is_flat);
 
 	BIND_CONSTANT( ALIGN_LEFT );
 	BIND_CONSTANT( ALIGN_CENTER );

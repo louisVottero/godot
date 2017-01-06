@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -45,7 +45,7 @@
 
 class ScriptEditorQuickOpen : public ConfirmationDialog {
 
-	OBJ_TYPE(ScriptEditorQuickOpen,ConfirmationDialog )
+	GDCLASS(ScriptEditorQuickOpen,ConfirmationDialog )
 
 	LineEdit *search_box;
 	Tree *search_options;
@@ -77,7 +77,7 @@ class ScriptEditorDebugger;
 
 class ScriptEditorBase : public Control {
 
-	OBJ_TYPE( ScriptEditorBase, Control );
+	GDCLASS( ScriptEditorBase, Control );
 protected:
 	static void _bind_methods();
 public:
@@ -118,7 +118,7 @@ class EditorScriptCodeCompletionCache;
 
 class ScriptEditor : public VBoxContainer {
 
-	OBJ_TYPE(ScriptEditor, VBoxContainer );
+	GDCLASS(ScriptEditor, VBoxContainer );
 
 
 	EditorNode *editor;
@@ -343,7 +343,7 @@ public:
 
 class ScriptEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( ScriptEditorPlugin, EditorPlugin );
+	GDCLASS( ScriptEditorPlugin, EditorPlugin );
 
 	ScriptEditor *script_editor;
 	EditorNode *editor;

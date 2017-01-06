@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -134,7 +134,7 @@ void ScriptDebuggerRemote::debug(ScriptLanguage *p_script,bool p_can_continue) {
 		ERR_FAIL();
 	}
 
-	OS::get_singleton()->enable_for_stealing_focus(Globals::get_singleton()->get("editor_pid"));
+	OS::get_singleton()->enable_for_stealing_focus(GlobalConfig::get_singleton()->get("editor_pid"));
 
 	packet_peer_stream->put_var("debug_enter");
 	packet_peer_stream->put_var(2);
@@ -575,8 +575,8 @@ void ScriptDebuggerRemote::_send_object_id(ObjectID p_id) {
 	packet_peer_stream->put_var("message:inspect_object");
 	packet_peer_stream->put_var(props_to_send*5+4);
 	packet_peer_stream->put_var(p_id);
-	packet_peer_stream->put_var(obj->get_type());
-	if (obj->is_type("Resource") || obj->is_type("Node"))
+	packet_peer_stream->put_var(obj->get_class());
+	if (obj->is_class("Resource") || obj->is_class("Node"))
 		packet_peer_stream->put_var(obj->call("get_path"));
 	else
 		packet_peer_stream->put_var("");
@@ -1009,12 +1009,12 @@ ScriptDebuggerRemote::ScriptDebuggerRemote() {
 	phl.userdata=this;
 	add_print_handler(&phl);
 	requested_quit=false;
-	performance = Globals::get_singleton()->get_singleton_object("Performance");
+	performance = GlobalConfig::get_singleton()->get_singleton_object("Performance");
 	last_perf_time=0;
 	poll_every=0;
 	request_scene_tree=NULL;
 	live_edit_funcs=NULL;
-	max_cps = GLOBAL_DEF("debug/max_remote_stdout_chars_per_second",2048);
+	max_cps = GLOBAL_DEF("network/debug/max_remote_stdout_chars_per_second",2048);
 	char_count=0;
 	msec_count=0;
 	last_msec=0;
@@ -1024,7 +1024,7 @@ ScriptDebuggerRemote::ScriptDebuggerRemote() {
 	eh.userdata=this;
 	add_error_handler(&eh);
 
-	profile_info.resize(CLAMP(int(Globals::get_singleton()->get("debug/profiler_max_functions")),128,65535));
+	profile_info.resize(CLAMP(int(GlobalConfig::get_singleton()->get("debug/profiler/max_functions")),128,65535));
 	profile_info_ptrs.resize(profile_info.size());
 	profiling=false;
 	max_frame_functions=16;

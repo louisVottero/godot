@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -42,7 +42,7 @@
 
 class Physics2DDirectSpaceStateSW : public Physics2DDirectSpaceState {
 
-	OBJ_TYPE( Physics2DDirectSpaceStateSW, Physics2DDirectSpaceState );
+	GDCLASS( Physics2DDirectSpaceStateSW, Physics2DDirectSpaceState );
 public:
 
 	Space2DSW *space;
@@ -59,7 +59,7 @@ public:
 
 
 
-class Space2DSW {
+class Space2DSW : public RID_Data {
 
 public:
 

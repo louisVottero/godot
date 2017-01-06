@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -73,29 +73,6 @@ enum {
 	IMAGE_ENCODING_RAW=1,
 	IMAGE_ENCODING_LOSSLESS=2,
 	IMAGE_ENCODING_LOSSY=3,
-
-	IMAGE_FORMAT_GRAYSCALE=0,
-	IMAGE_FORMAT_INTENSITY=1,
-	IMAGE_FORMAT_GRAYSCALE_ALPHA=2,
-	IMAGE_FORMAT_RGB=3,
-	IMAGE_FORMAT_RGBA=4,
-	IMAGE_FORMAT_INDEXED=5,
-	IMAGE_FORMAT_INDEXED_ALPHA=6,
-	IMAGE_FORMAT_BC1=7,
-	IMAGE_FORMAT_BC2=8,
-	IMAGE_FORMAT_BC3=9,
-	IMAGE_FORMAT_BC4=10,
-	IMAGE_FORMAT_BC5=11,
-	IMAGE_FORMAT_PVRTC2=12,
-	IMAGE_FORMAT_PVRTC2_ALPHA=13,
-	IMAGE_FORMAT_PVRTC4=14,
-	IMAGE_FORMAT_PVRTC4_ALPHA=15,
-	IMAGE_FORMAT_ETC=16,
-	IMAGE_FORMAT_ATC=17,
-	IMAGE_FORMAT_ATC_ALPHA_EXPLICIT=18,
-	IMAGE_FORMAT_ATC_ALPHA_INTERPOLATED=19,
-	IMAGE_FORMAT_CUSTOM=30,
-
 
 	OBJECT_EMPTY=0,
 	OBJECT_EXTERNAL_RESOURCE=1,
@@ -269,36 +246,20 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant& r_v)  {
 				uint32_t height = f->get_32();
 				uint32_t mipmaps = f->get_32();
 				uint32_t format = f->get_32();
-				Image::Format fmt;
-				switch(format) {
+				const uint32_t format_version_shift=24;
+				const uint32_t format_version_mask=format_version_shift-1;
 
-					case IMAGE_FORMAT_GRAYSCALE: { fmt=Image::FORMAT_GRAYSCALE; } break;
-					case IMAGE_FORMAT_INTENSITY: { fmt=Image::FORMAT_INTENSITY; } break;
-					case IMAGE_FORMAT_GRAYSCALE_ALPHA: { fmt=Image::FORMAT_GRAYSCALE_ALPHA; } break;
-					case IMAGE_FORMAT_RGB: { fmt=Image::FORMAT_RGB; } break;
-					case IMAGE_FORMAT_RGBA: { fmt=Image::FORMAT_RGBA; } break;
-					case IMAGE_FORMAT_INDEXED: { fmt=Image::FORMAT_INDEXED; } break;
-					case IMAGE_FORMAT_INDEXED_ALPHA: { fmt=Image::FORMAT_INDEXED_ALPHA; } break;
-					case IMAGE_FORMAT_BC1: { fmt=Image::FORMAT_BC1; } break;
-					case IMAGE_FORMAT_BC2: { fmt=Image::FORMAT_BC2; } break;
-					case IMAGE_FORMAT_BC3: { fmt=Image::FORMAT_BC3; } break;
-					case IMAGE_FORMAT_BC4: { fmt=Image::FORMAT_BC4; } break;
-					case IMAGE_FORMAT_BC5: { fmt=Image::FORMAT_BC5; } break;
-					case IMAGE_FORMAT_PVRTC2: { fmt=Image::FORMAT_PVRTC2; } break;
-					case IMAGE_FORMAT_PVRTC2_ALPHA: { fmt=Image::FORMAT_PVRTC2_ALPHA; } break;
-					case IMAGE_FORMAT_PVRTC4: { fmt=Image::FORMAT_PVRTC4; } break;
-					case IMAGE_FORMAT_PVRTC4_ALPHA: { fmt=Image::FORMAT_PVRTC4_ALPHA; } break;
-					case IMAGE_FORMAT_ETC: { fmt=Image::FORMAT_ETC; } break;
-					case IMAGE_FORMAT_ATC: { fmt=Image::FORMAT_ATC; } break;
-					case IMAGE_FORMAT_ATC_ALPHA_EXPLICIT: { fmt=Image::FORMAT_ATC_ALPHA_EXPLICIT; } break;
-					case IMAGE_FORMAT_ATC_ALPHA_INTERPOLATED: { fmt=Image::FORMAT_ATC_ALPHA_INTERPOLATED; } break;
-					case IMAGE_FORMAT_CUSTOM: { fmt=Image::FORMAT_CUSTOM; } break;
-					default: {
+				uint32_t format_version = format>>format_version_shift;
 
-						ERR_FAIL_V(ERR_FILE_CORRUPT);
-					}
+				const uint32_t current_version = 0;
+				if (format_version>current_version) {
 
+					ERR_PRINT("Format version for encoded binary image is too new");
+					return ERR_PARSE_ERROR;
 				}
+
+
+				Image::Format fmt=Image::Format(format&format_version_mask); //if format changes, we can add a compatibility bit on top
 
 
 				uint32_t datalen = f->get_32();
@@ -394,7 +355,7 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant& r_v)  {
 
 					if (path.find("://")==-1 && path.is_rel_path()) {
 						// path is relative to file being loaded, so convert to a resource path
-						path=Globals::get_singleton()->localize_path(res_path.get_base_dir().plus_file(path));
+						path=GlobalConfig::get_singleton()->localize_path(res_path.get_base_dir().plus_file(path));
 
 					}
 
@@ -424,7 +385,7 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant& r_v)  {
 
 						if (path.find("://")==-1 && path.is_rel_path()) {
 							// path is relative to file being loaded, so convert to a resource path
-							path=Globals::get_singleton()->localize_path(res_path.get_base_dir().plus_file(path));
+							path=GlobalConfig::get_singleton()->localize_path(res_path.get_base_dir().plus_file(path));
 
 						}
 
@@ -739,7 +700,7 @@ Error ResourceInteractiveLoaderBinary::poll(){
 
 	String t = get_unicode_string();
 
-	Object *obj = ObjectTypeDB::instance(t);
+	Object *obj = ClassDB::instance(t);
 	if (!obj) {
 		error=ERR_FILE_CORRUPT;
 		ERR_EXPLAIN(local_path+":Resource of unrecognized type in file: "+t);
@@ -750,7 +711,7 @@ Error ResourceInteractiveLoaderBinary::poll(){
 	if (!r) {
 		error=ERR_FILE_CORRUPT;
 		memdelete(obj); //bye
-		ERR_EXPLAIN(local_path+":Resoucre type in resource field not a resource, type is: "+obj->get_type());
+		ERR_EXPLAIN(local_path+":Resoucre type in resource field not a resource, type is: "+obj->get_class());
 		ERR_FAIL_COND_V(!r,ERR_FILE_CORRUPT);
 	}
 
@@ -1086,7 +1047,7 @@ Ref<ResourceInteractiveLoader> ResourceFormatLoaderBinary::load_interactive(cons
 	}
 
 	Ref<ResourceInteractiveLoaderBinary> ria = memnew( ResourceInteractiveLoaderBinary );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->open(f);
@@ -1103,7 +1064,7 @@ void ResourceFormatLoaderBinary::get_recognized_extensions_for_type(const String
 	}
 
 	List<String> extensions;
-	ObjectTypeDB::get_extensions_for_type(p_type,&extensions);
+	ClassDB::get_extensions_for_type(p_type,&extensions);
 
 	extensions.sort();
 
@@ -1116,7 +1077,7 @@ void ResourceFormatLoaderBinary::get_recognized_extensions_for_type(const String
 void ResourceFormatLoaderBinary::get_recognized_extensions(List<String> *p_extensions) const{
 
 	List<String> extensions;
-	ObjectTypeDB::get_resource_base_extensions(&extensions);
+	ClassDB::get_resource_base_extensions(&extensions);
 	extensions.sort();
 
 	for(List<String>::Element *E=extensions.front();E;E=E->next()) {
@@ -1141,7 +1102,7 @@ Error ResourceFormatLoaderBinary::load_import_metadata(const String &p_path, Ref
 	}
 
 	Ref<ResourceInteractiveLoaderBinary> ria = memnew( ResourceInteractiveLoaderBinary );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->recognize(f);
@@ -1186,7 +1147,7 @@ void ResourceFormatLoaderBinary::get_dependencies(const String& p_path,List<Stri
 	ERR_FAIL_COND(!f);
 
 	Ref<ResourceInteractiveLoaderBinary> ria = memnew( ResourceInteractiveLoaderBinary );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->get_dependencies(f,p_dependencies,p_add_types);
@@ -1276,7 +1237,7 @@ Error ResourceFormatLoaderBinary::rename_dependencies(const String &p_path,const
 		}
 
 		Ref<ResourceInteractiveLoaderBinary> ria = memnew( ResourceInteractiveLoaderBinary );
-		ria->local_path=Globals::get_singleton()->localize_path(p_path);
+		ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 		ria->res_path=ria->local_path;
 		ria->remaps=p_map;
 	//	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
@@ -1411,7 +1372,7 @@ String ResourceFormatLoaderBinary::get_resource_type(const String &p_path) const
 	}
 
 	Ref<ResourceInteractiveLoaderBinary> ria = memnew( ResourceInteractiveLoaderBinary );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	String r = ria->recognize(f);
@@ -1599,7 +1560,7 @@ void ResourceFormatSaverBinaryInstance::write_variant(const Variant& p_property,
 			int encoding=IMAGE_ENCODING_RAW;
 			float quality=0.7;
 
-			if (val.get_format() <= Image::FORMAT_INDEXED_ALPHA) {
+			if (!val.is_compressed()) {
 				//can only compress uncompressed stuff
 
 				if (p_hint.hint==PROPERTY_HINT_IMAGE_COMPRESS_LOSSY && Image::lossy_packer) {
@@ -1621,33 +1582,8 @@ void ResourceFormatSaverBinaryInstance::write_variant(const Variant& p_property,
 
 				f->store_32(val.get_width());
 				f->store_32(val.get_height());
-				f->store_32(val.get_mipmaps());
-				switch(val.get_format()) {
-
-					case Image::FORMAT_GRAYSCALE: f->store_32(IMAGE_FORMAT_GRAYSCALE ); break; ///< one byte per pixel: f->store_32(IMAGE_FORMAT_ ); break; 0-255
-					case Image::FORMAT_INTENSITY: f->store_32(IMAGE_FORMAT_INTENSITY ); break; ///< one byte per pixel: f->store_32(IMAGE_FORMAT_ ); break; 0-255
-					case Image::FORMAT_GRAYSCALE_ALPHA: f->store_32(IMAGE_FORMAT_GRAYSCALE_ALPHA ); break; ///< two bytes per pixel: f->store_32(IMAGE_FORMAT_ ); break; 0-255. alpha 0-255
-					case Image::FORMAT_RGB: f->store_32(IMAGE_FORMAT_RGB ); break; ///< one byte R: f->store_32(IMAGE_FORMAT_ ); break; one byte G: f->store_32(IMAGE_FORMAT_ ); break; one byte B
-					case Image::FORMAT_RGBA: f->store_32(IMAGE_FORMAT_RGBA ); break; ///< one byte R: f->store_32(IMAGE_FORMAT_ ); break; one byte G: f->store_32(IMAGE_FORMAT_ ); break; one byte B: f->store_32(IMAGE_FORMAT_ ); break; one byte A
-					case Image::FORMAT_INDEXED: f->store_32(IMAGE_FORMAT_INDEXED ); break; ///< index byte 0-256: f->store_32(IMAGE_FORMAT_ ); break; and after image end: f->store_32(IMAGE_FORMAT_ ); break; 256*3 bytes of palette
-					case Image::FORMAT_INDEXED_ALPHA: f->store_32(IMAGE_FORMAT_INDEXED_ALPHA ); break; ///< index byte 0-256: f->store_32(IMAGE_FORMAT_ ); break; and after image end: f->store_32(IMAGE_FORMAT_ ); break; 256*4 bytes of palette (alpha)
-					case Image::FORMAT_BC1: f->store_32(IMAGE_FORMAT_BC1 ); break; // DXT1
-					case Image::FORMAT_BC2: f->store_32(IMAGE_FORMAT_BC2 ); break; // DXT3
-					case Image::FORMAT_BC3: f->store_32(IMAGE_FORMAT_BC3 ); break; // DXT5
-					case Image::FORMAT_BC4: f->store_32(IMAGE_FORMAT_BC4 ); break; // ATI1
-					case Image::FORMAT_BC5: f->store_32(IMAGE_FORMAT_BC5 ); break; // ATI2
-					case Image::FORMAT_PVRTC2: f->store_32(IMAGE_FORMAT_PVRTC2 ); break;
-					case Image::FORMAT_PVRTC2_ALPHA: f->store_32(IMAGE_FORMAT_PVRTC2_ALPHA ); break;
-					case Image::FORMAT_PVRTC4: f->store_32(IMAGE_FORMAT_PVRTC4 ); break;
-					case Image::FORMAT_PVRTC4_ALPHA: f->store_32(IMAGE_FORMAT_PVRTC4_ALPHA ); break;
-					case Image::FORMAT_ETC: f->store_32(IMAGE_FORMAT_ETC); break;
-					case Image::FORMAT_ATC: f->store_32(IMAGE_FORMAT_ATC); break;
-					case Image::FORMAT_ATC_ALPHA_EXPLICIT: f->store_32(IMAGE_FORMAT_ATC_ALPHA_EXPLICIT); break;
-					case Image::FORMAT_ATC_ALPHA_INTERPOLATED: f->store_32(IMAGE_FORMAT_ATC_ALPHA_INTERPOLATED); break;
-					case Image::FORMAT_CUSTOM: f->store_32(IMAGE_FORMAT_CUSTOM ); break;
-					default: {}
-
-				}
+				f->store_32(val.has_mipmaps());
+				f->store_32(val.get_format()); //if format changes we can add a compatibility version bit
 
 				int dlen = val.get_data().size();
 				f->store_32(dlen);
@@ -1889,7 +1825,7 @@ void ResourceFormatSaverBinaryInstance::_find_resources(const Variant& p_variant
 
 			for(List<PropertyInfo>::Element *E=property_list.front();E;E=E->next()) {
 
-				if (E->get().usage&PROPERTY_USAGE_STORAGE || (bundle_resources && E->get().usage&PROPERTY_USAGE_BUNDLE)) {
+				if (E->get().usage&PROPERTY_USAGE_STORAGE) {
 
 					_find_resources(res->get(E->get().name));
 				}
@@ -2066,7 +2002,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path,const RES& p_
 	}
 
 	//f->store_32(saved_resources.size()+external_resources.size()); // load steps -not needed
-	save_unicode_string(p_resource->get_type());
+	save_unicode_string(p_resource->get_class());
 	uint64_t md_at = f->get_pos();
 	f->store_64(0); //offset to impoty metadata
 	for(int i=0;i<14;i++)
@@ -2083,7 +2019,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path,const RES& p_
 
 
 			ResourceData &rd = resources.push_back(ResourceData())->get();
-			rd.type=E->get()->get_type();
+			rd.type=E->get()->get_class();
 
 			List<PropertyInfo> property_list;
 			E->get()->get_property_list( &property_list );
@@ -2092,7 +2028,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path,const RES& p_
 
 				if (skip_editor && F->get().name.begins_with("__editor"))
 					continue;
-				if (F->get().usage&PROPERTY_USAGE_STORAGE || (bundle_resources && F->get().usage&PROPERTY_USAGE_BUNDLE)) {
+				if (F->get().usage&PROPERTY_USAGE_STORAGE ) {
 					Property p;
 					p.name_idx=get_string_index(F->get().name);
 					p.value=E->get()->get(F->get().name);
@@ -2128,7 +2064,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path,const RES& p_
 
 	for(int i=0;i<save_order.size();i++) {
 
-		save_unicode_string(save_order[i]->get_save_type());
+		save_unicode_string(save_order[i]->get_save_class());
 		String path = save_order[i]->get_path();
 		path=relative_paths?local_path.path_to_file(path):path;
 		save_unicode_string(path);
@@ -2256,7 +2192,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path,const RES& p_
 Error ResourceFormatSaverBinary::save(const String &p_path,const RES& p_resource,uint32_t p_flags) {
 
 
-	String local_path = Globals::get_singleton()->localize_path(p_path);
+	String local_path = GlobalConfig::get_singleton()->localize_path(p_path);
 	ResourceFormatSaverBinaryInstance saver;
 	return saver.save(local_path,p_resource,p_flags);
 

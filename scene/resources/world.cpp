@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -314,12 +314,12 @@ PhysicsDirectSpaceState *World::get_direct_space_state() {
 
 void World::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_space"),&World::get_space);
-	ObjectTypeDB::bind_method(_MD("get_scenario"),&World::get_scenario);
-	ObjectTypeDB::bind_method(_MD("get_sound_space"),&World::get_sound_space);
-	ObjectTypeDB::bind_method(_MD("set_environment","env:Environment"),&World::set_environment);
-	ObjectTypeDB::bind_method(_MD("get_environment:Environment"),&World::get_environment);
-	ObjectTypeDB::bind_method(_MD("get_direct_space_state:PhysicsDirectSpaceState"),&World::get_direct_space_state);
+	ClassDB::bind_method(_MD("get_space"),&World::get_space);
+	ClassDB::bind_method(_MD("get_scenario"),&World::get_scenario);
+	ClassDB::bind_method(_MD("get_sound_space"),&World::get_sound_space);
+	ClassDB::bind_method(_MD("set_environment","env:Environment"),&World::set_environment);
+	ClassDB::bind_method(_MD("get_environment:Environment"),&World::get_environment);
+	ClassDB::bind_method(_MD("get_direct_space_state:PhysicsDirectSpaceState"),&World::get_direct_space_state);
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT,"environment",PROPERTY_HINT_RESOURCE_TYPE,"Environment"),_SCS("set_environment"),_SCS("get_environment"));
 
 }
@@ -332,10 +332,10 @@ World::World() {
 	sound_space = SpatialSoundServer::get_singleton()->space_create();
 
 	PhysicsServer::get_singleton()->space_set_active(space,true);
-	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_GRAVITY,GLOBAL_DEF("physics/default_gravity",9.8));
-	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_GRAVITY_VECTOR,GLOBAL_DEF("physics/default_gravity_vector",Vector3(0,-1,0)));
-	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_LINEAR_DAMP,GLOBAL_DEF("physics/default_linear_damp",0.1));
-	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_ANGULAR_DAMP,GLOBAL_DEF("physics/default_angular_damp",0.1));
+	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_GRAVITY,GLOBAL_DEF("physics/3d/default_gravity",9.8));
+	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_GRAVITY_VECTOR,GLOBAL_DEF("physics/3d/default_gravity_vector",Vector3(0,-1,0)));
+	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_LINEAR_DAMP,GLOBAL_DEF("physics/3d/default_linear_damp",0.1));
+	PhysicsServer::get_singleton()->area_set_param(space,PhysicsServer::AREA_PARAM_ANGULAR_DAMP,GLOBAL_DEF("physics/3d/default_angular_damp",0.1));
 
 #ifdef _3D_DISABLED
 	indexer = NULL;

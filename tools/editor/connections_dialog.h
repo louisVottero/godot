@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -48,7 +48,7 @@ class ConnectDialogBinds;
 
 class ConnectDialog : public ConfirmationDialog {
 
-	OBJ_TYPE( ConnectDialog, ConfirmationDialog );
+	GDCLASS( ConnectDialog, ConfirmationDialog );
 
 
 	ConfirmationDialog *error;
@@ -97,7 +97,7 @@ public:
 
 class ConnectionsDock : public VBoxContainer {
 
-	OBJ_TYPE( ConnectionsDock , VBoxContainer );
+	GDCLASS( ConnectionsDock , VBoxContainer );
 
 	Button *connect_button;
 	EditorNode *editor;

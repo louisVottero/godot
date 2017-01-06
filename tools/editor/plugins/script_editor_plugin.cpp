@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -240,9 +240,9 @@ void ScriptEditorQuickOpen::_notification(int p_what) {
 
 void ScriptEditorQuickOpen::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_text_changed"),&ScriptEditorQuickOpen::_text_changed);
-	ObjectTypeDB::bind_method(_MD("_confirmed"),&ScriptEditorQuickOpen::_confirmed);
-	ObjectTypeDB::bind_method(_MD("_sbox_input"),&ScriptEditorQuickOpen::_sbox_input);
+	ClassDB::bind_method(_MD("_text_changed"),&ScriptEditorQuickOpen::_text_changed);
+	ClassDB::bind_method(_MD("_confirmed"),&ScriptEditorQuickOpen::_confirmed);
+	ClassDB::bind_method(_MD("_sbox_input"),&ScriptEditorQuickOpen::_sbox_input);
 
 	ADD_SIGNAL(MethodInfo("goto_line",PropertyInfo(Variant::INT,"line")));
 
@@ -431,7 +431,7 @@ void ScriptEditor::_go_to_tab(int p_idx) {
 	}
 	if (c->cast_to<EditorHelp>()) {
 
-		script_name_label->set_text(c->cast_to<EditorHelp>()->get_class_name());
+		script_name_label->set_text(c->cast_to<EditorHelp>()->get_class());
 		script_icon->set_texture(get_icon("Help","EditorIcons"));
 		if (is_visible())
 			c->cast_to<EditorHelp>()->set_focused();
@@ -605,7 +605,7 @@ void ScriptEditor::_reload_scripts(){
 		}
 
 
-		Ref<Script> rel_script = ResourceLoader::load(script->get_path(),script->get_type(),true);
+		Ref<Script> rel_script = ResourceLoader::load(script->get_path(),script->get_class(),true);
 		ERR_CONTINUE(!rel_script.is_valid());
 		script->set_source_code( rel_script->get_source_code() );
 		script->set_last_modified_time( rel_script->get_last_modified_time() );
@@ -672,7 +672,7 @@ bool ScriptEditor::_test_script_times_on_disk(Ref<Script> p_for_script) {
 
 	bool need_ask=false;
 	bool need_reload=false;
-	bool use_autoreload=bool(EDITOR_DEF("text_editor/auto_reload_scripts_on_external_change",false));
+	bool use_autoreload=bool(EDITOR_DEF("text_editor/files/auto_reload_scripts_on_external_change",false));
 
 
 
@@ -783,7 +783,7 @@ void ScriptEditor::_menu_option(int p_option) {
 			file_dialog_option = FILE_SAVE_THEME_AS;
 			file_dialog->clear_filters();
 			file_dialog->add_filter("*.tet");
-			file_dialog->set_current_path(EditorSettings::get_singleton()->get_settings_path() + "/text_editor_themes/" + EditorSettings::get_singleton()->get("text_editor/color_theme"));
+			file_dialog->set_current_path(EditorSettings::get_singleton()->get_settings_path() + "/text_editor_themes/" + EditorSettings::get_singleton()->get("text_editor/theme/color_theme"));
 			file_dialog->popup_centered_ratio();
 			file_dialog->set_title(TTR("Save Theme As.."));
 		} break;
@@ -798,7 +798,7 @@ void ScriptEditor::_menu_option(int p_option) {
 			if (tab_container->get_tab_count()>0) {
 				EditorHelp *eh = tab_container->get_child( tab_container->get_current_tab() )->cast_to<EditorHelp>();
 				if (eh) {
-					current=eh->get_class_name();
+					current=eh->get_class();
 				}
 			}
 
@@ -945,7 +945,7 @@ void ScriptEditor::_menu_option(int p_option) {
 		}
 	}
 
-	EditorHelp *help = tab_container->get_child(selected)->cast_to<EditorHelp>();
+	EditorHelp *help = tab_container->get_current_tab_control()->cast_to<EditorHelp>();
 	if (help) {
 
 		switch(p_option) {
@@ -991,7 +991,7 @@ void ScriptEditor::_notification(int p_what) {
 		script_split->connect("dragged",this,"_script_split_dragged");
 		autosave_timer->connect("timeout",this,"_autosave_scripts");
 		{
-			float autosave_time = EditorSettings::get_singleton()->get("text_editor/autosave_interval_secs");
+			float autosave_time = EditorSettings::get_singleton()->get("text_editor/files/autosave_interval_secs");
 			if (autosave_time>0) {
 				autosave_timer->set_wait_time(autosave_time);
 				autosave_timer->start();
@@ -1343,12 +1343,12 @@ struct _ScriptEditorItemData {
 
 void ScriptEditor::_update_script_colors() {
 
-	bool script_temperature_enabled = EditorSettings::get_singleton()->get("text_editor/script_temperature_enabled");
-	bool highlight_current = EditorSettings::get_singleton()->get("text_editor/highlight_current_script");
+	bool script_temperature_enabled = EditorSettings::get_singleton()->get("text_editor/open_scripts/script_temperature_enabled");
+	bool highlight_current = EditorSettings::get_singleton()->get("text_editor/open_scripts/highlight_current_script");
 
-	int hist_size = EditorSettings::get_singleton()->get("text_editor/script_temperature_history_size");
-	Color hot_color=EditorSettings::get_singleton()->get("text_editor/script_temperature_hot_color");
-	Color cold_color=EditorSettings::get_singleton()->get("text_editor/script_temperature_cold_color");
+	int hist_size = EditorSettings::get_singleton()->get("text_editor/open_scripts/script_temperature_history_size");
+	Color hot_color=EditorSettings::get_singleton()->get("text_editor/open_scripts/script_temperature_hot_color");
+	Color cold_color=EditorSettings::get_singleton()->get("text_editor/open_scripts/script_temperature_cold_color");
 
 	for(int i=0;i<script_list->get_item_count();i++) {
 
@@ -1395,7 +1395,7 @@ void ScriptEditor::_update_script_names() {
 	}
 
 	script_list->clear();
-	bool split_script_help = EditorSettings::get_singleton()->get("text_editor/group_help_pages");
+	bool split_script_help = EditorSettings::get_singleton()->get("text_editor/open_scripts/group_help_pages");
 
 	Vector<_ScriptEditorItemData> sedata;
 
@@ -1423,7 +1423,7 @@ void ScriptEditor::_update_script_names() {
 		EditorHelp *eh = tab_container->get_child(i)->cast_to<EditorHelp>();
 		if (eh) {
 
-			String name = eh->get_class_name();
+			String name = eh->get_class();
 			Ref<Texture> icon = get_icon("Help","EditorIcons");
 			String tooltip = name+" Class Reference";
 
@@ -1481,12 +1481,12 @@ void ScriptEditor::edit(const Ref<Script>& p_script, bool p_grab_focus) {
 
 	// see if already has it
 
-	bool open_dominant = EditorSettings::get_singleton()->get("text_editor/open_dominant_script_on_scene_change");
+	bool open_dominant = EditorSettings::get_singleton()->get("text_editor/files/open_dominant_script_on_scene_change");
 
-	if (p_script->get_path().is_resource_file() && bool(EditorSettings::get_singleton()->get("external_editor/use_external_editor"))) {
+	if (p_script->get_path().is_resource_file() && bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor"))) {
 
-		String path = EditorSettings::get_singleton()->get("external_editor/exec_path");
-		String flags = EditorSettings::get_singleton()->get("external_editor/exec_flags");
+		String path = EditorSettings::get_singleton()->get("text_editor/external/exec_path");
+		String flags = EditorSettings::get_singleton()->get("text_editor/external/exec_flags");
 		List<String> args;
 		flags=flags.strip_edges();
 		if (flags!=String()) {
@@ -1495,7 +1495,7 @@ void ScriptEditor::edit(const Ref<Script>& p_script, bool p_grab_focus) {
 				args.push_back(flagss[i]);
 		}
 
-		args.push_back(Globals::get_singleton()->globalize_path(p_script->get_path()));
+		args.push_back(GlobalConfig::get_singleton()->globalize_path(p_script->get_path()));
 		Error err = OS::get_singleton()->execute(path,args,false);
 		if (err==OK)
 			return;
@@ -1694,8 +1694,8 @@ void ScriptEditor::_save_layout() {
 
 void ScriptEditor::_editor_settings_changed() {
 
-	trim_trailing_whitespace_on_save = EditorSettings::get_singleton()->get("text_editor/trim_trailing_whitespace_on_save");
-	float autosave_time = EditorSettings::get_singleton()->get("text_editor/autosave_interval_secs");
+	trim_trailing_whitespace_on_save = EditorSettings::get_singleton()->get("text_editor/files/trim_trailing_whitespace_on_save");
+	float autosave_time = EditorSettings::get_singleton()->get("text_editor/files/autosave_interval_secs");
 	if (autosave_time>0) {
 		autosave_timer->set_wait_time(autosave_time);
 		autosave_timer->start();
@@ -1704,9 +1704,9 @@ void ScriptEditor::_editor_settings_changed() {
 	}
 
 	if (current_theme == "") {
-		current_theme = EditorSettings::get_singleton()->get("text_editor/color_theme");
-	} else if (current_theme != EditorSettings::get_singleton()->get("text_editor/color_theme")) {
-		current_theme = EditorSettings::get_singleton()->get("text_editor/color_theme");
+		current_theme = EditorSettings::get_singleton()->get("text_editor/theme/color_theme");
+	} else if (current_theme != EditorSettings::get_singleton()->get("text_editor/theme/color_theme")) {
+		current_theme = EditorSettings::get_singleton()->get("text_editor/theme/color_theme");
 		EditorSettings::get_singleton()->load_text_editor_theme();
 	}
 
@@ -1720,7 +1720,7 @@ void ScriptEditor::_editor_settings_changed() {
 	}
 	_update_script_colors();
 
-	ScriptServer::set_reload_scripts_on_save(EDITOR_DEF("text_editor/auto_reload_and_parse_scripts_on_save",true));
+	ScriptServer::set_reload_scripts_on_save(EDITOR_DEF("text_editor/files/auto_reload_and_parse_scripts_on_save",true));
 
 }
 
@@ -1761,7 +1761,7 @@ void ScriptEditor::_unhandled_input(const InputEvent& p_event) {
 
 void ScriptEditor::set_window_layout(Ref<ConfigFile> p_layout) {
 
-	if (!bool(EDITOR_DEF("text_editor/restore_scripts_on_load",true))) {
+	if (!bool(EDITOR_DEF("text_editor/files/restore_scripts_on_load",true))) {
 		return;
 	}
 
@@ -1827,7 +1827,7 @@ void ScriptEditor::get_window_layout(Ref<ConfigFile> p_layout) {
 
 		if (eh) {
 
-			helps.push_back(eh->get_class_name());
+			helps.push_back(eh->get_class());
 		}
 
 
@@ -1841,12 +1841,14 @@ void ScriptEditor::get_window_layout(Ref<ConfigFile> p_layout) {
 
 void ScriptEditor::_help_class_open(const String& p_class) {
 
+	if (p_class=="")
+		return;
 
 	for(int i=0;i<tab_container->get_child_count();i++) {
 
 		EditorHelp *eh = tab_container->get_child(i)->cast_to<EditorHelp>();
 
-		if (eh && eh->get_class_name()==p_class) {
+		if (eh && eh->get_class()==p_class) {
 
 			_go_to_tab(i);
 			_update_script_names();
@@ -1874,7 +1876,7 @@ void ScriptEditor::_help_class_goto(const String& p_desc) {
 
 		EditorHelp *eh = tab_container->get_child(i)->cast_to<EditorHelp>();
 
-		if (eh && eh->get_class_name()==cname) {
+		if (eh && eh->get_class()==cname) {
 
 			_go_to_tab(i);
 			eh->go_to_help(p_desc);
@@ -1909,19 +1911,14 @@ void ScriptEditor::_update_selected_editor_menu() {
 				se->get_edit_menu()->hide();
 		}
 
-		EditorHelp *eh = tab_container->get_child(i)->cast_to<EditorHelp>();
-
-		if (eh) {
-
-			if (current)
-				script_search_menu->show();
-			else
-				script_search_menu->hide();
-		}
-
-
 	}
 
+	EditorHelp *eh=tab_container->get_current_tab_control()->cast_to<EditorHelp>();
+	if (eh) {
+		script_search_menu->show();
+	} else {
+		script_search_menu->hide();
+	}
 }
 
 void ScriptEditor::_update_history_pos(int p_new_pos) {
@@ -1977,9 +1974,9 @@ void ScriptEditor::_history_back(){
 }
 void ScriptEditor::set_scene_root_script( Ref<Script> p_script ) {
 
-	bool open_dominant = EditorSettings::get_singleton()->get("text_editor/open_dominant_script_on_scene_change");
+	bool open_dominant = EditorSettings::get_singleton()->get("text_editor/files/open_dominant_script_on_scene_change");
 
-	if (bool(EditorSettings::get_singleton()->get("external_editor/use_external_editor")))
+	if (bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor")))
 		return;
 
 	if (open_dominant && p_script.is_valid() && _can_open_in_editor(p_script.ptr())) {
@@ -2032,43 +2029,43 @@ void ScriptEditor::register_create_script_editor_function(CreateScriptEditorFunc
 
 void ScriptEditor::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_file_dialog_action",&ScriptEditor::_file_dialog_action);
-	ObjectTypeDB::bind_method("_tab_changed",&ScriptEditor::_tab_changed);
-	ObjectTypeDB::bind_method("_menu_option",&ScriptEditor::_menu_option);
-	ObjectTypeDB::bind_method("_close_current_tab",&ScriptEditor::_close_current_tab);
-	ObjectTypeDB::bind_method("_close_docs_tab", &ScriptEditor::_close_docs_tab);
-	ObjectTypeDB::bind_method("_close_all_tabs", &ScriptEditor::_close_all_tabs);
-	ObjectTypeDB::bind_method("_editor_play",&ScriptEditor::_editor_play);
-	ObjectTypeDB::bind_method("_editor_pause",&ScriptEditor::_editor_pause);
-	ObjectTypeDB::bind_method("_editor_stop",&ScriptEditor::_editor_stop);
-	ObjectTypeDB::bind_method("_add_callback",&ScriptEditor::_add_callback);
-	ObjectTypeDB::bind_method("_reload_scripts",&ScriptEditor::_reload_scripts);
-	ObjectTypeDB::bind_method("_resave_scripts",&ScriptEditor::_resave_scripts);
-	ObjectTypeDB::bind_method("_res_saved_callback",&ScriptEditor::_res_saved_callback);
-	ObjectTypeDB::bind_method("_goto_script_line",&ScriptEditor::_goto_script_line);
-	ObjectTypeDB::bind_method("_goto_script_line2",&ScriptEditor::_goto_script_line2);
-	ObjectTypeDB::bind_method("_help_search",&ScriptEditor::_help_search);
-	ObjectTypeDB::bind_method("_save_history",&ScriptEditor::_save_history);
+	ClassDB::bind_method("_file_dialog_action",&ScriptEditor::_file_dialog_action);
+	ClassDB::bind_method("_tab_changed",&ScriptEditor::_tab_changed);
+	ClassDB::bind_method("_menu_option",&ScriptEditor::_menu_option);
+	ClassDB::bind_method("_close_current_tab",&ScriptEditor::_close_current_tab);
+	ClassDB::bind_method("_close_docs_tab", &ScriptEditor::_close_docs_tab);
+	ClassDB::bind_method("_close_all_tabs", &ScriptEditor::_close_all_tabs);
+	ClassDB::bind_method("_editor_play",&ScriptEditor::_editor_play);
+	ClassDB::bind_method("_editor_pause",&ScriptEditor::_editor_pause);
+	ClassDB::bind_method("_editor_stop",&ScriptEditor::_editor_stop);
+	ClassDB::bind_method("_add_callback",&ScriptEditor::_add_callback);
+	ClassDB::bind_method("_reload_scripts",&ScriptEditor::_reload_scripts);
+	ClassDB::bind_method("_resave_scripts",&ScriptEditor::_resave_scripts);
+	ClassDB::bind_method("_res_saved_callback",&ScriptEditor::_res_saved_callback);
+	ClassDB::bind_method("_goto_script_line",&ScriptEditor::_goto_script_line);
+	ClassDB::bind_method("_goto_script_line2",&ScriptEditor::_goto_script_line2);
+	ClassDB::bind_method("_help_search",&ScriptEditor::_help_search);
+	ClassDB::bind_method("_save_history",&ScriptEditor::_save_history);
 
 
 
-	ObjectTypeDB::bind_method("_breaked",&ScriptEditor::_breaked);
-	ObjectTypeDB::bind_method("_show_debugger",&ScriptEditor::_show_debugger);
-	ObjectTypeDB::bind_method("_get_debug_tooltip",&ScriptEditor::_get_debug_tooltip);
-	ObjectTypeDB::bind_method("_autosave_scripts",&ScriptEditor::_autosave_scripts);
-	ObjectTypeDB::bind_method("_editor_settings_changed",&ScriptEditor::_editor_settings_changed);
-	ObjectTypeDB::bind_method("_update_script_names",&ScriptEditor::_update_script_names);
-	ObjectTypeDB::bind_method("_tree_changed",&ScriptEditor::_tree_changed);
-	ObjectTypeDB::bind_method("_script_selected",&ScriptEditor::_script_selected);
-	ObjectTypeDB::bind_method("_script_created",&ScriptEditor::_script_created);
-	ObjectTypeDB::bind_method("_script_split_dragged",&ScriptEditor::_script_split_dragged);
-	ObjectTypeDB::bind_method("_help_class_open",&ScriptEditor::_help_class_open);
-	ObjectTypeDB::bind_method("_help_class_goto",&ScriptEditor::_help_class_goto);
-	ObjectTypeDB::bind_method("_request_help",&ScriptEditor::_help_class_open);
-	ObjectTypeDB::bind_method("_history_forward",&ScriptEditor::_history_forward);
-	ObjectTypeDB::bind_method("_history_back",&ScriptEditor::_history_back);
-	ObjectTypeDB::bind_method("_live_auto_reload_running_scripts",&ScriptEditor::_live_auto_reload_running_scripts);
-	ObjectTypeDB::bind_method("_unhandled_input",&ScriptEditor::_unhandled_input);
+	ClassDB::bind_method("_breaked",&ScriptEditor::_breaked);
+	ClassDB::bind_method("_show_debugger",&ScriptEditor::_show_debugger);
+	ClassDB::bind_method("_get_debug_tooltip",&ScriptEditor::_get_debug_tooltip);
+	ClassDB::bind_method("_autosave_scripts",&ScriptEditor::_autosave_scripts);
+	ClassDB::bind_method("_editor_settings_changed",&ScriptEditor::_editor_settings_changed);
+	ClassDB::bind_method("_update_script_names",&ScriptEditor::_update_script_names);
+	ClassDB::bind_method("_tree_changed",&ScriptEditor::_tree_changed);
+	ClassDB::bind_method("_script_selected",&ScriptEditor::_script_selected);
+	ClassDB::bind_method("_script_created",&ScriptEditor::_script_created);
+	ClassDB::bind_method("_script_split_dragged",&ScriptEditor::_script_split_dragged);
+	ClassDB::bind_method("_help_class_open",&ScriptEditor::_help_class_open);
+	ClassDB::bind_method("_help_class_goto",&ScriptEditor::_help_class_goto);
+	ClassDB::bind_method("_request_help",&ScriptEditor::_help_class_open);
+	ClassDB::bind_method("_history_forward",&ScriptEditor::_history_forward);
+	ClassDB::bind_method("_history_back",&ScriptEditor::_history_back);
+	ClassDB::bind_method("_live_auto_reload_running_scripts",&ScriptEditor::_live_auto_reload_running_scripts);
+	ClassDB::bind_method("_unhandled_input",&ScriptEditor::_unhandled_input);
 
 }
 
@@ -2331,7 +2328,7 @@ bool ScriptEditorPlugin::handles(Object *p_object) const {
 		return valid;
 	}
 
-	return p_object->is_type("Script");
+	return p_object->is_class("Script");
 }
 
 void ScriptEditorPlugin::make_visible(bool p_visible) {
@@ -2419,20 +2416,20 @@ ScriptEditorPlugin::ScriptEditorPlugin(EditorNode *p_node) {
 
 	script_editor->hide();
 
-	EDITOR_DEF("text_editor/auto_reload_scripts_on_external_change",true);
-	ScriptServer::set_reload_scripts_on_save(EDITOR_DEF("text_editor/auto_reload_and_parse_scripts_on_save",true));
-	EDITOR_DEF("text_editor/open_dominant_script_on_scene_change",true);
-	EDITOR_DEF("external_editor/use_external_editor",false);
-	EDITOR_DEF("external_editor/exec_path","");
-	EDITOR_DEF("text_editor/script_temperature_enabled",true);
-	EDITOR_DEF("text_editor/highlight_current_script", true);
-	EDITOR_DEF("text_editor/script_temperature_history_size",15);
-	EDITOR_DEF("text_editor/script_temperature_hot_color",Color(1,0,0,0.3));
-	EDITOR_DEF("text_editor/script_temperature_cold_color",Color(0,0,1,0.3));
-	EDITOR_DEF("text_editor/current_script_background_color",Color(0.81,0.81,0.14,0.63));
-	EDITOR_DEF("text_editor/group_help_pages",true);
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING,"external_editor/exec_path",PROPERTY_HINT_GLOBAL_FILE));
-	EDITOR_DEF("external_editor/exec_flags","");
+	EDITOR_DEF("text_editor/files/auto_reload_scripts_on_external_change",true);
+	ScriptServer::set_reload_scripts_on_save(EDITOR_DEF("text_editor/files/auto_reload_and_parse_scripts_on_save",true));
+	EDITOR_DEF("text_editor/files/open_dominant_script_on_scene_change",true);
+	EDITOR_DEF("text_editor/external/use_external_editor",false);
+	EDITOR_DEF("text_editor/external/exec_path","");
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_enabled",true);
+	EDITOR_DEF("text_editor/open_scripts/highlight_current_script", true);
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_history_size",15);
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_hot_color",Color(1,0,0,0.3));
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_cold_color",Color(0,0,1,0.3));
+	EDITOR_DEF("text_editor/open_scripts/current_script_background_color",Color(0.81,0.81,0.14,0.63));
+	EDITOR_DEF("text_editor/open_scripts/group_help_pages",true);
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING,"text_editor/external/exec_path",PROPERTY_HINT_GLOBAL_FILE));
+	EDITOR_DEF("text_editor/external/exec_flags","");
 
 
 }

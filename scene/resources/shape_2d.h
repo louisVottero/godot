@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,7 +32,7 @@
 #include "resource.h"
 
 class Shape2D : public Resource {
-	OBJ_TYPE( Shape2D, Resource );
+	GDCLASS( Shape2D, Resource );
 	OBJ_SAVE_TYPE( Shape2D );
 
 	RID shape;

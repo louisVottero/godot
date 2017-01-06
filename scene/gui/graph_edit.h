@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -40,7 +40,7 @@ class GraphEdit;
 
 class GraphEditFilter : public Control {
 
-	OBJ_TYPE(GraphEditFilter,Control);
+	GDCLASS(GraphEditFilter,Control);
 
 	friend class GraphEdit;
 	GraphEdit *ge;
@@ -54,7 +54,7 @@ public:
 
 class GraphEdit : public Control {
 
-	OBJ_TYPE(GraphEdit,Control);
+	GDCLASS(GraphEdit,Control);
 public:
 
 	struct Connection {

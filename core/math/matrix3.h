@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -91,6 +91,8 @@ public:
 		return elements[0][2] * v[0] + elements[1][2] * v[1] + elements[2][2] * v[2];
 	}
 
+	bool isequal_approx(const Matrix3& a, const Matrix3& b) const;
+
 	bool operator==(const Matrix3& p_matrix) const;
 	bool operator!=(const Matrix3& p_matrix) const;
 
@@ -101,6 +103,9 @@ public:
 
 	int get_orthogonal_index() const;
 	void set_orthogonal_index(int p_index);
+
+	bool is_orthogonal() const;
+	bool is_rotation() const;
 
 	operator String() const;
 

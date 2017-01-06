@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -124,7 +124,7 @@ void PathRemap::clear_remaps() {
 void PathRemap::load_remaps() {
 
 	// default remaps first
-	DVector<String> remaps = Globals::get_singleton()->get("remap/all");
+	DVector<String> remaps = GlobalConfig::get_singleton()->get("remap/all");
 
 	{
 		int rlen = remaps.size();
@@ -141,7 +141,7 @@ void PathRemap::load_remaps() {
 
 
 	// platform remaps second, so override
-	remaps = Globals::get_singleton()->get("remap/"+OS::get_singleton()->get_name());
+	remaps = GlobalConfig::get_singleton()->get("remap/"+OS::get_singleton()->get_name());
 //	remaps = Globals::get_singleton()->get("remap/PSP");
 	{
 		int rlen = remaps.size();
@@ -160,9 +160,9 @@ void PathRemap::load_remaps() {
 
 	//locale based remaps
 
-	if (Globals::get_singleton()->has("locale/translation_remaps")) {
+	if (GlobalConfig::get_singleton()->has("locale/translation_remaps")) {
 
-		Dictionary remaps = Globals::get_singleton()->get("locale/translation_remaps");
+		Dictionary remaps = GlobalConfig::get_singleton()->get("locale/translation_remaps");
 		List<Variant> rk;
 		remaps.get_key_list(&rk);
 		for(List<Variant>::Element *E=rk.front();E;E=E->next()) {
@@ -190,11 +190,11 @@ void PathRemap::load_remaps() {
 
 void PathRemap::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("add_remap","from","to","locale"),&PathRemap::add_remap,DEFVAL(String()));
-	ObjectTypeDB::bind_method(_MD("has_remap","path"),&PathRemap::has_remap);
-	ObjectTypeDB::bind_method(_MD("get_remap","path"),&PathRemap::get_remap);
-	ObjectTypeDB::bind_method(_MD("erase_remap","path"),&PathRemap::erase_remap);
-	ObjectTypeDB::bind_method(_MD("clear_remaps"),&PathRemap::clear_remaps);
+	ClassDB::bind_method(_MD("add_remap","from","to","locale"),&PathRemap::add_remap,DEFVAL(String()));
+	ClassDB::bind_method(_MD("has_remap","path"),&PathRemap::has_remap);
+	ClassDB::bind_method(_MD("get_remap","path"),&PathRemap::get_remap);
+	ClassDB::bind_method(_MD("erase_remap","path"),&PathRemap::erase_remap);
+	ClassDB::bind_method(_MD("clear_remaps"),&PathRemap::clear_remaps);
 }
 
 PathRemap::PathRemap() {

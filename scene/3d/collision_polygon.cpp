@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -275,22 +275,22 @@ String CollisionPolygon::get_configuration_warning() const {
 
 void CollisionPolygon::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_add_to_collision_object"),&CollisionPolygon::_add_to_collision_object);
+	ClassDB::bind_method(_MD("_add_to_collision_object"),&CollisionPolygon::_add_to_collision_object);
 
-	ObjectTypeDB::bind_method(_MD("set_build_mode","build_mode"),&CollisionPolygon::set_build_mode);
-	ObjectTypeDB::bind_method(_MD("get_build_mode"),&CollisionPolygon::get_build_mode);
+	ClassDB::bind_method(_MD("set_build_mode","build_mode"),&CollisionPolygon::set_build_mode);
+	ClassDB::bind_method(_MD("get_build_mode"),&CollisionPolygon::get_build_mode);
 
-	ObjectTypeDB::bind_method(_MD("set_depth","depth"),&CollisionPolygon::set_depth);
-	ObjectTypeDB::bind_method(_MD("get_depth"),&CollisionPolygon::get_depth);
+	ClassDB::bind_method(_MD("set_depth","depth"),&CollisionPolygon::set_depth);
+	ClassDB::bind_method(_MD("get_depth"),&CollisionPolygon::get_depth);
 
-	ObjectTypeDB::bind_method(_MD("set_polygon","polygon"),&CollisionPolygon::set_polygon);
-	ObjectTypeDB::bind_method(_MD("get_polygon"),&CollisionPolygon::get_polygon);
+	ClassDB::bind_method(_MD("set_polygon","polygon"),&CollisionPolygon::set_polygon);
+	ClassDB::bind_method(_MD("get_polygon"),&CollisionPolygon::get_polygon);
 
-	ObjectTypeDB::bind_method(_MD("_set_shape_range","shape_range"),&CollisionPolygon::_set_shape_range);
-	ObjectTypeDB::bind_method(_MD("_get_shape_range"),&CollisionPolygon::_get_shape_range);
+	ClassDB::bind_method(_MD("_set_shape_range","shape_range"),&CollisionPolygon::_set_shape_range);
+	ClassDB::bind_method(_MD("_get_shape_range"),&CollisionPolygon::_get_shape_range);
 
-	ObjectTypeDB::bind_method(_MD("get_collision_object_first_shape"),&CollisionPolygon::get_collision_object_first_shape);
-	ObjectTypeDB::bind_method(_MD("get_collision_object_last_shape"),&CollisionPolygon::get_collision_object_last_shape);
+	ClassDB::bind_method(_MD("get_collision_object_first_shape"),&CollisionPolygon::get_collision_object_first_shape);
+	ClassDB::bind_method(_MD("get_collision_object_last_shape"),&CollisionPolygon::get_collision_object_last_shape);
 
 	ADD_PROPERTY( PropertyInfo(Variant::INT,"build_mode",PROPERTY_HINT_ENUM,"Solids,Triangles"),_SCS("set_build_mode"),_SCS("get_build_mode"));
 	ADD_PROPERTY( PropertyInfo(Variant::REAL,"depth"),_SCS("set_depth"),_SCS("get_depth"));

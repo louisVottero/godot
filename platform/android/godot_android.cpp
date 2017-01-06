@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -57,7 +57,7 @@ extern "C" {
 
 class JNISingleton : public Object {
 
-	OBJ_TYPE( JNISingleton, Object );
+	GDCLASS( JNISingleton, Object );
 
 
 	struct MethodData {
@@ -654,7 +654,7 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 #else
 				Error err  = Main::setup("apk",0,NULL);
 
-				String modules = Globals::get_singleton()->get("android/modules");
+				String modules = GlobalConfig::get_singleton()->get("android/modules");
 				Vector<String> mods = modules.split(",",false);
 				mods.push_back("GodotOS");
 				__android_log_print(ANDROID_LOG_INFO,"godot","mod count: %i",mods.size());
@@ -912,7 +912,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_Godot_registerSingleton(JNIEnv
 	s->set_instance(env->NewGlobalRef(p_object));
 	jni_singletons[singname]=s;
 
-	Globals::get_singleton()->add_singleton(Globals::Singleton(singname,s));
+	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton(singname,s));
 
 }
 
@@ -983,7 +983,7 @@ JNIEXPORT jstring JNICALL Java_org_godotengine_godot_Godot_getGlobal(JNIEnv * en
 
 	String js = env->GetStringUTFChars( path, NULL );
 
-	return env->NewStringUTF(Globals::get_singleton()->get(js).operator String().utf8().get_data());
+	return env->NewStringUTF(GlobalConfig::get_singleton()->get(js).operator String().utf8().get_data());
 
 
 }

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -44,7 +44,7 @@
 
 class _EditorFontImportOptions : public Object {
 
-	OBJ_TYPE(_EditorFontImportOptions,Object);
+	GDCLASS(_EditorFontImportOptions,Object);
 public:
 
 	enum FontMode {
@@ -384,7 +384,7 @@ public:
 
 class EditorFontImportDialog : public ConfirmationDialog {
 
-	OBJ_TYPE(EditorFontImportDialog, ConfirmationDialog);
+	GDCLASS(EditorFontImportDialog, ConfirmationDialog);
 
 
 	EditorLineEditFileChooser *source;
@@ -418,7 +418,7 @@ class EditorFontImportDialog : public ConfirmationDialog {
 		//print_line("pre src path "+source->get_line_edit()->get_text());
 		//print_line("src path "+src_path);
 		imd->add_source(src_path);
-		imd->set_option("font/size",font_size->get_val());
+		imd->set_option("font/size",font_size->get_value());
 
 		return imd;
 
@@ -572,14 +572,14 @@ class EditorFontImportDialog : public ConfirmationDialog {
 
 	static void _bind_methods() {
 
-		ObjectTypeDB::bind_method("_update",&EditorFontImportDialog::_update);
-		ObjectTypeDB::bind_method("_update_text",&EditorFontImportDialog::_update_text);
-		ObjectTypeDB::bind_method("_update_text2",&EditorFontImportDialog::_update_text2);
-		ObjectTypeDB::bind_method("_update_text3",&EditorFontImportDialog::_update_text3);
-		ObjectTypeDB::bind_method("_prop_changed",&EditorFontImportDialog::_prop_changed);
-		ObjectTypeDB::bind_method("_src_changed",&EditorFontImportDialog::_src_changed);
-		ObjectTypeDB::bind_method("_font_size_changed",&EditorFontImportDialog::_font_size_changed);
-		ObjectTypeDB::bind_method("_import",&EditorFontImportDialog::_import);
+		ClassDB::bind_method("_update",&EditorFontImportDialog::_update);
+		ClassDB::bind_method("_update_text",&EditorFontImportDialog::_update_text);
+		ClassDB::bind_method("_update_text2",&EditorFontImportDialog::_update_text2);
+		ClassDB::bind_method("_update_text3",&EditorFontImportDialog::_update_text3);
+		ClassDB::bind_method("_prop_changed",&EditorFontImportDialog::_prop_changed);
+		ClassDB::bind_method("_src_changed",&EditorFontImportDialog::_src_changed);
+		ClassDB::bind_method("_font_size_changed",&EditorFontImportDialog::_font_size_changed);
+		ClassDB::bind_method("_import",&EditorFontImportDialog::_import);
 
 	}
 
@@ -619,7 +619,7 @@ public:
 			}
 			source->get_line_edit()->set_text(src);
 
-			font_size->set_val(rimd->get_option("font/size"));
+			font_size->set_value(rimd->get_option("font/size"));
 		}
 	}
 
@@ -658,7 +658,7 @@ public:
 		vbl->add_margin_child(TTR("Source Font Size:"),font_size);
 		font_size->set_min(3);
 		font_size->set_max(256);
-		font_size->set_val(16);
+		font_size->set_value(16);
 		font_size->connect("value_changed",this,"_font_size_changed");
 		dest = memnew( EditorLineEditFileChooser );
 		//
@@ -1330,7 +1330,7 @@ Ref<BitmapFont> EditorFontImportPlugin::generate_font(const Ref<ResourceImportMe
 			if (err==OK) {
 
 				for(int i=0;i<height;i++){
-					color[i]=img.get_pixel(0,i*img.get_height()/height);
+					//color[i]=img.get_pixel(0,i*img.get_height()/height);
 				}
 			} else {
 
@@ -1514,7 +1514,7 @@ Ref<BitmapFont> EditorFontImportPlugin::generate_font(const Ref<ResourceImportMe
 
 		w=DVector<uint8_t>::Write();
 
-		Image img(s.width,s.height,0,Image::FORMAT_RGBA,pixels);
+		Image img(s.width,s.height,0,Image::FORMAT_RGBA8,pixels);
 
 		font_data_list[i]->blit=img;
 		font_data_list[i]->blit_ofs=o;
@@ -1537,7 +1537,7 @@ Ref<BitmapFont> EditorFontImportPlugin::generate_font(const Ref<ResourceImportMe
 	res_size.y=nearest_power_of_2(res_size.y);
 	print_line("Atlas size: "+res_size);
 
-	Image atlas(res_size.x,res_size.y,0,Image::FORMAT_RGBA);
+	Image atlas(res_size.x,res_size.y,0,Image::FORMAT_RGBA8);
 
 	for(int i=0;i<font_data_list.size();i++) {
 
@@ -1565,12 +1565,12 @@ Ref<BitmapFont> EditorFontImportPlugin::generate_font(const Ref<ResourceImportMe
 			}
 		}
 
-		atlas=Image(res_size.x,res_size.y,0,Image::FORMAT_RGBA,data);
+		atlas=Image(res_size.x,res_size.y,0,Image::FORMAT_RGBA8,data);
 	}
 
 	if (from->has_option("color/monochrome") && bool(from->get_option("color/monochrome"))) {
 
-		atlas.convert(Image::FORMAT_GRAYSCALE_ALPHA);
+		atlas.convert(Image::FORMAT_LA8);
 	}
 
 

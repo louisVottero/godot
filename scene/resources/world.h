@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -40,7 +40,7 @@ class Camera;
 class VisibilityNotifier;
 
 class World : public Resource {
-	OBJ_TYPE(World, Resource);
+	GDCLASS(World, Resource);
 	RES_BASE_EXTENSION("wrd");
 private:
 	RID space;

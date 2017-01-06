@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -54,7 +54,7 @@
 
 class NewProjectDialog : public ConfirmationDialog {
 
-	OBJ_TYPE(NewProjectDialog,ConfirmationDialog);
+	GDCLASS(NewProjectDialog,ConfirmationDialog);
 
 public:
 
@@ -75,15 +75,22 @@ private:
 	String zip_title;
 	AcceptDialog *dialog_error;
 
-	bool _test_path() {
+	String _test_path() {
 
 		error->set_text("");
 		get_ok()->set_disabled(true);
 		DirAccess *d = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
-		if (project_path->get_text() != "" && d->change_dir(project_path->get_text())!=OK) {
+		String valid_path;
+		if (d->change_dir(project_path->get_text())==OK){
+			valid_path=project_path->get_text();
+		} else if (d->change_dir(project_path->get_text().strip_edges())==OK) {
+			valid_path=project_path->get_text().strip_edges();
+		}
+
+		if (valid_path == "") {
 			error->set_text(TTR("Invalid project path, the path must exist!"));
 			memdelete(d);
-			return false;
+			return "";
 		}
 
 		if (mode!=MODE_IMPORT) {
@@ -92,30 +99,29 @@ private:
 
 				error->set_text(TTR("Invalid project path, engine.cfg must not exist."));
 				memdelete(d);
-				return false;
+				return "";
 			}
 
 		} else {
 
-			if (project_path->get_text() != "" && !d->file_exists("engine.cfg")) {
+			if (valid_path != "" && !d->file_exists("engine.cfg")) {
 
 				error->set_text(TTR("Invalid project path, engine.cfg must exist."));
 				memdelete(d);
-				return false;
+				return "";
 			}
 		}
 
 		memdelete(d);
 		get_ok()->set_disabled(false);
-		return true;
+		return valid_path;
 
 	}
 
 	void _path_text_changed(const String& p_path) {
 
-		if ( _test_path() ) {
-
-			String sp=p_path;
+		String sp=_test_path();
+		if ( sp!="" ) {
 
 			sp=sp.replace("\\","/");
 			int lidx=sp.find_last("/");
@@ -141,7 +147,7 @@ private:
 		}
 		String sp = p.simplify_path();
 		project_path->set_text(sp);
-		_path_text_changed(p);
+		_path_text_changed(sp);
 		get_ok()->call_deferred("grab_focus");
 	}
 
@@ -150,7 +156,7 @@ private:
 		String p = p_path;
 		String sp = p.simplify_path();
 		project_path->set_text(sp);
-		_path_text_changed(p);
+		_path_text_changed(sp);
 		get_ok()->call_deferred("grab_focus");
 	}
 
@@ -173,27 +179,15 @@ private:
 
 	void ok_pressed() {
 
-		if (!_test_path())
+		String dir=_test_path();
+		if (dir=="") {
+			error->set_text(TTR("Invalid project path (changed anything?)."));
 			return;
-
-		String dir;
+		}
 
 		if (mode==MODE_IMPORT) {
-			dir=project_path->get_text();
-
-
+			// nothing to do
 		} else {
-			DirAccess *d = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
-
-			if (d->change_dir(project_path->get_text())!=OK) {
-				error->set_text(TTR("Invalid project path (changed anything?)."));
-				memdelete(d);
-				return;
-			}
-
-			dir=d->get_current_dir();
-			memdelete(d);
-
 			if (mode==MODE_NEW) {
 
 
@@ -321,8 +315,6 @@ private:
 
 			}
 
-
-
 		}
 
 		dir=dir.replace("\\","/");
@@ -335,7 +327,7 @@ private:
 
 
 		hide();
-		emit_signal("project_created");
+		emit_signal("project_created", dir);
 
 	}
 
@@ -343,11 +335,11 @@ protected:
 
 	static void _bind_methods() {
 
-		ObjectTypeDB::bind_method("_browse_path",&NewProjectDialog::_browse_path);
-		ObjectTypeDB::bind_method("_text_changed",&NewProjectDialog::_text_changed);
-		ObjectTypeDB::bind_method("_path_text_changed",&NewProjectDialog::_path_text_changed);
-		ObjectTypeDB::bind_method("_path_selected",&NewProjectDialog::_path_selected);
-		ObjectTypeDB::bind_method("_file_selected",&NewProjectDialog::_file_selected);
+		ClassDB::bind_method("_browse_path",&NewProjectDialog::_browse_path);
+		ClassDB::bind_method("_text_changed",&NewProjectDialog::_text_changed);
+		ClassDB::bind_method("_path_text_changed",&NewProjectDialog::_path_text_changed);
+		ClassDB::bind_method("_path_selected",&NewProjectDialog::_path_selected);
+		ClassDB::bind_method("_file_selected",&NewProjectDialog::_file_selected);
 		ADD_SIGNAL( MethodInfo("project_created") );
 	}
 
@@ -402,7 +394,7 @@ public:
 			popup_centered(Size2(500,125)*EDSCALE);
 
 		}
-
+		project_path->grab_focus();
 
 		_test_path();
 	}
@@ -459,7 +451,7 @@ public:
 		fdialog = memnew( FileDialog );
 		add_child(fdialog);
 		fdialog->set_access(FileDialog::ACCESS_FILESYSTEM);
-		fdialog->set_current_dir( EditorSettings::get_singleton()->get("global/default_project_path") );
+		fdialog->set_current_dir( EditorSettings::get_singleton()->get("filesystem/directories/default_project_path") );
 		project_name->connect("text_changed", this,"_text_changed");
 		project_path->connect("text_changed", this,"_path_text_changed");
 		fdialog->connect("dir_selected", this,"_path_selected");
@@ -871,7 +863,7 @@ void ProjectManager::_load_recent_projects() {
 		TextureButton *favorite = memnew( TextureButton );
 		favorite->set_normal_texture(favorite_icon);
 		if (!is_favorite)
-			favorite->set_opacity(0.2);
+			favorite->set_modulate(Color(1,1,1,0.2));
 		favorite->set_v_size_flags(SIZE_EXPAND);
 		favorite->connect("pressed",this,"_favorite_pressed",varray(hb));
 		favorite_box->add_child(favorite);
@@ -882,6 +874,7 @@ void ProjectManager::_load_recent_projects() {
 		hb->add_child(tf);
 
 		VBoxContainer *vb = memnew(VBoxContainer);
+		vb->set_name("project");
 		hb->add_child(vb);
 		Control *ec = memnew( Control );
 		ec->set_custom_minimum_size(Size2(0,1));
@@ -891,8 +884,9 @@ void ProjectManager::_load_recent_projects() {
 		title->add_color_override("font_color",font_color);
 		vb->add_child(title);
 		Label *fpath = memnew( Label(path) );
+		fpath->set_name("path");
 		vb->add_child(fpath);
-		fpath->set_opacity(0.5);
+		fpath->set_modulate(Color(1,1,1,0.5));
 		fpath->add_color_override("font_color",font_color);
 
 		scroll_childs->add_child(hb);
@@ -910,6 +904,43 @@ void ProjectManager::_load_recent_projects() {
 	EditorSettings::get_singleton()->save();
 
 	tabs->set_current_tab(0);
+}
+
+void ProjectManager::_on_project_created(const String& dir) {
+	bool has_already=false;
+	for (int i=0;i<scroll_childs->get_child_count();i++) {
+		HBoxContainer *hb=scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+		Label *fpath=hb->get_node(NodePath("project/path"))->cast_to<Label>();
+		if (fpath->get_text()==dir) {
+			has_already=true;
+			break;
+		}
+	}
+	if (has_already) {
+		_update_scroll_pos(dir);
+	} else {
+		_load_recent_projects();
+		scroll->connect("draw", this, "_update_scroll_pos", varray(dir), CONNECT_ONESHOT);
+	}
+}
+
+void ProjectManager::_update_scroll_pos(const String& dir) {
+	for (int i=0;i<scroll_childs->get_child_count();i++) {
+		HBoxContainer *hb=scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+		Label *fpath=hb->get_node(NodePath("project/path"))->cast_to<Label>();
+		if (fpath->get_text()==dir) {
+			last_clicked=hb->get_meta("name");
+			selected_list.clear();
+			selected_list.insert(hb->get_meta("name"), hb->get_meta("main_scene"));
+			_update_project_buttons();
+			int last_y_visible=scroll->get_v_scroll()+scroll->get_size().y;
+			int offset_diff=(hb->get_pos().y + hb->get_size().y)-last_y_visible;
+
+			if (offset_diff>0)
+				scroll->set_v_scroll(scroll->get_v_scroll()+offset_diff);
+			break;
+		}
+	}
 }
 
 void ProjectManager::_open_project_confirm() {
@@ -1123,7 +1154,7 @@ void ProjectManager::_files_dropped(StringArray p_files, int p_screen) {
 				dir->list_dir_begin();
 				String file = dir->get_next();
 				while(confirm && file!=String()) {
-					if (!da->current_is_dir() && file.ends_with("engine.cfg")) {
+					if (!dir->current_is_dir() && file.ends_with("engine.cfg")) {
 						confirm = false;
 					}
 					file = dir->get_next();
@@ -1152,25 +1183,27 @@ void ProjectManager::_scan_multiple_folders(StringArray p_files)
 
 void ProjectManager::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_open_project",&ProjectManager::_open_project);
-	ObjectTypeDB::bind_method("_open_project_confirm",&ProjectManager::_open_project_confirm);
-	ObjectTypeDB::bind_method("_run_project",&ProjectManager::_run_project);
-	ObjectTypeDB::bind_method("_run_project_confirm",&ProjectManager::_run_project_confirm);
-	ObjectTypeDB::bind_method("_scan_projects",&ProjectManager::_scan_projects);
-	ObjectTypeDB::bind_method("_scan_begin",&ProjectManager::_scan_begin);
-	ObjectTypeDB::bind_method("_import_project",&ProjectManager::_import_project);
-	ObjectTypeDB::bind_method("_new_project",&ProjectManager::_new_project);
-	ObjectTypeDB::bind_method("_erase_project",&ProjectManager::_erase_project);
-	ObjectTypeDB::bind_method("_erase_project_confirm",&ProjectManager::_erase_project_confirm);
-	ObjectTypeDB::bind_method("_exit_dialog",&ProjectManager::_exit_dialog);
-	ObjectTypeDB::bind_method("_load_recent_projects",&ProjectManager::_load_recent_projects);
-	ObjectTypeDB::bind_method("_panel_draw",&ProjectManager::_panel_draw);
-	ObjectTypeDB::bind_method("_panel_input",&ProjectManager::_panel_input);
-	ObjectTypeDB::bind_method("_unhandled_input",&ProjectManager::_unhandled_input);
-	ObjectTypeDB::bind_method("_favorite_pressed",&ProjectManager::_favorite_pressed);
-	ObjectTypeDB::bind_method("_install_project",&ProjectManager::_install_project);
-	ObjectTypeDB::bind_method("_files_dropped",&ProjectManager::_files_dropped);
-	ObjectTypeDB::bind_method(_MD("_scan_multiple_folders", "files"),&ProjectManager::_scan_multiple_folders);
+	ClassDB::bind_method("_open_project",&ProjectManager::_open_project);
+	ClassDB::bind_method("_open_project_confirm",&ProjectManager::_open_project_confirm);
+	ClassDB::bind_method("_run_project",&ProjectManager::_run_project);
+	ClassDB::bind_method("_run_project_confirm",&ProjectManager::_run_project_confirm);
+	ClassDB::bind_method("_scan_projects",&ProjectManager::_scan_projects);
+	ClassDB::bind_method("_scan_begin",&ProjectManager::_scan_begin);
+	ClassDB::bind_method("_import_project",&ProjectManager::_import_project);
+	ClassDB::bind_method("_new_project",&ProjectManager::_new_project);
+	ClassDB::bind_method("_erase_project",&ProjectManager::_erase_project);
+	ClassDB::bind_method("_erase_project_confirm",&ProjectManager::_erase_project_confirm);
+	ClassDB::bind_method("_exit_dialog",&ProjectManager::_exit_dialog);
+	ClassDB::bind_method("_load_recent_projects",&ProjectManager::_load_recent_projects);
+	ClassDB::bind_method("_on_project_created",&ProjectManager::_on_project_created);
+	ClassDB::bind_method("_update_scroll_pos",&ProjectManager::_update_scroll_pos);
+	ClassDB::bind_method("_panel_draw",&ProjectManager::_panel_draw);
+	ClassDB::bind_method("_panel_input",&ProjectManager::_panel_input);
+	ClassDB::bind_method("_unhandled_input",&ProjectManager::_unhandled_input);
+	ClassDB::bind_method("_favorite_pressed",&ProjectManager::_favorite_pressed);
+	ClassDB::bind_method("_install_project",&ProjectManager::_install_project);
+	ClassDB::bind_method("_files_dropped",&ProjectManager::_files_dropped);
+	ClassDB::bind_method(_MD("_scan_multiple_folders", "files"),&ProjectManager::_scan_multiple_folders);
 
 
 }
@@ -1185,7 +1218,7 @@ ProjectManager::ProjectManager() {
 	EditorSettings::get_singleton()->set_optimize_save(false); //just write settings as they came
 
 	{
-		int dpi_mode = EditorSettings::get_singleton()->get("global/hidpi_mode");
+		int dpi_mode = EditorSettings::get_singleton()->get("interface/hidpi_mode");
 		if (dpi_mode==0) {
 			editor_set_scale( OS::get_singleton()->get_screen_dpi(0) > 150 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x>2000 ? 2.0 : 1.0 );
 		} else if (dpi_mode==1) {
@@ -1199,7 +1232,7 @@ ProjectManager::ProjectManager() {
 		}
 	}
 
-	FileDialog::set_default_show_hidden_files(EditorSettings::get_singleton()->get("file_dialog/show_hidden_files"));
+	FileDialog::set_default_show_hidden_files(EditorSettings::get_singleton()->get("filesytem/file_dialog/show_hidden_files"));
 
 	set_area_as_parent_rect();
 	set_theme(create_editor_theme());
@@ -1223,7 +1256,7 @@ ProjectManager::ProjectManager() {
 	String cp;
 	cp.push_back(0xA9);
 	cp.push_back(0);
-	OS::get_singleton()->set_window_title(_MKSTR(VERSION_NAME)+String(" - ")+TTR("Project Manager")+" - "+cp+" 2008-2016 Juan Linietsky, Ariel Manzur.");
+	OS::get_singleton()->set_window_title(_MKSTR(VERSION_NAME)+String(" - ")+TTR("Project Manager")+" - "+cp+" 2008-2017 Juan Linietsky, Ariel Manzur.");
 
 	HBoxContainer *top_hb = memnew( HBoxContainer);
 	vb->add_child(top_hb);
@@ -1308,7 +1341,7 @@ ProjectManager::ProjectManager() {
 	scan_dir->set_access(FileDialog::ACCESS_FILESYSTEM);
 	scan_dir->set_mode(FileDialog::MODE_OPEN_DIR);
 	scan_dir->set_title(TTR("Select a Folder to Scan")); // must be after mode or it's overridden
-	scan_dir->set_current_dir( EditorSettings::get_singleton()->get("global/default_project_path") );
+	scan_dir->set_current_dir( EditorSettings::get_singleton()->get("filesystem/directories/default_project_path") );
 	gui_base->add_child(scan_dir);
 	scan_dir->connect("dir_selected",this,"_scan_begin");
 
@@ -1382,11 +1415,11 @@ ProjectManager::ProjectManager() {
 	npdialog = memnew( NewProjectDialog );
 	gui_base->add_child(npdialog);
 
-	npdialog->connect("project_created", this,"_load_recent_projects");
+	npdialog->connect("project_created", this,"_on_project_created");
 	_load_recent_projects();
 
-	if ( EditorSettings::get_singleton()->get("global/autoscan_project_path") ) {
-		_scan_begin( EditorSettings::get_singleton()->get("global/autoscan_project_path") );
+	if ( EditorSettings::get_singleton()->get("filesystem/directories/autoscan_project_path") ) {
+		_scan_begin( EditorSettings::get_singleton()->get("filesystem/directories/autoscan_project_path") );
 	}
 
 	//get_ok()->set_text("Open");
@@ -1453,9 +1486,9 @@ void ProjectListFilter::_notification(int p_what) {
 
 void ProjectListFilter::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_command"),&ProjectListFilter::_command);
-	ObjectTypeDB::bind_method(_MD("_search_text_changed"), &ProjectListFilter::_search_text_changed);
-	ObjectTypeDB::bind_method(_MD("_filter_option_selected"), &ProjectListFilter::_filter_option_selected);
+	ClassDB::bind_method(_MD("_command"),&ProjectListFilter::_command);
+	ClassDB::bind_method(_MD("_search_text_changed"), &ProjectListFilter::_search_text_changed);
+	ClassDB::bind_method(_MD("_filter_option_selected"), &ProjectListFilter::_filter_option_selected);
 
 	ADD_SIGNAL( MethodInfo("filter_changed") );
 }

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -64,7 +64,7 @@ Error ResourceSaver::save(const String &p_path,const RES& p_resource,uint32_t p_
 		String old_path=p_resource->get_path();
 
 
-		String local_path=Globals::get_singleton()->localize_path(p_path);
+		String local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 
 		RES rwcopy = p_resource;
 		if (p_flags&FLAG_CHANGE_PATH)

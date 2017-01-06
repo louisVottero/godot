@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -39,7 +39,7 @@ void Patch9Frame::_notification(int p_what) {
 
 		Size2 s=get_size();
 		RID ci = get_canvas_item();
-		VS::get_singleton()->canvas_item_add_style_box(ci,Rect2(Point2(),s),region_rect,texture->get_rid(),Vector2(margin[MARGIN_LEFT],margin[MARGIN_TOP]),Vector2(margin[MARGIN_RIGHT],margin[MARGIN_BOTTOM]),draw_center,modulate);
+		VS::get_singleton()->canvas_item_add_nine_patch(ci,Rect2(Point2(),s),region_rect,texture->get_rid(),Vector2(margin[MARGIN_LEFT],margin[MARGIN_TOP]),Vector2(margin[MARGIN_RIGHT],margin[MARGIN_BOTTOM]),VS::NINE_PATCH_STRETCH,VS::NINE_PATCH_STRETCH,draw_center,modulate);
 //		draw_texture_rect(texture,Rect2(Point2(),s),false,modulate);
 
 /*
@@ -68,16 +68,16 @@ Size2 Patch9Frame::get_minimum_size() const {
 void Patch9Frame::_bind_methods() {
 
 
-	ObjectTypeDB::bind_method(_MD("set_texture","texture"), & Patch9Frame::set_texture );
-	ObjectTypeDB::bind_method(_MD("get_texture"), & Patch9Frame::get_texture );
-	ObjectTypeDB::bind_method(_MD("set_modulate","modulate"), & Patch9Frame::set_modulate );
-	ObjectTypeDB::bind_method(_MD("get_modulate"), & Patch9Frame::get_modulate );
-	ObjectTypeDB::bind_method(_MD("set_patch_margin","margin","value"), & Patch9Frame::set_patch_margin );
-	ObjectTypeDB::bind_method(_MD("get_patch_margin","margin"), & Patch9Frame::get_patch_margin );
-	ObjectTypeDB::bind_method(_MD("set_region_rect","rect"),&Patch9Frame::set_region_rect);
-	ObjectTypeDB::bind_method(_MD("get_region_rect"),&Patch9Frame::get_region_rect);
-	ObjectTypeDB::bind_method(_MD("set_draw_center","draw_center"), & Patch9Frame::set_draw_center );
-	ObjectTypeDB::bind_method(_MD("get_draw_center"), & Patch9Frame::get_draw_center );
+	ClassDB::bind_method(_MD("set_texture","texture"), & Patch9Frame::set_texture );
+	ClassDB::bind_method(_MD("get_texture"), & Patch9Frame::get_texture );
+	ClassDB::bind_method(_MD("set_modulate","modulate"), & Patch9Frame::set_modulate );
+	ClassDB::bind_method(_MD("get_modulate"), & Patch9Frame::get_modulate );
+	ClassDB::bind_method(_MD("set_patch_margin","margin","value"), & Patch9Frame::set_patch_margin );
+	ClassDB::bind_method(_MD("get_patch_margin","margin"), & Patch9Frame::get_patch_margin );
+	ClassDB::bind_method(_MD("set_region_rect","rect"),&Patch9Frame::set_region_rect);
+	ClassDB::bind_method(_MD("get_region_rect"),&Patch9Frame::get_region_rect);
+	ClassDB::bind_method(_MD("set_draw_center","draw_center"), & Patch9Frame::set_draw_center );
+	ClassDB::bind_method(_MD("get_draw_center"), & Patch9Frame::get_draw_center );
 
 	ADD_SIGNAL(MethodInfo("texture_changed"));
 
@@ -85,10 +85,12 @@ void Patch9Frame::_bind_methods() {
 	ADD_PROPERTYNO( PropertyInfo( Variant::COLOR, "modulate"), _SCS("set_modulate"),_SCS("get_modulate") );
 	ADD_PROPERTYNO( PropertyInfo( Variant::BOOL, "draw_center"), _SCS("set_draw_center"),_SCS("get_draw_center") );
 	ADD_PROPERTYNZ( PropertyInfo( Variant::RECT2, "region_rect"), _SCS("set_region_rect"),_SCS("get_region_rect"));
-	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin/left",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_LEFT );
-	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin/top",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_TOP );
-	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin/right",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_RIGHT );
-	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin/bottom",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_BOTTOM );
+
+	ADD_GROUP("Patch Margin","patch_margin_");
+	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin_left",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_LEFT );
+	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin_top",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_TOP );
+	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin_right",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_RIGHT );
+	ADD_PROPERTYINZ( PropertyInfo( Variant::INT, "patch_margin_bottom",PROPERTY_HINT_RANGE,"0,16384,1"), _SCS("set_patch_margin"),_SCS("get_patch_margin"),MARGIN_BOTTOM );
 
 }
 

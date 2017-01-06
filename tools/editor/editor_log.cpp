@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -66,6 +66,10 @@ void EditorLog::_error_handler(void *p_self, const char*p_func, const char*p_fil
 		case ERR_HANDLER_SCRIPT: {
 
 			icon = self->get_icon("ScriptError","EditorIcons");
+		} break;
+		case ERR_HANDLER_SHADER: {
+
+			icon = self->get_icon("Shader","EditorIcons");
 		} break;
 
 	}
@@ -160,9 +164,9 @@ void EditorLog::_undo_redo_cbk(void *p_self,const String& p_name) {
 
 void EditorLog::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_clear_request"),&EditorLog::_clear_request );
-	ObjectTypeDB::bind_method("_override_logger_styles",&EditorLog::_override_logger_styles );
-	//ObjectTypeDB::bind_method(_MD("_dragged"),&EditorLog::_dragged );
+	ClassDB::bind_method(_MD("_clear_request"),&EditorLog::_clear_request );
+	ClassDB::bind_method("_override_logger_styles",&EditorLog::_override_logger_styles );
+	//ClassDB::bind_method(_MD("_dragged"),&EditorLog::_dragged );
 	ADD_SIGNAL( MethodInfo("clear_request"));
 }
 
@@ -203,7 +207,7 @@ EditorLog::EditorLog() {
 	log->set_selection_enabled(true);
 	log->set_focus_mode(FOCUS_CLICK);
 	pc->add_child(log);
-	add_message(VERSION_FULL_NAME" (c) 2008-2016 Juan Linietsky, Ariel Manzur.");
+	add_message(VERSION_FULL_NAME" (c) 2008-2017 Juan Linietsky, Ariel Manzur.");
 	//log->add_text("Initialization Complete.\n"); //because it looks cool.
 
 	eh.errfunc=_error_handler;

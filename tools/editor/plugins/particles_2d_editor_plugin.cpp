@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -43,7 +43,7 @@ void Particles2DEditorPlugin::edit(Object *p_object) {
 
 bool Particles2DEditorPlugin::handles(Object *p_object) const {
 
-	return p_object->is_type("Particles2D");
+	return p_object->is_class("Particles2D");
 }
 
 void Particles2DEditorPlugin::make_visible(bool p_visible) {
@@ -62,15 +62,15 @@ void Particles2DEditorPlugin::_file_selected(const String& p_file) {
 
 	print_line("file: "+p_file);
 
-	int epc=epoints->get_val();
+	int epc=epoints->get_value();
 
 	Image img;
 	Error err = ImageLoader::load_image(p_file,&img);
 	ERR_EXPLAIN(TTR("Error loading image:")+" "+p_file);
 	ERR_FAIL_COND(err!=OK);
 
-	img.convert(Image::FORMAT_GRAYSCALE_ALPHA);
-	ERR_FAIL_COND(img.get_format()!=Image::FORMAT_GRAYSCALE_ALPHA);
+	img.convert(Image::FORMAT_LA8);
+	ERR_FAIL_COND(img.get_format()!=Image::FORMAT_LA8);
 	Size2i s = Size2(img.get_width(),img.get_height());
 	ERR_FAIL_COND(s.width==0 || s.height==0);
 
@@ -152,8 +152,8 @@ void Particles2DEditorPlugin::_notification(int p_what) {
 
 void Particles2DEditorPlugin::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_menu_callback"),&Particles2DEditorPlugin::_menu_callback);
-	ObjectTypeDB::bind_method(_MD("_file_selected"),&Particles2DEditorPlugin::_file_selected);
+	ClassDB::bind_method(_MD("_menu_callback"),&Particles2DEditorPlugin::_menu_callback);
+	ClassDB::bind_method(_MD("_file_selected"),&Particles2DEditorPlugin::_file_selected);
 }
 
 
@@ -189,7 +189,7 @@ Particles2DEditorPlugin::Particles2DEditorPlugin(EditorNode *p_node) {
 	epoints->set_min(1);
 	epoints->set_max(8192);
 	epoints->set_step(1);
-	epoints->set_val(512);
+	epoints->set_value(512);
 	file->get_vbox()->add_margin_child(TTR("Generated Point Count:"),epoints);
 }
 

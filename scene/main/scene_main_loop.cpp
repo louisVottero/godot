@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -48,8 +48,8 @@
 
 void SceneTreeTimer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_time_left","time"),&SceneTreeTimer::set_time_left);
-	ObjectTypeDB::bind_method(_MD("get_time_left"),&SceneTreeTimer::get_time_left);
+	ClassDB::bind_method(_MD("set_time_left","time"),&SceneTreeTimer::set_time_left);
+	ClassDB::bind_method(_MD("get_time_left"),&SceneTreeTimer::get_time_left);
 
 	ADD_SIGNAL(MethodInfo("timeout"));
 }
@@ -490,6 +490,8 @@ void SceneTree::input_event( const InputEvent& p_event ) {
 
 	}
 
+	_call_idle_callbacks();
+
 }
 
 void SceneTree::init() {
@@ -528,6 +530,7 @@ bool SceneTree::iteration(float p_time) {
 	root_lock--;
 
 	_flush_delete_queue();
+	_call_idle_callbacks();
 
 	return _quit;
 }
@@ -589,6 +592,8 @@ bool SceneTree::idle(float p_time){
 		}
 		E=N;
 	}
+
+	_call_idle_callbacks();
 
 	return _quit;
 }
@@ -745,12 +750,12 @@ Ref<Material> SceneTree::get_debug_navigation_material() {
 	if (navigation_material.is_valid())
 		return navigation_material;
 
-	Ref<FixedMaterial> line_material = Ref<FixedMaterial>( memnew( FixedMaterial ));
-	line_material->set_flag(Material::FLAG_UNSHADED, true);
+	Ref<FixedSpatialMaterial> line_material = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));
+/*	line_material->set_flag(Material::FLAG_UNSHADED, true);
 	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(FixedMaterial::PARAM_DIFFUSE,get_debug_navigation_color());
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA, true);
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
+	line_material->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,get_debug_navigation_color());*/
 
 	navigation_material=line_material;
 
@@ -763,12 +768,12 @@ Ref<Material> SceneTree::get_debug_navigation_disabled_material(){
 	if (navigation_disabled_material.is_valid())
 		return navigation_disabled_material;
 
-	Ref<FixedMaterial> line_material = Ref<FixedMaterial>( memnew( FixedMaterial ));
-	line_material->set_flag(Material::FLAG_UNSHADED, true);
+	Ref<FixedSpatialMaterial> line_material = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));
+/*	line_material->set_flag(Material::FLAG_UNSHADED, true);
 	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(FixedMaterial::PARAM_DIFFUSE,get_debug_navigation_disabled_color());
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA, true);
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
+	line_material->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,get_debug_navigation_disabled_color());*/
 
 	navigation_disabled_material=line_material;
 
@@ -781,12 +786,12 @@ Ref<Material> SceneTree::get_debug_collision_material() {
 		return collision_material;
 
 
-	Ref<FixedMaterial> line_material = Ref<FixedMaterial>( memnew( FixedMaterial ));
-	line_material->set_flag(Material::FLAG_UNSHADED, true);
+	Ref<FixedSpatialMaterial> line_material = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));
+	/*line_material->set_flag(Material::FLAG_UNSHADED, true);
 	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(FixedMaterial::PARAM_DIFFUSE,get_debug_collisions_color());
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA, true);
+	line_material->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
+	line_material->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,get_debug_collisions_color());*/
 
 	collision_material=line_material;
 
@@ -800,11 +805,11 @@ Ref<Mesh> SceneTree::get_debug_contact_mesh() {
 
 	debug_contact_mesh = Ref<Mesh>( memnew( Mesh ) );
 
-	Ref<FixedMaterial> mat = memnew( FixedMaterial );
-	mat->set_flag(Material::FLAG_UNSHADED,true);
+	Ref<FixedSpatialMaterial> mat = memnew( FixedSpatialMaterial );
+	/*mat->set_flag(Material::FLAG_UNSHADED,true);
 	mat->set_flag(Material::FLAG_DOUBLE_SIDED,true);
-	mat->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
-	mat->set_parameter(FixedMaterial::PARAM_DIFFUSE,get_debug_collision_contact_color());
+	mat->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
+	mat->set_parameter(FixedSpatialMaterial::PARAM_DIFFUSE,get_debug_collision_contact_color());*/
 
 	Vector3 diamond[6]={
 		Vector3(-1, 0, 0),
@@ -840,7 +845,7 @@ Ref<Mesh> SceneTree::get_debug_contact_mesh() {
 	arr[Mesh::ARRAY_INDEX]=indices;
 
 
-	debug_contact_mesh->add_surface(Mesh::PRIMITIVE_TRIANGLES,arr);
+	debug_contact_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES,arr);
 	debug_contact_mesh->surface_set_material(0,mat);
 
 	return debug_contact_mesh;
@@ -1047,7 +1052,7 @@ static void _fill_array(Node *p_node, Array& array, int p_level) {
 
 	array.push_back(p_level);
 	array.push_back(p_node->get_name());
-	array.push_back(p_node->get_type());
+	array.push_back(p_node->get_class());
 	array.push_back(p_node->get_instance_ID());
 	for(int i=0;i<p_node->get_child_count();i++) {
 
@@ -1098,7 +1103,11 @@ void SceneTree::_update_root_rect() {
 
 
 	if (stretch_mode==STRETCH_MODE_DISABLED) {
-		root->set_rect(Rect2(Point2(),last_screen_size));
+
+		root->set_size(last_screen_size);		
+		root->set_attach_to_screen_rect(Rect2(Point2(),last_screen_size));
+		root->set_size_override_stretch(false);
+		root->set_size_override(false,Size2());
 		return; //user will take care
 	}
 
@@ -1174,21 +1183,18 @@ void SceneTree::_update_root_rect() {
 	switch (stretch_mode) {
 		case STRETCH_MODE_2D: {
 
-//			root->set_rect(Rect2(Point2(),video_mode));
-			root->set_as_render_target(false);
-			root->set_rect(Rect2(margin,screen_size));
+			root->set_size(screen_size);
+			root->set_attach_to_screen_rect(Rect2(margin,screen_size));
 			root->set_size_override_stretch(true);
 			root->set_size_override(true,viewport_size);
 
 		} break;
 		case STRETCH_MODE_VIEWPORT: {
 
-			root->set_rect(Rect2(Point2(),viewport_size));
+			root->set_size(viewport_size);
+			root->set_attach_to_screen_rect(Rect2(margin,screen_size));
 			root->set_size_override_stretch(false);
 			root->set_size_override(false,Size2());
-			root->set_as_render_target(true);
-			root->set_render_target_update_mode(Viewport::RENDER_TARGET_UPDATE_ALWAYS);
-			root->set_render_target_to_screen_rect(Rect2(margin,screen_size));
 
 		} break;
 
@@ -1421,7 +1427,7 @@ void SceneTree::_live_edit_create_node_func(const NodePath& p_parent,const Strin
 			continue;
 		Node *n2 = n->get_node(p_parent);
 
-		Object *o = ObjectTypeDB::instance(p_type);
+		Object *o = ClassDB::instance(p_type);
 		if (!o)
 			continue;
 		Node *no=o->cast_to<Node>();
@@ -2056,7 +2062,7 @@ void SceneTree::_network_process_packet(int p_from, const uint8_t* p_packet, int
 
 				node->set(name,value,&valid);
 				if (!valid) {
-					String error = "Error setting remote property '"+String(name)+"', not found in object of type "+node->get_type();
+					String error = "Error setting remote property '"+String(name)+"', not found in object of type "+node->get_class();
 					ERR_PRINTS(error);
 				}
 			}
@@ -2154,43 +2160,43 @@ void SceneTree::_network_poll() {
 void SceneTree::_bind_methods() {
 
 
-	//ObjectTypeDB::bind_method(_MD("call_group","call_flags","group","method","arg1","arg2"),&SceneMainLoop::_call_group,DEFVAL(Variant()),DEFVAL(Variant()));
-	ObjectTypeDB::bind_method(_MD("notify_group","call_flags","group","notification"),&SceneTree::notify_group);
-	ObjectTypeDB::bind_method(_MD("set_group","call_flags","group","property","value"),&SceneTree::set_group);
+	//ClassDB::bind_method(_MD("call_group","call_flags","group","method","arg1","arg2"),&SceneMainLoop::_call_group,DEFVAL(Variant()),DEFVAL(Variant()));
+	ClassDB::bind_method(_MD("notify_group","call_flags","group","notification"),&SceneTree::notify_group);
+	ClassDB::bind_method(_MD("set_group","call_flags","group","property","value"),&SceneTree::set_group);
 
-	ObjectTypeDB::bind_method(_MD("get_nodes_in_group","group"),&SceneTree::_get_nodes_in_group);
+	ClassDB::bind_method(_MD("get_nodes_in_group","group"),&SceneTree::_get_nodes_in_group);
 
-	ObjectTypeDB::bind_method(_MD("get_root:Viewport"),&SceneTree::get_root);
-	ObjectTypeDB::bind_method(_MD("has_group","name"),&SceneTree::has_group);
+	ClassDB::bind_method(_MD("get_root:Viewport"),&SceneTree::get_root);
+	ClassDB::bind_method(_MD("has_group","name"),&SceneTree::has_group);
 
-	ObjectTypeDB::bind_method(_MD("set_auto_accept_quit","enabled"),&SceneTree::set_auto_accept_quit);
+	ClassDB::bind_method(_MD("set_auto_accept_quit","enabled"),&SceneTree::set_auto_accept_quit);
 
-	ObjectTypeDB::bind_method(_MD("set_editor_hint","enable"),&SceneTree::set_editor_hint);
-	ObjectTypeDB::bind_method(_MD("is_editor_hint"),&SceneTree::is_editor_hint);
-	ObjectTypeDB::bind_method(_MD("set_debug_collisions_hint","enable"),&SceneTree::set_debug_collisions_hint);
-	ObjectTypeDB::bind_method(_MD("is_debugging_collisions_hint"),&SceneTree::is_debugging_collisions_hint);
-	ObjectTypeDB::bind_method(_MD("set_debug_navigation_hint","enable"),&SceneTree::set_debug_navigation_hint);
-	ObjectTypeDB::bind_method(_MD("is_debugging_navigation_hint"),&SceneTree::is_debugging_navigation_hint);
+	ClassDB::bind_method(_MD("set_editor_hint","enable"),&SceneTree::set_editor_hint);
+	ClassDB::bind_method(_MD("is_editor_hint"),&SceneTree::is_editor_hint);
+	ClassDB::bind_method(_MD("set_debug_collisions_hint","enable"),&SceneTree::set_debug_collisions_hint);
+	ClassDB::bind_method(_MD("is_debugging_collisions_hint"),&SceneTree::is_debugging_collisions_hint);
+	ClassDB::bind_method(_MD("set_debug_navigation_hint","enable"),&SceneTree::set_debug_navigation_hint);
+	ClassDB::bind_method(_MD("is_debugging_navigation_hint"),&SceneTree::is_debugging_navigation_hint);
 
 #ifdef TOOLS_ENABLED
-	ObjectTypeDB::bind_method(_MD("set_edited_scene_root","scene"),&SceneTree::set_edited_scene_root);
-	ObjectTypeDB::bind_method(_MD("get_edited_scene_root"),&SceneTree::get_edited_scene_root);
+	ClassDB::bind_method(_MD("set_edited_scene_root","scene"),&SceneTree::set_edited_scene_root);
+	ClassDB::bind_method(_MD("get_edited_scene_root"),&SceneTree::get_edited_scene_root);
 #endif
 
-	ObjectTypeDB::bind_method(_MD("set_pause","enable"),&SceneTree::set_pause);
-	ObjectTypeDB::bind_method(_MD("is_paused"),&SceneTree::is_paused);
-	ObjectTypeDB::bind_method(_MD("set_input_as_handled"),&SceneTree::set_input_as_handled);
+	ClassDB::bind_method(_MD("set_pause","enable"),&SceneTree::set_pause);
+	ClassDB::bind_method(_MD("is_paused"),&SceneTree::is_paused);
+	ClassDB::bind_method(_MD("set_input_as_handled"),&SceneTree::set_input_as_handled);
 
-	ObjectTypeDB::bind_method(_MD("create_timer:SceneTreeTimer","time_sec"),&SceneTree::create_timer);
+	ClassDB::bind_method(_MD("create_timer:SceneTreeTimer","time_sec"),&SceneTree::create_timer);
 
 
-	ObjectTypeDB::bind_method(_MD("get_node_count"),&SceneTree::get_node_count);
-	ObjectTypeDB::bind_method(_MD("get_frame"),&SceneTree::get_frame);
-	ObjectTypeDB::bind_method(_MD("quit"),&SceneTree::quit);
+	ClassDB::bind_method(_MD("get_node_count"),&SceneTree::get_node_count);
+	ClassDB::bind_method(_MD("get_frame"),&SceneTree::get_frame);
+	ClassDB::bind_method(_MD("quit"),&SceneTree::quit);
 
-	ObjectTypeDB::bind_method(_MD("set_screen_stretch","mode","aspect","minsize"),&SceneTree::set_screen_stretch);
+	ClassDB::bind_method(_MD("set_screen_stretch","mode","aspect","minsize"),&SceneTree::set_screen_stretch);
 
-	ObjectTypeDB::bind_method(_MD("queue_delete","obj"),&SceneTree::queue_delete);
+	ClassDB::bind_method(_MD("queue_delete","obj"),&SceneTree::queue_delete);
 
 
 
@@ -2202,29 +2208,29 @@ void SceneTree::_bind_methods() {
 	mi.arguments.push_back( PropertyInfo( Variant::STRING, "method"));
 
 
-	ObjectTypeDB::bind_vararg_method(METHOD_FLAGS_DEFAULT,"call_group",&SceneTree::_call_group,mi);
+	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT,"call_group",&SceneTree::_call_group,mi);
 
-	ObjectTypeDB::bind_method(_MD("set_current_scene","child_node:Node"),&SceneTree::set_current_scene);
-	ObjectTypeDB::bind_method(_MD("get_current_scene:Node"),&SceneTree::get_current_scene);
+	ClassDB::bind_method(_MD("set_current_scene","child_node:Node"),&SceneTree::set_current_scene);
+	ClassDB::bind_method(_MD("get_current_scene:Node"),&SceneTree::get_current_scene);
 
-	ObjectTypeDB::bind_method(_MD("change_scene","path"),&SceneTree::change_scene);
-	ObjectTypeDB::bind_method(_MD("change_scene_to","packed_scene:PackedScene"),&SceneTree::change_scene_to);
+	ClassDB::bind_method(_MD("change_scene","path"),&SceneTree::change_scene);
+	ClassDB::bind_method(_MD("change_scene_to","packed_scene:PackedScene"),&SceneTree::change_scene_to);
 
-	ObjectTypeDB::bind_method(_MD("reload_current_scene"),&SceneTree::reload_current_scene);
+	ClassDB::bind_method(_MD("reload_current_scene"),&SceneTree::reload_current_scene);
 
-	ObjectTypeDB::bind_method(_MD("_change_scene"),&SceneTree::_change_scene);
+	ClassDB::bind_method(_MD("_change_scene"),&SceneTree::_change_scene);
 
 
-	ObjectTypeDB::bind_method(_MD("set_network_peer","peer:NetworkedMultiplayerPeer"),&SceneTree::set_network_peer);
-	ObjectTypeDB::bind_method(_MD("is_network_server"),&SceneTree::is_network_server);
-	ObjectTypeDB::bind_method(_MD("get_network_unique_id"),&SceneTree::get_network_unique_id);
-	ObjectTypeDB::bind_method(_MD("set_refuse_new_network_connections","refuse"),&SceneTree::set_refuse_new_network_connections);
-	ObjectTypeDB::bind_method(_MD("is_refusing_new_network_connections"),&SceneTree::is_refusing_new_network_connections);
-	ObjectTypeDB::bind_method(_MD("_network_peer_connected"),&SceneTree::_network_peer_connected);
-	ObjectTypeDB::bind_method(_MD("_network_peer_disconnected"),&SceneTree::_network_peer_disconnected);
-	ObjectTypeDB::bind_method(_MD("_connected_to_server"),&SceneTree::_connected_to_server);
-	ObjectTypeDB::bind_method(_MD("_connection_failed"),&SceneTree::_connection_failed);
-	ObjectTypeDB::bind_method(_MD("_server_disconnected"),&SceneTree::_server_disconnected);
+	ClassDB::bind_method(_MD("set_network_peer","peer:NetworkedMultiplayerPeer"),&SceneTree::set_network_peer);
+	ClassDB::bind_method(_MD("is_network_server"),&SceneTree::is_network_server);
+	ClassDB::bind_method(_MD("get_network_unique_id"),&SceneTree::get_network_unique_id);
+	ClassDB::bind_method(_MD("set_refuse_new_network_connections","refuse"),&SceneTree::set_refuse_new_network_connections);
+	ClassDB::bind_method(_MD("is_refusing_new_network_connections"),&SceneTree::is_refusing_new_network_connections);
+	ClassDB::bind_method(_MD("_network_peer_connected"),&SceneTree::_network_peer_connected);
+	ClassDB::bind_method(_MD("_network_peer_disconnected"),&SceneTree::_network_peer_disconnected);
+	ClassDB::bind_method(_MD("_connected_to_server"),&SceneTree::_connected_to_server);
+	ClassDB::bind_method(_MD("_connection_failed"),&SceneTree::_connection_failed);
+	ClassDB::bind_method(_MD("_server_disconnected"),&SceneTree::_server_disconnected);
 
 	ADD_SIGNAL( MethodInfo("tree_changed") );
 	ADD_SIGNAL( MethodInfo("node_removed",PropertyInfo( Variant::OBJECT, "node") ) );
@@ -2258,6 +2264,23 @@ void SceneTree::_bind_methods() {
 
 SceneTree *SceneTree::singleton=NULL;
 
+
+SceneTree::IdleCallback SceneTree::idle_callbacks[SceneTree::MAX_IDLE_CALLBACKS];
+int SceneTree::idle_callback_count=0;
+
+void SceneTree::_call_idle_callbacks() {
+
+	for(int i=0;i<idle_callback_count;i++) {
+		idle_callbacks[i]();
+	}
+}
+
+void SceneTree::add_idle_callback(IdleCallback p_callback) {
+	ERR_FAIL_COND(idle_callback_count>=MAX_IDLE_CALLBACKS);
+	idle_callbacks[idle_callback_count++]=p_callback;
+}
+
+
 SceneTree::SceneTree() {
 
 	singleton=this;
@@ -2266,11 +2289,12 @@ SceneTree::SceneTree() {
 	editor_hint=false;
 	debug_collisions_hint=false;
 	debug_navigation_hint=false;
-	debug_collisions_color=GLOBAL_DEF("debug/collision_shape_color",Color(0.0,0.6,0.7,0.5));
-	debug_collision_contact_color=GLOBAL_DEF("debug/collision_contact_color",Color(1.0,0.2,0.1,0.8));
-	debug_navigation_color=GLOBAL_DEF("debug/navigation_geometry_color",Color(0.1,1.0,0.7,0.4));
-	debug_navigation_disabled_color=GLOBAL_DEF("debug/navigation_disabled_geometry_color",Color(1.0,0.7,0.1,0.4));
-	collision_debug_contacts=GLOBAL_DEF("debug/collision_max_contacts_displayed",10000);
+	debug_collisions_color=GLOBAL_DEF("debug/collision/shape_color",Color(0.0,0.6,0.7,0.5));
+	debug_collision_contact_color=GLOBAL_DEF("debug/collision/contact_color",Color(1.0,0.2,0.1,0.8));
+	debug_navigation_color=GLOBAL_DEF("debug/navigation/geometry_color",Color(0.1,1.0,0.7,0.4));
+	debug_navigation_disabled_color=GLOBAL_DEF("debug/navigation/disabled_geometry_color",Color(1.0,0.7,0.1,0.4));
+	collision_debug_contacts=GLOBAL_DEF("debug/collision/max_contacts_displayed",10000);
+
 
 
 	tree_version=1;
@@ -2296,17 +2320,28 @@ SceneTree::SceneTree() {
 	root->set_as_audio_listener_2d(true);
 	current_scene=NULL;
 
+	int ref_atlas_size = GLOBAL_DEF("rendering/reflections/atlas_size",2048);
+	int ref_atlas_subdiv = GLOBAL_DEF("rendering/reflections/atlas_subdiv",8);
+	int msaa_mode = GLOBAL_DEF("rendering/quality/msaa",0);
+	GlobalConfig::get_singleton()->set_custom_property_info("rendering/quality/msaa",PropertyInfo(Variant::INT,"rendering/quality/msaa",PROPERTY_HINT_ENUM,"Disabled,2x,4x,8x,16x"));
+	root->set_msaa(Viewport::MSAA(msaa_mode));
+	bool hdr = GLOBAL_DEF("rendering/quality/hdr",true);
+	root->set_hdr(hdr);
+
+	VS::get_singleton()->scenario_set_reflection_atlas_size(root->get_world()->get_scenario(),ref_atlas_size,ref_atlas_subdiv);
+
+
 	stretch_mode=STRETCH_MODE_DISABLED;
 	stretch_aspect=STRETCH_ASPECT_IGNORE;
 
 	last_screen_size=Size2( OS::get_singleton()->get_video_mode().width, OS::get_singleton()->get_video_mode().height );
-	root->set_rect(Rect2(Point2(),last_screen_size));
+	root->set_size(last_screen_size);
 
 	if (ScriptDebugger::get_singleton()) {
 		ScriptDebugger::get_singleton()->set_request_scene_tree_message_func(_debugger_request_tree,this);
 	}
 
-	root->set_physics_object_picking(GLOBAL_DEF("physics/enable_object_picking",true));
+	root->set_physics_object_picking(GLOBAL_DEF("physics/common/enable_object_picking",true));
 
 #ifdef TOOLS_ENABLED
 	edited_scene_root=NULL;

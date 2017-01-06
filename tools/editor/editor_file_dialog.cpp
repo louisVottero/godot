@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -87,10 +87,10 @@ void EditorFileDialog::_notification(int p_what) {
 
 	} else if (p_what==EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 
-		bool show_hidden=EditorSettings::get_singleton()->get("file_dialog/show_hidden_files");
+		bool show_hidden=EditorSettings::get_singleton()->get("filesystem/file_dialog/show_hidden_files");
 		if (show_hidden_files!=show_hidden)
 			set_show_hidden_files(show_hidden);
-		set_display_mode((DisplayMode)EditorSettings::get_singleton()->get("file_dialog/display_mode").operator int());
+		set_display_mode((DisplayMode)EditorSettings::get_singleton()->get("filesystem/file_dialog/display_mode").operator int());
 	}
 }
 
@@ -121,7 +121,7 @@ void EditorFileDialog::_unhandled_input(const InputEvent& p_event) {
 			if (ED_IS_SHORTCUT("file_dialog/toggle_hidden_files", p_event)) {
 				bool show=!show_hidden_files;
 				set_show_hidden_files(show);
-				EditorSettings::get_singleton()->set("file_dialog/show_hidden_files",show);
+				EditorSettings::get_singleton()->set("filesystem/file_dialog/show_hidden_files",show);
 				handled=true;
 			}
 			if (ED_IS_SHORTCUT("file_dialog/toggle_favorite", p_event)) {
@@ -336,15 +336,21 @@ void EditorFileDialog::_action_pressed() {
 		hide();
 	}else if (mode==MODE_OPEN_ANY || mode==MODE_OPEN_DIR) {
 
-
 		String path=dir_access->get_current_dir();
-		/*if (tree->get_selected()) {
-			Dictionary d = tree->get_selected()->get_metadata(0);
-			if (d["dir"]) {
-				path=path+"/"+String(d["name"]);
-			}
-		}*/
+
 		path=path.replace("\\","/");
+
+		for(int i=0;i<item_list->get_item_count();i++) {
+			if (item_list->is_selected(i)) {
+				Dictionary d=item_list->get_item_metadata(i);
+				if (d["dir"]) {
+					path=path.plus_file(d["name"]);
+
+					break;
+				}
+			}
+		}
+
 		_save_to_recent();
 		emit_signal("dir_selected",path);
 		hide();
@@ -484,7 +490,7 @@ void EditorFileDialog::_item_dc_selected(int p_item) {
 void EditorFileDialog::update_file_list() {
 
 
-	int thumbnail_size = EditorSettings::get_singleton()->get("file_dialog/thumbnail_size");
+	int thumbnail_size = EditorSettings::get_singleton()->get("filesystem/file_dialog/thumbnail_size");
 	thumbnail_size*=EDSCALE;
 	Ref<Texture> folder_thumbnail;
 	Ref<Texture> file_thumbnail;
@@ -571,25 +577,26 @@ void EditorFileDialog::update_file_list() {
 	files.sort_custom<NoCaseComparator>();
 
 	while(!dirs.empty()) {
+		const String& dir_name=dirs.front()->get();
 
-		if (dirs.front()->get()!=".") {
-			item_list->add_item(dirs.front()->get()+"/");
-			if (display_mode==DISPLAY_THUMBNAILS) {
+		item_list->add_item(dir_name+"/");
 
-				item_list->set_item_icon(item_list->get_item_count()-1,folder_thumbnail);
-			} else {
+		if (display_mode==DISPLAY_THUMBNAILS) {
 
-				item_list->set_item_icon(item_list->get_item_count()-1,folder);
-			}
+			item_list->set_item_icon(item_list->get_item_count()-1,folder_thumbnail);
+		} else {
 
-			Dictionary d;
-			d["name"]=dirs.front()->get();
-			d["path"]=String();
-			d["dir"]=true;
-			item_list->set_item_metadata( item_list->get_item_count() -1, d);
+			item_list->set_item_icon(item_list->get_item_count()-1,folder);
 		}
-		dirs.pop_front();
 
+		Dictionary d;
+		d["name"]=dir_name;
+		d["path"]=String();
+		d["dir"]=true;
+
+		item_list->set_item_metadata( item_list->get_item_count() -1, d);
+
+		dirs.pop_front();
 	}
 
 	dirs.clear();
@@ -1153,55 +1160,55 @@ EditorFileDialog::DisplayMode EditorFileDialog::get_display_mode() const{
 
 void EditorFileDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_unhandled_input"),&EditorFileDialog::_unhandled_input);
+	ClassDB::bind_method(_MD("_unhandled_input"),&EditorFileDialog::_unhandled_input);
 
-	ObjectTypeDB::bind_method(_MD("_item_selected"),&EditorFileDialog::_item_selected);
-	ObjectTypeDB::bind_method(_MD("_item_db_selected"),&EditorFileDialog::_item_dc_selected);
-	ObjectTypeDB::bind_method(_MD("_dir_entered"),&EditorFileDialog::_dir_entered);
-	ObjectTypeDB::bind_method(_MD("_file_entered"),&EditorFileDialog::_file_entered);
-	ObjectTypeDB::bind_method(_MD("_action_pressed"),&EditorFileDialog::_action_pressed);
-	ObjectTypeDB::bind_method(_MD("_cancel_pressed"),&EditorFileDialog::_cancel_pressed);
-	ObjectTypeDB::bind_method(_MD("_filter_selected"),&EditorFileDialog::_filter_selected);
-	ObjectTypeDB::bind_method(_MD("_save_confirm_pressed"),&EditorFileDialog::_save_confirm_pressed);
+	ClassDB::bind_method(_MD("_item_selected"),&EditorFileDialog::_item_selected);
+	ClassDB::bind_method(_MD("_item_db_selected"),&EditorFileDialog::_item_dc_selected);
+	ClassDB::bind_method(_MD("_dir_entered"),&EditorFileDialog::_dir_entered);
+	ClassDB::bind_method(_MD("_file_entered"),&EditorFileDialog::_file_entered);
+	ClassDB::bind_method(_MD("_action_pressed"),&EditorFileDialog::_action_pressed);
+	ClassDB::bind_method(_MD("_cancel_pressed"),&EditorFileDialog::_cancel_pressed);
+	ClassDB::bind_method(_MD("_filter_selected"),&EditorFileDialog::_filter_selected);
+	ClassDB::bind_method(_MD("_save_confirm_pressed"),&EditorFileDialog::_save_confirm_pressed);
 
-	ObjectTypeDB::bind_method(_MD("clear_filters"),&EditorFileDialog::clear_filters);
-	ObjectTypeDB::bind_method(_MD("add_filter","filter"),&EditorFileDialog::add_filter);
-	ObjectTypeDB::bind_method(_MD("get_current_dir"),&EditorFileDialog::get_current_dir);
-	ObjectTypeDB::bind_method(_MD("get_current_file"),&EditorFileDialog::get_current_file);
-	ObjectTypeDB::bind_method(_MD("get_current_path"),&EditorFileDialog::get_current_path);
-	ObjectTypeDB::bind_method(_MD("set_current_dir","dir"),&EditorFileDialog::set_current_dir);
-	ObjectTypeDB::bind_method(_MD("set_current_file","file"),&EditorFileDialog::set_current_file);
-	ObjectTypeDB::bind_method(_MD("set_current_path","path"),&EditorFileDialog::set_current_path);
-	ObjectTypeDB::bind_method(_MD("set_mode","mode"),&EditorFileDialog::set_mode);
-	ObjectTypeDB::bind_method(_MD("get_mode"),&EditorFileDialog::get_mode);
-	ObjectTypeDB::bind_method(_MD("get_vbox:VBoxContainer"),&EditorFileDialog::get_vbox);
-	ObjectTypeDB::bind_method(_MD("set_access","access"),&EditorFileDialog::set_access);
-	ObjectTypeDB::bind_method(_MD("get_access"),&EditorFileDialog::get_access);
-	ObjectTypeDB::bind_method(_MD("set_show_hidden_files","show"),&EditorFileDialog::set_show_hidden_files);
-	ObjectTypeDB::bind_method(_MD("is_showing_hidden_files"),&EditorFileDialog::is_showing_hidden_files);
-	ObjectTypeDB::bind_method(_MD("_select_drive"),&EditorFileDialog::_select_drive);
-	ObjectTypeDB::bind_method(_MD("_make_dir"),&EditorFileDialog::_make_dir);
-	ObjectTypeDB::bind_method(_MD("_make_dir_confirm"),&EditorFileDialog::_make_dir_confirm);
-	ObjectTypeDB::bind_method(_MD("_update_file_list"),&EditorFileDialog::update_file_list);
-	ObjectTypeDB::bind_method(_MD("_update_dir"),&EditorFileDialog::update_dir);
-	ObjectTypeDB::bind_method(_MD("_thumbnail_done"),&EditorFileDialog::_thumbnail_done);
-	ObjectTypeDB::bind_method(_MD("set_display_mode","mode"),&EditorFileDialog::set_display_mode);
-	ObjectTypeDB::bind_method(_MD("get_display_mode"),&EditorFileDialog::get_display_mode);
-	ObjectTypeDB::bind_method(_MD("_thumbnail_result"),&EditorFileDialog::_thumbnail_result);
-	ObjectTypeDB::bind_method(_MD("set_disable_overwrite_warning","disable"),&EditorFileDialog::set_disable_overwrite_warning);
-	ObjectTypeDB::bind_method(_MD("is_overwrite_warning_disabled"),&EditorFileDialog::is_overwrite_warning_disabled);
+	ClassDB::bind_method(_MD("clear_filters"),&EditorFileDialog::clear_filters);
+	ClassDB::bind_method(_MD("add_filter","filter"),&EditorFileDialog::add_filter);
+	ClassDB::bind_method(_MD("get_current_dir"),&EditorFileDialog::get_current_dir);
+	ClassDB::bind_method(_MD("get_current_file"),&EditorFileDialog::get_current_file);
+	ClassDB::bind_method(_MD("get_current_path"),&EditorFileDialog::get_current_path);
+	ClassDB::bind_method(_MD("set_current_dir","dir"),&EditorFileDialog::set_current_dir);
+	ClassDB::bind_method(_MD("set_current_file","file"),&EditorFileDialog::set_current_file);
+	ClassDB::bind_method(_MD("set_current_path","path"),&EditorFileDialog::set_current_path);
+	ClassDB::bind_method(_MD("set_mode","mode"),&EditorFileDialog::set_mode);
+	ClassDB::bind_method(_MD("get_mode"),&EditorFileDialog::get_mode);
+	ClassDB::bind_method(_MD("get_vbox:VBoxContainer"),&EditorFileDialog::get_vbox);
+	ClassDB::bind_method(_MD("set_access","access"),&EditorFileDialog::set_access);
+	ClassDB::bind_method(_MD("get_access"),&EditorFileDialog::get_access);
+	ClassDB::bind_method(_MD("set_show_hidden_files","show"),&EditorFileDialog::set_show_hidden_files);
+	ClassDB::bind_method(_MD("is_showing_hidden_files"),&EditorFileDialog::is_showing_hidden_files);
+	ClassDB::bind_method(_MD("_select_drive"),&EditorFileDialog::_select_drive);
+	ClassDB::bind_method(_MD("_make_dir"),&EditorFileDialog::_make_dir);
+	ClassDB::bind_method(_MD("_make_dir_confirm"),&EditorFileDialog::_make_dir_confirm);
+	ClassDB::bind_method(_MD("_update_file_list"),&EditorFileDialog::update_file_list);
+	ClassDB::bind_method(_MD("_update_dir"),&EditorFileDialog::update_dir);
+	ClassDB::bind_method(_MD("_thumbnail_done"),&EditorFileDialog::_thumbnail_done);
+	ClassDB::bind_method(_MD("set_display_mode","mode"),&EditorFileDialog::set_display_mode);
+	ClassDB::bind_method(_MD("get_display_mode"),&EditorFileDialog::get_display_mode);
+	ClassDB::bind_method(_MD("_thumbnail_result"),&EditorFileDialog::_thumbnail_result);
+	ClassDB::bind_method(_MD("set_disable_overwrite_warning","disable"),&EditorFileDialog::set_disable_overwrite_warning);
+	ClassDB::bind_method(_MD("is_overwrite_warning_disabled"),&EditorFileDialog::is_overwrite_warning_disabled);
 
-	ObjectTypeDB::bind_method(_MD("_recent_selected"),&EditorFileDialog::_recent_selected);
-	ObjectTypeDB::bind_method(_MD("_go_back"),&EditorFileDialog::_go_back);
-	ObjectTypeDB::bind_method(_MD("_go_forward"),&EditorFileDialog::_go_forward);
-	ObjectTypeDB::bind_method(_MD("_go_up"),&EditorFileDialog::_go_up);
+	ClassDB::bind_method(_MD("_recent_selected"),&EditorFileDialog::_recent_selected);
+	ClassDB::bind_method(_MD("_go_back"),&EditorFileDialog::_go_back);
+	ClassDB::bind_method(_MD("_go_forward"),&EditorFileDialog::_go_forward);
+	ClassDB::bind_method(_MD("_go_up"),&EditorFileDialog::_go_up);
 
-	ObjectTypeDB::bind_method(_MD("_favorite_toggled"),&EditorFileDialog::_favorite_toggled);
-	ObjectTypeDB::bind_method(_MD("_favorite_selected"),&EditorFileDialog::_favorite_selected);
-	ObjectTypeDB::bind_method(_MD("_favorite_move_up"),&EditorFileDialog::_favorite_move_up);
-	ObjectTypeDB::bind_method(_MD("_favorite_move_down"),&EditorFileDialog::_favorite_move_down);
+	ClassDB::bind_method(_MD("_favorite_toggled"),&EditorFileDialog::_favorite_toggled);
+	ClassDB::bind_method(_MD("_favorite_selected"),&EditorFileDialog::_favorite_selected);
+	ClassDB::bind_method(_MD("_favorite_move_up"),&EditorFileDialog::_favorite_move_up);
+	ClassDB::bind_method(_MD("_favorite_move_down"),&EditorFileDialog::_favorite_move_down);
 
-	ObjectTypeDB::bind_method(_MD("invalidate"),&EditorFileDialog::invalidate);
+	ClassDB::bind_method(_MD("invalidate"),&EditorFileDialog::invalidate);
 
 	ADD_SIGNAL(MethodInfo("file_selected",PropertyInfo( Variant::STRING,"path")));
 	ADD_SIGNAL(MethodInfo("files_selected",PropertyInfo( Variant::STRING_ARRAY,"paths")));
@@ -1483,11 +1490,11 @@ EditorFileDialog::~EditorFileDialog() {
 
 void EditorLineEditFileChooser::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_browse"),&EditorLineEditFileChooser::_browse);
-	ObjectTypeDB::bind_method(_MD("_chosen"),&EditorLineEditFileChooser::_chosen);
-	ObjectTypeDB::bind_method(_MD("get_button:Button"),&EditorLineEditFileChooser::get_button);
-	ObjectTypeDB::bind_method(_MD("get_line_edit:LineEdit"),&EditorLineEditFileChooser::get_line_edit);
-	ObjectTypeDB::bind_method(_MD("get_file_dialog:EditorFileDialog"),&EditorLineEditFileChooser::get_file_dialog);
+	ClassDB::bind_method(_MD("_browse"),&EditorLineEditFileChooser::_browse);
+	ClassDB::bind_method(_MD("_chosen"),&EditorLineEditFileChooser::_chosen);
+	ClassDB::bind_method(_MD("get_button:Button"),&EditorLineEditFileChooser::get_button);
+	ClassDB::bind_method(_MD("get_line_edit:LineEdit"),&EditorLineEditFileChooser::get_line_edit);
+	ClassDB::bind_method(_MD("get_file_dialog:EditorFileDialog"),&EditorLineEditFileChooser::get_file_dialog);
 
 }
 

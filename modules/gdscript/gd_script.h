@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -35,7 +35,7 @@
 #include "gd_function.h"
 class GDNativeClass : public Reference {
 
-	OBJ_TYPE(GDNativeClass,Reference);
+	GDCLASS(GDNativeClass,Reference);
 
 	StringName name;
 protected:
@@ -55,7 +55,7 @@ public:
 class GDScript : public Script {
 
 
-	OBJ_TYPE(GDScript,Script);
+	GDCLASS(GDScript,Script);
 	bool tool;
 	bool valid;
 

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,7 +33,7 @@
 
 class OccluderPolygon2D : public Resource {
 
-	OBJ_TYPE(OccluderPolygon2D,Resource);
+	GDCLASS(OccluderPolygon2D,Resource);
 public:
 
 	enum CullMode {
@@ -72,7 +72,7 @@ public:
 VARIANT_ENUM_CAST(OccluderPolygon2D::CullMode);
 
 class LightOccluder2D : public Node2D {
-	OBJ_TYPE(LightOccluder2D,Node2D);
+	GDCLASS(LightOccluder2D,Node2D);
 
 	RID occluder;
 	bool enabled;

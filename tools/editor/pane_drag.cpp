@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -64,7 +64,7 @@ Size2 PaneDrag::get_minimum_size() const {
 
 void PaneDrag::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_input_event",&PaneDrag::_input_event);
+	ClassDB::bind_method("_input_event",&PaneDrag::_input_event);
 	ADD_SIGNAL(MethodInfo("dragged",PropertyInfo(Variant::VECTOR2,"amount")));
 }
 

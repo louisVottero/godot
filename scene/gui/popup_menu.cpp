@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -89,6 +89,8 @@ Size2 PopupMenu::get_minimum_size() const {
 			size.height=font_h;
 		}
 
+		size.width+=items[i].h_ofs;
+
 		if (items[i].checkable) {
 
 			size.width+=check_w+hseparation;
@@ -105,6 +107,7 @@ Size2 PopupMenu::get_minimum_size() const {
 			accel_w+=font->get_string_size(_get_accel_text(i)).width;
 			accel_max_w = MAX( accel_w, accel_max_w );
 		}
+
 
 		minsize.height+=size.height;
 		max_w = MAX( max_w, size.width );
@@ -450,6 +453,7 @@ void PopupMenu::_notification(int p_what) {
 				float h;
 				Size2 icon_size;
 
+				item_ofs.x+=items[i].h_ofs;
 				if (!items[i].icon.is_null()) {
 
 					icon_size = items[i].icon->get_size();
@@ -461,13 +465,13 @@ void PopupMenu::_notification(int p_what) {
 
 				if (i==mouse_over) {
 
-					hover->draw(ci,	Rect2( ofs+Point2(-hseparation,-vseparation), Size2( get_size().width - style->get_minimum_size().width + hseparation*2, h+vseparation*2 ) ));
+					hover->draw(ci,	Rect2( item_ofs+Point2(-hseparation,-vseparation), Size2( get_size().width - style->get_minimum_size().width + hseparation*2, h+vseparation*2 ) ));
 				}
 
 				if (items[i].separator) {
 
 					int sep_h=separator->get_center_size().height+separator->get_minimum_size().height;
-					separator->draw(ci,	Rect2( ofs+Point2(0,Math::floor((h-sep_h)/2.0)), Size2( get_size().width - style->get_minimum_size().width , sep_h ) ));
+					separator->draw(ci,	Rect2( item_ofs+Point2(0,Math::floor((h-sep_h)/2.0)), Size2( get_size().width - style->get_minimum_size().width , sep_h ) ));
 
 				}
 
@@ -581,7 +585,7 @@ void PopupMenu::add_check_item(const String& p_label,int p_ID,uint32_t p_accel) 
 }
 
 
-void PopupMenu::add_icon_shortcut(const Ref<Texture>& p_icon,const Ref<ShortCut>& p_shortcut,int p_ID) {
+void PopupMenu::add_icon_shortcut(const Ref<Texture>& p_icon, const Ref<ShortCut>& p_shortcut, int p_ID, bool p_global) {
 
 	ERR_FAIL_COND(p_shortcut.is_null());
 
@@ -591,12 +595,13 @@ void PopupMenu::add_icon_shortcut(const Ref<Texture>& p_icon,const Ref<ShortCut>
 	item.ID=p_ID;
 	item.icon=p_icon;
 	item.shortcut=p_shortcut;
+	item.shortcut_is_global=p_global;
 	items.push_back(item);
 	update();
 
 }
 
-void PopupMenu::add_shortcut(const Ref<ShortCut>& p_shortcut,int p_ID){
+void PopupMenu::add_shortcut(const Ref<ShortCut>& p_shortcut, int p_ID, bool p_global){
 
 	ERR_FAIL_COND(p_shortcut.is_null());
 
@@ -605,11 +610,12 @@ void PopupMenu::add_shortcut(const Ref<ShortCut>& p_shortcut,int p_ID){
 	Item item;
 	item.ID=p_ID;
 	item.shortcut=p_shortcut;
+	item.shortcut_is_global=p_global;
 	items.push_back(item);
 	update();
 
 }
-void PopupMenu::add_icon_check_shortcut(const Ref<Texture>& p_icon,const Ref<ShortCut>& p_shortcut,int p_ID){
+void PopupMenu::add_icon_check_shortcut(const Ref<Texture>& p_icon, const Ref<ShortCut>& p_shortcut, int p_ID, bool p_global){
 
 	ERR_FAIL_COND(p_shortcut.is_null());
 
@@ -620,11 +626,12 @@ void PopupMenu::add_icon_check_shortcut(const Ref<Texture>& p_icon,const Ref<Sho
 	item.shortcut=p_shortcut;
 	item.checkable=true;
 	item.icon=p_icon;
+	item.shortcut_is_global=p_global;
 	items.push_back(item);
 	update();
 }
 
-void PopupMenu::add_check_shortcut(const Ref<ShortCut>& p_shortcut,int p_ID){
+void PopupMenu::add_check_shortcut(const Ref<ShortCut>& p_shortcut, int p_ID, bool p_global){
 
 	ERR_FAIL_COND(p_shortcut.is_null());
 
@@ -633,6 +640,7 @@ void PopupMenu::add_check_shortcut(const Ref<ShortCut>& p_shortcut,int p_ID){
 	Item item;
 	item.ID=p_ID;
 	item.shortcut=p_shortcut;
+	item.shortcut_is_global=p_global;
 	item.checkable=true;
 	items.push_back(item);
 	update();
@@ -811,12 +819,14 @@ void PopupMenu::set_item_tooltip(int p_idx,const String& p_tooltip) {
 	update();
 }
 
-void PopupMenu::set_item_shortcut(int p_idx, const Ref<ShortCut>& p_shortcut) {
+void PopupMenu::set_item_shortcut(int p_idx, const Ref<ShortCut>& p_shortcut, bool p_global) {
 	ERR_FAIL_INDEX(p_idx,items.size());
 	if (items[p_idx].shortcut.is_valid()) {
 		_unref_shortcut(items[p_idx].shortcut);
 	}
 	items[p_idx].shortcut=p_shortcut;
+	items[p_idx].shortcut_is_global=p_global;
+
 
 	if (items[p_idx].shortcut.is_valid()) {
 		_ref_shortcut(items[p_idx].shortcut);
@@ -825,6 +835,15 @@ void PopupMenu::set_item_shortcut(int p_idx, const Ref<ShortCut>& p_shortcut) {
 
 	update();
 }
+
+void PopupMenu::set_item_h_offset(int p_idx, int p_offset) {
+
+	ERR_FAIL_INDEX(p_idx,items.size());
+	items[p_idx].h_ofs=p_offset;
+	update();
+
+}
+
 
 bool PopupMenu::is_item_checkable(int p_idx) const {
 	ERR_FAIL_INDEX_V(p_idx,items.size(),false);
@@ -836,7 +855,7 @@ int PopupMenu::get_item_count() const {
 	return items.size();
 }
 
-bool PopupMenu::activate_item_by_event(const InputEvent& p_event) {
+bool PopupMenu::activate_item_by_event(const InputEvent& p_event, bool p_for_global_only) {
 
 	uint32_t code=0;
 	if (p_event.type==InputEvent::KEY) {
@@ -860,7 +879,7 @@ bool PopupMenu::activate_item_by_event(const InputEvent& p_event) {
 			continue;
 
 
-		if (items[i].shortcut.is_valid() && items[i].shortcut->is_shortcut(p_event)) {
+		if (items[i].shortcut.is_valid() && items[i].shortcut->is_shortcut(p_event) && (items[i].shortcut_is_global || !p_for_global_only)) {
 			activate_item(i);
 			return true;
 		}
@@ -879,7 +898,7 @@ bool PopupMenu::activate_item_by_event(const InputEvent& p_event) {
 			if(!pm)
 				continue;
 
-			if(pm->activate_item_by_event(p_event)) {
+			if(pm->activate_item_by_event(p_event,p_for_global_only)) {
 				return true;
 			}
 		}
@@ -899,11 +918,24 @@ void PopupMenu::activate_item(int p_item) {
 	Node *next = get_parent();
 	PopupMenu *pop = next->cast_to<PopupMenu>();
 	while (pop) {
-		pop->hide();
-		next = next->get_parent();
-		pop = next->cast_to<PopupMenu>();
+		// We close all parents that are chained together, 
+		// with hide_on_item_selection enabled
+		if(hide_on_item_selection && pop->is_hide_on_item_selection()) {
+			pop->hide();
+			next = next->get_parent();
+			pop = next->cast_to<PopupMenu>();
+		}
+		else {
+			// Break out of loop when the next parent has 
+			// hide_on_item_selection disabled
+			break;
+		}
 	}
-	hide();
+	// Hides popup by default; unless otherwise specified 
+	// by using set_hide_on_item_selection
+	if (hide_on_item_selection) {
+		hide();
+	}
 
 }
 
@@ -1019,6 +1051,16 @@ void PopupMenu::_set_items(const Array& p_items){
 
 }
 
+// Hide on item selection determines whether or not the popup will close after item selection
+void PopupMenu::set_hide_on_item_selection(bool p_enabled) {
+
+	hide_on_item_selection=p_enabled;
+}
+
+bool PopupMenu::is_hide_on_item_selection() {
+
+	return hide_on_item_selection;
+}
 
 String PopupMenu::get_tooltip(const Point2& p_pos) const {
 
@@ -1056,60 +1098,64 @@ void PopupMenu::clear_autohide_areas(){
 
 void PopupMenu::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("_input_event"),&PopupMenu::_input_event);
-	ObjectTypeDB::bind_method(_MD("add_icon_item","texture","label","id","accel"),&PopupMenu::add_icon_item,DEFVAL(-1),DEFVAL(0));
-	ObjectTypeDB::bind_method(_MD("add_item","label","id","accel"),&PopupMenu::add_item,DEFVAL(-1),DEFVAL(0));
-	ObjectTypeDB::bind_method(_MD("add_icon_check_item","texture","label","id","accel"),&PopupMenu::add_icon_check_item,DEFVAL(-1),DEFVAL(0));
-	ObjectTypeDB::bind_method(_MD("add_check_item","label","id","accel"),&PopupMenu::add_check_item,DEFVAL(-1),DEFVAL(0));
-	ObjectTypeDB::bind_method(_MD("add_submenu_item","label","submenu","id"),&PopupMenu::add_submenu_item,DEFVAL(-1));
+	ClassDB::bind_method(_MD("_input_event"),&PopupMenu::_input_event);
+	ClassDB::bind_method(_MD("add_icon_item","texture","label","id","accel"),&PopupMenu::add_icon_item,DEFVAL(-1),DEFVAL(0));
+	ClassDB::bind_method(_MD("add_item","label","id","accel"),&PopupMenu::add_item,DEFVAL(-1),DEFVAL(0));
+	ClassDB::bind_method(_MD("add_icon_check_item","texture","label","id","accel"),&PopupMenu::add_icon_check_item,DEFVAL(-1),DEFVAL(0));
+	ClassDB::bind_method(_MD("add_check_item","label","id","accel"),&PopupMenu::add_check_item,DEFVAL(-1),DEFVAL(0));
+	ClassDB::bind_method(_MD("add_submenu_item","label","submenu","id"),&PopupMenu::add_submenu_item,DEFVAL(-1));
 
-	ObjectTypeDB::bind_method(_MD("add_icon_shortcut","texture","shortcut:ShortCut","id"),&PopupMenu::add_icon_shortcut,DEFVAL(-1));
-	ObjectTypeDB::bind_method(_MD("add_shortcut","shortcut:ShortCut","id"),&PopupMenu::add_shortcut,DEFVAL(-1));
-	ObjectTypeDB::bind_method(_MD("add_icon_check_shortcut","texture","shortcut:ShortCut","id"),&PopupMenu::add_icon_check_shortcut,DEFVAL(-1));
-	ObjectTypeDB::bind_method(_MD("add_check_shortcut","shortcut:ShortCut","id"),&PopupMenu::add_check_shortcut,DEFVAL(-1));
+	ClassDB::bind_method(_MD("add_icon_shortcut","texture","shortcut:ShortCut","id","global"),&PopupMenu::add_icon_shortcut,DEFVAL(-1),DEFVAL(false));
+	ClassDB::bind_method(_MD("add_shortcut","shortcut:ShortCut","id","global"),&PopupMenu::add_shortcut,DEFVAL(-1),DEFVAL(false));
+	ClassDB::bind_method(_MD("add_icon_check_shortcut","texture","shortcut:ShortCut","id","global"),&PopupMenu::add_icon_check_shortcut,DEFVAL(-1),DEFVAL(false));
+	ClassDB::bind_method(_MD("add_check_shortcut","shortcut:ShortCut","id","global"),&PopupMenu::add_check_shortcut,DEFVAL(-1),DEFVAL(false));
 
-	ObjectTypeDB::bind_method(_MD("set_item_text","idx","text"),&PopupMenu::set_item_text);
-	ObjectTypeDB::bind_method(_MD("set_item_icon","idx","icon"),&PopupMenu::set_item_icon);
-	ObjectTypeDB::bind_method(_MD("set_item_checked","idx","checked"),&PopupMenu::set_item_checked);
-	ObjectTypeDB::bind_method(_MD("set_item_ID","idx","id"),&PopupMenu::set_item_ID);
-	ObjectTypeDB::bind_method(_MD("set_item_accelerator","idx","accel"),&PopupMenu::set_item_accelerator);
-	ObjectTypeDB::bind_method(_MD("set_item_metadata","idx","metadata"),&PopupMenu::set_item_metadata);
-	ObjectTypeDB::bind_method(_MD("set_item_disabled","idx","disabled"),&PopupMenu::set_item_disabled);
-	ObjectTypeDB::bind_method(_MD("set_item_submenu","idx","submenu"),&PopupMenu::set_item_submenu);
-	ObjectTypeDB::bind_method(_MD("set_item_as_separator","idx","enable"),&PopupMenu::set_item_as_separator);
-	ObjectTypeDB::bind_method(_MD("set_item_as_checkable","idx","enable"),&PopupMenu::set_item_as_checkable);
-	ObjectTypeDB::bind_method(_MD("set_item_tooltip","idx","tooltip"),&PopupMenu::set_item_tooltip);
-	ObjectTypeDB::bind_method(_MD("set_item_shortcut","idx","shortcut:ShortCut"),&PopupMenu::set_item_shortcut);
+	ClassDB::bind_method(_MD("set_item_text","idx","text"),&PopupMenu::set_item_text);
+	ClassDB::bind_method(_MD("set_item_icon","idx","icon"),&PopupMenu::set_item_icon);
+	ClassDB::bind_method(_MD("set_item_checked","idx","checked"),&PopupMenu::set_item_checked);
+	ClassDB::bind_method(_MD("set_item_ID","idx","id"),&PopupMenu::set_item_ID);
+	ClassDB::bind_method(_MD("set_item_accelerator","idx","accel"),&PopupMenu::set_item_accelerator);
+	ClassDB::bind_method(_MD("set_item_metadata","idx","metadata"),&PopupMenu::set_item_metadata);
+	ClassDB::bind_method(_MD("set_item_disabled","idx","disabled"),&PopupMenu::set_item_disabled);
+	ClassDB::bind_method(_MD("set_item_submenu","idx","submenu"),&PopupMenu::set_item_submenu);
+	ClassDB::bind_method(_MD("set_item_as_separator","idx","enable"),&PopupMenu::set_item_as_separator);
+	ClassDB::bind_method(_MD("set_item_as_checkable","idx","enable"),&PopupMenu::set_item_as_checkable);
+	ClassDB::bind_method(_MD("set_item_tooltip","idx","tooltip"),&PopupMenu::set_item_tooltip);
+	ClassDB::bind_method(_MD("set_item_shortcut","idx","shortcut:ShortCut","global"),&PopupMenu::set_item_shortcut,DEFVAL(false));
 
-	ObjectTypeDB::bind_method(_MD("toggle_item_checked","idx"), &PopupMenu::toggle_item_checked);
+	ClassDB::bind_method(_MD("toggle_item_checked","idx"), &PopupMenu::toggle_item_checked);
 
-	ObjectTypeDB::bind_method(_MD("get_item_text","idx"),&PopupMenu::get_item_text);
-	ObjectTypeDB::bind_method(_MD("get_item_icon","idx"),&PopupMenu::get_item_icon);
-	ObjectTypeDB::bind_method(_MD("is_item_checked","idx"),&PopupMenu::is_item_checked);
-	ObjectTypeDB::bind_method(_MD("get_item_ID","idx"),&PopupMenu::get_item_ID);
-	ObjectTypeDB::bind_method(_MD("get_item_index","id"),&PopupMenu::get_item_index);
-	ObjectTypeDB::bind_method(_MD("get_item_accelerator","idx"),&PopupMenu::get_item_accelerator);
-	ObjectTypeDB::bind_method(_MD("get_item_metadata","idx"),&PopupMenu::get_item_metadata);
-	ObjectTypeDB::bind_method(_MD("is_item_disabled","idx"),&PopupMenu::is_item_disabled);
-	ObjectTypeDB::bind_method(_MD("get_item_submenu","idx"),&PopupMenu::get_item_submenu);
-	ObjectTypeDB::bind_method(_MD("is_item_separator","idx"),&PopupMenu::is_item_separator);
-	ObjectTypeDB::bind_method(_MD("is_item_checkable","idx"),&PopupMenu::is_item_checkable);
-	ObjectTypeDB::bind_method(_MD("get_item_tooltip","idx"),&PopupMenu::get_item_tooltip);
-	ObjectTypeDB::bind_method(_MD("get_item_shortcut:ShortCut","idx"),&PopupMenu::get_item_shortcut);
+	ClassDB::bind_method(_MD("get_item_text","idx"),&PopupMenu::get_item_text);
+	ClassDB::bind_method(_MD("get_item_icon","idx"),&PopupMenu::get_item_icon);
+	ClassDB::bind_method(_MD("is_item_checked","idx"),&PopupMenu::is_item_checked);
+	ClassDB::bind_method(_MD("get_item_ID","idx"),&PopupMenu::get_item_ID);
+	ClassDB::bind_method(_MD("get_item_index","id"),&PopupMenu::get_item_index);
+	ClassDB::bind_method(_MD("get_item_accelerator","idx"),&PopupMenu::get_item_accelerator);
+	ClassDB::bind_method(_MD("get_item_metadata","idx"),&PopupMenu::get_item_metadata);
+	ClassDB::bind_method(_MD("is_item_disabled","idx"),&PopupMenu::is_item_disabled);
+	ClassDB::bind_method(_MD("get_item_submenu","idx"),&PopupMenu::get_item_submenu);
+	ClassDB::bind_method(_MD("is_item_separator","idx"),&PopupMenu::is_item_separator);
+	ClassDB::bind_method(_MD("is_item_checkable","idx"),&PopupMenu::is_item_checkable);
+	ClassDB::bind_method(_MD("get_item_tooltip","idx"),&PopupMenu::get_item_tooltip);
+	ClassDB::bind_method(_MD("get_item_shortcut:ShortCut","idx"),&PopupMenu::get_item_shortcut);
 
-	ObjectTypeDB::bind_method(_MD("get_item_count"),&PopupMenu::get_item_count);
+	ClassDB::bind_method(_MD("get_item_count"),&PopupMenu::get_item_count);
 
-	ObjectTypeDB::bind_method(_MD("remove_item","idx"),&PopupMenu::remove_item);
+	ClassDB::bind_method(_MD("remove_item","idx"),&PopupMenu::remove_item);
 
-	ObjectTypeDB::bind_method(_MD("add_separator"),&PopupMenu::add_separator);
-	ObjectTypeDB::bind_method(_MD("clear"),&PopupMenu::clear);
+	ClassDB::bind_method(_MD("add_separator"),&PopupMenu::add_separator);
+	ClassDB::bind_method(_MD("clear"),&PopupMenu::clear);
 
-	ObjectTypeDB::bind_method(_MD("_set_items"),&PopupMenu::_set_items);
-	ObjectTypeDB::bind_method(_MD("_get_items"),&PopupMenu::_get_items);
+	ClassDB::bind_method(_MD("_set_items"),&PopupMenu::_set_items);
+	ClassDB::bind_method(_MD("_get_items"),&PopupMenu::_get_items);
 
-	ObjectTypeDB::bind_method(_MD("_submenu_timeout"),&PopupMenu::_submenu_timeout);
+	ClassDB::bind_method(_MD("set_hide_on_item_selection","enable"),&PopupMenu::set_hide_on_item_selection);
+	ClassDB::bind_method(_MD("is_hide_on_item_selection"),&PopupMenu::is_hide_on_item_selection);
+
+	ClassDB::bind_method(_MD("_submenu_timeout"),&PopupMenu::_submenu_timeout);
 
 	ADD_PROPERTY( PropertyInfo(Variant::ARRAY,"items",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_NOEDITOR), _SCS("_set_items"),_SCS("_get_items") );
+	ADD_PROPERTYNO( PropertyInfo(Variant::BOOL, "hide_on_item_selection" ), _SCS("set_hide_on_item_selection"), _SCS("is_hide_on_item_selection") );
 
 	ADD_SIGNAL( MethodInfo("item_pressed", PropertyInfo( Variant::INT,"ID") ) );
 
@@ -1128,6 +1174,7 @@ PopupMenu::PopupMenu() {
 
 	set_focus_mode(FOCUS_ALL);
 	set_as_toplevel(true);
+	set_hide_on_item_selection(true);
 
 	submenu_timer = memnew( Timer );
 	submenu_timer->set_wait_time(0.3);

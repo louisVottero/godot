@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,7 +36,7 @@ class Mesh;
 
 class NavigationMesh : public Resource  {
 
-	OBJ_TYPE( NavigationMesh, Resource );
+	GDCLASS( NavigationMesh, Resource );
 
 	DVector<Vector3> vertices;
 	struct Polygon {
@@ -83,7 +83,7 @@ class Navigation;
 
 class NavigationMeshInstance : public Spatial {
 
-	OBJ_TYPE(NavigationMeshInstance,Spatial);
+	GDCLASS(NavigationMeshInstance,Spatial);
 
 	bool enabled;
 	int nav_id;

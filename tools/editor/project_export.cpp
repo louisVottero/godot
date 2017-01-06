@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -274,7 +274,7 @@ void ProjectExportDialog::_script_edited(Variant v) {
 
 void ProjectExportDialog::_sample_convert_edited(int what) {
 	EditorImportExport::get_singleton()->sample_set_action( EditorImportExport::SampleAction(sample_mode->get_selected()));
-	EditorImportExport::get_singleton()->sample_set_max_hz(  sample_max_hz->get_val() );
+	EditorImportExport::get_singleton()->sample_set_max_hz(  sample_max_hz->get_value() );
 	EditorImportExport::get_singleton()->sample_set_trim(  sample_trim->is_pressed() );
 	_save_export_cfg();
 
@@ -325,8 +325,8 @@ void ProjectExportDialog::_notification(int p_what) {
 				tree_vb->show();
 
 			image_action->select(EditorImportExport::get_singleton()->get_export_image_action());
-			image_quality->set_val(EditorImportExport::get_singleton()->get_export_image_quality());
-			image_shrink->set_val(EditorImportExport::get_singleton()->get_export_image_shrink());
+			image_quality->set_value(EditorImportExport::get_singleton()->get_export_image_quality());
+			image_shrink->set_value(EditorImportExport::get_singleton()->get_export_image_shrink());
 			_update_script();
 
 
@@ -350,7 +350,7 @@ void ProjectExportDialog::_notification(int p_what) {
 			_update_group_tree();
 
 			sample_mode->select( EditorImportExport::get_singleton()->sample_get_action() );
-			sample_max_hz->set_val( EditorImportExport::get_singleton()->sample_get_max_hz() );
+			sample_max_hz->set_value( EditorImportExport::get_singleton()->sample_get_max_hz() );
 			sample_trim->set_pressed( EditorImportExport::get_singleton()->sample_get_trim() );
 
 			sample_mode->connect("item_selected",this,"_sample_convert_edited");
@@ -448,7 +448,7 @@ void ProjectExportDialog::_export_mode_changed(int p_idx) {
 
 void ProjectExportDialog::_export_action(const String& p_file) {
 
-	String location = Globals::get_singleton()->globalize_path(p_file).get_base_dir().replace("\\","/");
+	String location = GlobalConfig::get_singleton()->globalize_path(p_file).get_base_dir().replace("\\","/");
 
 	while(true) {
 
@@ -589,6 +589,11 @@ void ProjectExportDialog::custom_action(const String&) {
 		return;
 	}
 
+	if (platform.to_lower()=="android" && _check_android_setting(exporter)==false){
+		// not filled all field for Android release
+		return;
+	}
+
 	String extension = exporter->get_binary_extension();
 
 	file_export_password->set_editable( exporter->requires_password(exporter->is_debugging_enabled()) );
@@ -602,6 +607,204 @@ void ProjectExportDialog::custom_action(const String&) {
 
 }
 
+LineEdit* ProjectExportDialog::_create_keystore_input(Control* container, const String& p_label, const String& name) {
+
+	HBoxContainer* hb=memnew(HBoxContainer);
+	Label* lb=memnew(Label);
+	LineEdit* input=memnew(LineEdit);
+
+	lb->set_text(p_label);
+	lb->set_custom_minimum_size(Size2(140*EDSCALE,0));
+	lb->set_align(Label::ALIGN_RIGHT);
+
+	input->set_custom_minimum_size(Size2(170*EDSCALE,0));
+	input->set_name(name);
+
+	hb->add_constant_override("separation", 10*EDSCALE);
+	hb->add_child(lb);
+	hb->add_child(input);
+	container->add_child(hb);
+
+	return input;
+
+}
+
+void ProjectExportDialog::_create_android_keystore_window() {
+
+	keystore_file_dialog = memnew( EditorFileDialog );
+	add_child(keystore_file_dialog);
+	keystore_file_dialog->set_mode(EditorFileDialog::MODE_OPEN_DIR);
+	keystore_file_dialog->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
+	keystore_file_dialog->set_current_dir( "res://" );
+
+	keystore_file_dialog->set_title(TTR("Target Path:"));
+	keystore_file_dialog->connect("dir_selected", this,"_keystore_dir_selected");
+
+	keystore_create_dialog=memnew(ConfirmationDialog);
+	VBoxContainer* vb=memnew(VBoxContainer);
+	vb->set_size(Size2(340*EDSCALE,0));
+	keystore_create_dialog->set_title(TTR("Create Android keystore"));
+
+	_create_keystore_input(vb, TTR("Full name"), "name");
+	_create_keystore_input(vb, TTR("Organizational unit"), "unit");
+	_create_keystore_input(vb, TTR("Organization"), "org");
+	_create_keystore_input(vb, TTR("City"), "city");
+	_create_keystore_input(vb, TTR("State"), "state");
+	_create_keystore_input(vb, TTR("2 letter country code"), "code");
+	_create_keystore_input(vb, TTR("User alias"), "alias");
+	LineEdit* pass=_create_keystore_input(vb, TTR("Password"), "pass");
+	pass->set_placeholder(TTR("at least 6 characters"));
+	_create_keystore_input(vb, TTR("File name"), "file");
+
+	Label* lb_path=memnew(Label);
+	LineEdit* path=memnew(LineEdit);
+	Button* btn=memnew(Button);
+	HBoxContainer* hb=memnew(HBoxContainer);
+
+	lb_path->set_text(TTR("Path : (better to save outside of project)"));
+	path->set_h_size_flags(SIZE_EXPAND_FILL);
+	path->set_name("path");
+	btn->set_text(" .. ");
+	btn->connect("pressed", keystore_file_dialog, "popup_centered_ratio");
+
+	vb->add_spacer();
+	vb->add_child(lb_path);
+	hb->add_child(path);
+	hb->add_child(btn);
+	vb->add_child(hb);
+
+	keystore_create_dialog->add_child(vb);
+	keystore_create_dialog->set_child_rect(vb);
+	add_child(keystore_create_dialog);
+
+	keystore_create_dialog->connect("confirmed", this, "_create_android_keystore");
+	path->connect("text_changed", this, "_check_keystore_path");
+
+	confirm_keystore = memnew(ConfirmationDialog);
+	confirm_keystore->connect("confirmed", keystore_create_dialog, "popup_centered_minsize");
+	add_child(confirm_keystore);
+
+}
+
+void ProjectExportDialog::_keystore_dir_selected(const String& path) {
+
+	LineEdit* edit=keystore_create_dialog->find_node("path", true, false)->cast_to<LineEdit>();
+	edit->set_text(path.simplify_path());
+
+}
+
+void ProjectExportDialog::_keystore_created() {
+
+	if (error->is_connected("popup_hide", this, "_keystore_created")){
+		error->disconnect("popup_hide", this, "_keystore_created");
+	}
+	custom_action("export_pck");
+
+}
+
+void ProjectExportDialog::_check_keystore_path(const String& path) {
+
+	LineEdit* edit=keystore_create_dialog->find_node("path", true, false)->cast_to<LineEdit>();
+	bool exists = DirAccess::exists(path);
+	if (!exists) {
+		edit->add_color_override("font_color", Color(1,0,0,1));
+	} else {
+		edit->add_color_override("font_color", Color(0,1,0,1));
+	}
+
+}
+
+void ProjectExportDialog::_create_android_keystore() {
+
+	Vector<String> names=String("name,unit,org,city,state,code,alias,pass").split(",");
+	String path=keystore_create_dialog->find_node("path", true, false)->cast_to<LineEdit>()->get_text();
+	String file=keystore_create_dialog->find_node("file", true, false)->cast_to<LineEdit>()->get_text();
+
+	if (file.ends_with(".keystore")==false) {
+		file+=".keystore";
+	}
+	String fullpath=path.plus_file(file);
+	String info="CN=$name, OU=$unit, O=$org, L=$city, S=$state, C=$code";
+	Dictionary dic;
+
+	for (int i=0;i<names.size();i++){
+		LineEdit* edit = keystore_create_dialog->find_node(names[i], true, false)->cast_to<LineEdit>();
+		dic[names[i]]=edit->get_text();
+		info=info.replace("$"+names[i], edit->get_text());
+	}
+
+	String jarsigner=EditorSettings::get_singleton()->get("export/android/jarsigner");
+	String keytool=jarsigner.get_base_dir().plus_file("keytool");
+	String os_name=OS::get_singleton()->get_name();
+	if (os_name.to_lower()=="windows") {
+		keytool+=".exe";
+	}
+
+	bool exist=FileAccess::exists(keytool);
+	if (!exist) {
+		error->set_text("Can't find 'keytool'");
+		error->popup_centered_minsize();
+		return;
+	}
+
+	List<String> args;
+	args.push_back("-genkey");
+	args.push_back("-v");
+	args.push_back("-keystore");
+	args.push_back(fullpath);
+	args.push_back("-alias");
+	args.push_back(dic["alias"]);
+	args.push_back("-storepass");
+	args.push_back(dic["pass"]);
+	args.push_back("-keypass");
+	args.push_back(dic["pass"]);
+	args.push_back("-keyalg");
+	args.push_back("RSA");
+	args.push_back("-keysize");
+	args.push_back("2048");
+	args.push_back("-validity");
+	args.push_back("10000");
+	args.push_back("-dname");
+	args.push_back(info);
+	int retval;
+	OS::get_singleton()->execute(keytool,args,true,NULL,NULL,&retval);
+
+	if (retval==0) { // success
+		platform_options->_edit_set("keystore/release", fullpath);
+		platform_options->_edit_set("keystore/release_user", dic["alias"]);
+		platform_options->_edit_set("keystore/release_password", dic["pass"]);
+
+		error->set_text("Android keystore created at \n"+fullpath);
+		error->connect("popup_hide", this, "_keystore_created");
+		error->popup_centered_minsize();
+	} else { // fail
+		error->set_text("Fail to create android keystore at \n"+fullpath);
+		error->popup_centered_minsize();
+	}
+
+}
+
+bool ProjectExportDialog::_check_android_setting(const Ref<EditorExportPlatform>& exporter) {
+
+	bool is_debugging = exporter->get("debug/debugging_enabled");
+	String release = exporter->get("keystore/release");
+	String user = exporter->get("keystore/release_user");
+	String password = exporter->get("keystore/release_password");
+
+	if (!is_debugging && (release=="" || user=="" || password=="")){
+		if (release==""){
+			confirm_keystore->set_text(TTR("Release keystore is not set.\nDo you want to create one?"));
+			confirm_keystore->popup_centered_minsize();
+		} else {
+			error->set_text(TTR("Fill Keystore/Release User and Release Password"));
+			error->popup_centered_minsize();
+		}
+		return false;
+	}
+
+	return true;
+
+}
 
 void ProjectExportDialog::_group_selected() {
 
@@ -683,8 +886,8 @@ void ProjectExportDialog::_update_group() {
 		StringName name = _get_selected_group();
 		group_image_action->select(EditorImportExport::get_singleton()->image_export_group_get_image_action(name));
 		group_atlas->set_pressed(EditorImportExport::get_singleton()->image_export_group_get_make_atlas(name));
-		group_shrink->set_val(EditorImportExport::get_singleton()->image_export_group_get_shrink(name));
-		group_lossy_quality->set_val(EditorImportExport::get_singleton()->image_export_group_get_lossy_quality(name));
+		group_shrink->set_value(EditorImportExport::get_singleton()->image_export_group_get_shrink(name));
+		group_lossy_quality->set_value(EditorImportExport::get_singleton()->image_export_group_get_lossy_quality(name));
 		if (group_atlas->is_pressed())
 			atlas_preview->show();
 		else
@@ -806,8 +1009,8 @@ void ProjectExportDialog::_group_changed(Variant v) {
 	EditorNode::get_undo_redo()->create_action(TTR("Change Image Group"));
 	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_image_action",name,group_image_action->get_selected());
 	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_make_atlas",name,group_atlas->is_pressed());
-	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_shrink",name,group_shrink->get_val());
-	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_lossy_quality",name,group_lossy_quality->get_val());
+	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_shrink",name,group_shrink->get_value());
+	EditorNode::get_undo_redo()->add_do_method(EditorImportExport::get_singleton(),"image_export_group_set_lossy_quality",name,group_lossy_quality->get_value());
 	EditorNode::get_undo_redo()->add_undo_method(EditorImportExport::get_singleton(),"image_export_group_set_image_action",name,EditorImportExport::get_singleton()->image_export_group_get_image_action(name));
 	EditorNode::get_undo_redo()->add_undo_method(EditorImportExport::get_singleton(),"image_export_group_set_make_atlas",name,EditorImportExport::get_singleton()->image_export_group_get_make_atlas(name));
 	EditorNode::get_undo_redo()->add_undo_method(EditorImportExport::get_singleton(),"image_export_group_set_shrink",name,EditorImportExport::get_singleton()->image_export_group_get_shrink(name));
@@ -1040,11 +1243,11 @@ void ProjectExportDialog::_group_atlas_preview() {
 
 	int flags=0;
 
-	if (Globals::get_singleton()->get("image_loader/filter"))
+	if (GlobalConfig::get_singleton()->get("image_loader/filter"))
 		flags|=EditorTextureImportPlugin::IMAGE_FLAG_FILTER;
-	if (!Globals::get_singleton()->get("image_loader/gen_mipmaps"))
+	if (!GlobalConfig::get_singleton()->get("image_loader/gen_mipmaps"))
 		flags|=EditorTextureImportPlugin::IMAGE_FLAG_NO_MIPMAPS;
-	if (!Globals::get_singleton()->get("image_loader/repeat"))
+	if (!GlobalConfig::get_singleton()->get("image_loader/repeat"))
 		flags|=EditorTextureImportPlugin::IMAGE_FLAG_REPEAT;
 
 	flags|=EditorTextureImportPlugin::IMAGE_FLAG_FIX_BORDER_ALPHA;
@@ -1089,40 +1292,44 @@ void ProjectExportDialog::_image_filter_changed(String) {
 void ProjectExportDialog::_bind_methods() {
 
 
-	ObjectTypeDB::bind_method(_MD("_rescan"),&ProjectExportDialog::_rescan);
-	ObjectTypeDB::bind_method(_MD("_tree_changed"),&ProjectExportDialog::_tree_changed);
-	ObjectTypeDB::bind_method(_MD("_scan_finished"),&ProjectExportDialog::_scan_finished);
-	ObjectTypeDB::bind_method(_MD("_platform_selected"),&ProjectExportDialog::_platform_selected);
-	ObjectTypeDB::bind_method(_MD("_prop_edited"),&ProjectExportDialog::_prop_edited);
-	ObjectTypeDB::bind_method(_MD("_export_mode_changed"),&ProjectExportDialog::_export_mode_changed);
-	ObjectTypeDB::bind_method(_MD("_filters_edited"),&ProjectExportDialog::_filters_edited);
-	ObjectTypeDB::bind_method(_MD("_filters_exclude_edited"),&ProjectExportDialog::_filters_exclude_edited);
-	ObjectTypeDB::bind_method(_MD("_export_action"),&ProjectExportDialog::_export_action);
-	ObjectTypeDB::bind_method(_MD("_export_action_pck"),&ProjectExportDialog::_export_action_pck);
-	ObjectTypeDB::bind_method(_MD("_quality_edited"),&ProjectExportDialog::_quality_edited);
-	ObjectTypeDB::bind_method(_MD("_shrink_edited"),&ProjectExportDialog::_shrink_edited);
-	ObjectTypeDB::bind_method(_MD("_image_export_edited"),&ProjectExportDialog::_image_export_edited);
-	ObjectTypeDB::bind_method(_MD("_format_toggled"),&ProjectExportDialog::_format_toggled);
-	ObjectTypeDB::bind_method(_MD("_group_changed"),&ProjectExportDialog::_group_changed);
-	ObjectTypeDB::bind_method(_MD("_group_add"),&ProjectExportDialog::_group_add);
-	ObjectTypeDB::bind_method(_MD("_group_del"),&ProjectExportDialog::_group_del);
-	ObjectTypeDB::bind_method(_MD("_group_selected"),&ProjectExportDialog::_group_selected);
-	ObjectTypeDB::bind_method(_MD("_update_group"),&ProjectExportDialog::_update_group);
-	ObjectTypeDB::bind_method(_MD("_update_group_list"),&ProjectExportDialog::_update_group_list);
-	ObjectTypeDB::bind_method(_MD("_select_group"),&ProjectExportDialog::_select_group);
-	ObjectTypeDB::bind_method(_MD("_update_group_tree"),&ProjectExportDialog::_update_group_tree);
-	ObjectTypeDB::bind_method(_MD("_group_item_edited"),&ProjectExportDialog::_group_item_edited);
-	ObjectTypeDB::bind_method(_MD("_save_export_cfg"),&ProjectExportDialog::_save_export_cfg);
-	ObjectTypeDB::bind_method(_MD("_image_filter_changed"),&ProjectExportDialog::_image_filter_changed);
-	ObjectTypeDB::bind_method(_MD("_group_atlas_preview"),&ProjectExportDialog::_group_atlas_preview);
-	ObjectTypeDB::bind_method(_MD("_group_select_all"),&ProjectExportDialog::_group_select_all);
-	ObjectTypeDB::bind_method(_MD("_group_select_none"),&ProjectExportDialog::_group_select_none);
-	ObjectTypeDB::bind_method(_MD("_script_edited"),&ProjectExportDialog::_script_edited);
-	ObjectTypeDB::bind_method(_MD("_update_script"),&ProjectExportDialog::_update_script);
-	ObjectTypeDB::bind_method(_MD("_sample_convert_edited"),&ProjectExportDialog::_sample_convert_edited);
+	ClassDB::bind_method(_MD("_rescan"),&ProjectExportDialog::_rescan);
+	ClassDB::bind_method(_MD("_tree_changed"),&ProjectExportDialog::_tree_changed);
+	ClassDB::bind_method(_MD("_scan_finished"),&ProjectExportDialog::_scan_finished);
+	ClassDB::bind_method(_MD("_platform_selected"),&ProjectExportDialog::_platform_selected);
+	ClassDB::bind_method(_MD("_prop_edited"),&ProjectExportDialog::_prop_edited);
+	ClassDB::bind_method(_MD("_export_mode_changed"),&ProjectExportDialog::_export_mode_changed);
+	ClassDB::bind_method(_MD("_filters_edited"),&ProjectExportDialog::_filters_edited);
+	ClassDB::bind_method(_MD("_filters_exclude_edited"),&ProjectExportDialog::_filters_exclude_edited);
+	ClassDB::bind_method(_MD("_export_action"),&ProjectExportDialog::_export_action);
+	ClassDB::bind_method(_MD("_export_action_pck"),&ProjectExportDialog::_export_action_pck);
+	ClassDB::bind_method(_MD("_quality_edited"),&ProjectExportDialog::_quality_edited);
+	ClassDB::bind_method(_MD("_shrink_edited"),&ProjectExportDialog::_shrink_edited);
+	ClassDB::bind_method(_MD("_image_export_edited"),&ProjectExportDialog::_image_export_edited);
+	ClassDB::bind_method(_MD("_format_toggled"),&ProjectExportDialog::_format_toggled);
+	ClassDB::bind_method(_MD("_group_changed"),&ProjectExportDialog::_group_changed);
+	ClassDB::bind_method(_MD("_group_add"),&ProjectExportDialog::_group_add);
+	ClassDB::bind_method(_MD("_group_del"),&ProjectExportDialog::_group_del);
+	ClassDB::bind_method(_MD("_group_selected"),&ProjectExportDialog::_group_selected);
+	ClassDB::bind_method(_MD("_update_group"),&ProjectExportDialog::_update_group);
+	ClassDB::bind_method(_MD("_update_group_list"),&ProjectExportDialog::_update_group_list);
+	ClassDB::bind_method(_MD("_select_group"),&ProjectExportDialog::_select_group);
+	ClassDB::bind_method(_MD("_update_group_tree"),&ProjectExportDialog::_update_group_tree);
+	ClassDB::bind_method(_MD("_group_item_edited"),&ProjectExportDialog::_group_item_edited);
+	ClassDB::bind_method(_MD("_save_export_cfg"),&ProjectExportDialog::_save_export_cfg);
+	ClassDB::bind_method(_MD("_image_filter_changed"),&ProjectExportDialog::_image_filter_changed);
+	ClassDB::bind_method(_MD("_group_atlas_preview"),&ProjectExportDialog::_group_atlas_preview);
+	ClassDB::bind_method(_MD("_group_select_all"),&ProjectExportDialog::_group_select_all);
+	ClassDB::bind_method(_MD("_group_select_none"),&ProjectExportDialog::_group_select_none);
+	ClassDB::bind_method(_MD("_script_edited"),&ProjectExportDialog::_script_edited);
+	ClassDB::bind_method(_MD("_update_script"),&ProjectExportDialog::_update_script);
+	ClassDB::bind_method(_MD("_sample_convert_edited"),&ProjectExportDialog::_sample_convert_edited);
 
 
-	ObjectTypeDB::bind_method(_MD("export_platform"),&ProjectExportDialog::export_platform);
+	ClassDB::bind_method(_MD("export_platform"),&ProjectExportDialog::export_platform);
+	ClassDB::bind_method(_MD("_create_android_keystore"),&ProjectExportDialog::_create_android_keystore);
+	ClassDB::bind_method(_MD("_check_keystore_path"),&ProjectExportDialog::_check_keystore_path);
+	ClassDB::bind_method(_MD("_keystore_dir_selected"),&ProjectExportDialog::_keystore_dir_selected);
+	ClassDB::bind_method(_MD("_keystore_created"),&ProjectExportDialog::_keystore_created);
 
 
 //	ADD_SIGNAL(MethodInfo("instance"));
@@ -1309,7 +1516,7 @@ ProjectExportDialog::ProjectExportDialog(EditorNode *p_editor) {
 	group_lossy_quality->set_min(0.1);
 	group_lossy_quality->set_max(1.0);
 	group_lossy_quality->set_step(0.01);
-	group_lossy_quality->set_val(0.7);
+	group_lossy_quality->set_value(0.7);
 	group_lossy_quality->connect("value_changed",this,"_quality_edited");
 
 	HBoxContainer *gqhb = memnew( HBoxContainer );
@@ -1328,7 +1535,7 @@ ProjectExportDialog::ProjectExportDialog(EditorNode *p_editor) {
 	group_shrink = memnew(SpinBox);
 	group_shrink->set_min(1);
 	group_shrink->set_max(8);
-	group_shrink->set_val(1);
+	group_shrink->set_value(1);
 	group_shrink->set_step(0.001);
 	group_options->add_margin_child(TTR("Shrink By:"),group_shrink);
 	group_shrink->connect("value_changed",this,"_group_changed");
@@ -1454,7 +1661,7 @@ ProjectExportDialog::ProjectExportDialog(EditorNode *p_editor) {
 	file_export = memnew( EditorFileDialog );
 	add_child(file_export);
 	file_export->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
-	file_export->set_current_dir( EditorSettings::get_singleton()->get("global/default_project_export_path") );
+	file_export->set_current_dir( EditorSettings::get_singleton()->get("filesystem/directories/default_project_export_path") );
 
 	file_export->set_title(TTR("Export Project"));
 	file_export->connect("file_selected", this,"_export_action");
@@ -1466,7 +1673,7 @@ ProjectExportDialog::ProjectExportDialog(EditorNode *p_editor) {
 
 	pck_export = memnew( EditorFileDialog );
 	pck_export->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
-	pck_export->set_current_dir( EditorSettings::get_singleton()->get("global/default_project_export_path") );
+	pck_export->set_current_dir( EditorSettings::get_singleton()->get("filesystem/directories/default_project_export_path") );
 	pck_export->set_title(TTR("Export Project PCK"));
 	pck_export->connect("file_selected", this,"_export_action_pck");
 	pck_export->add_filter("*.pck ; Data Pack");
@@ -1479,6 +1686,8 @@ ProjectExportDialog::ProjectExportDialog(EditorNode *p_editor) {
 	ei="EditorIcons";
 	ot="Object";
 	pending_update_tree=true;
+
+	_create_android_keystore_window();
 }
 
 
@@ -1493,7 +1702,7 @@ void ProjectExport::popup_export() {
 	presets.insert("default");
 
 	List<PropertyInfo> pi;
-	Globals::get_singleton()->get_property_list(&pi);
+	GlobalConfig::get_singleton()->get_property_list(&pi);
 	export_preset->clear();
 
 	for (List<PropertyInfo>::Element *E=pi.front();E;E=E->next()) {
@@ -1523,8 +1732,8 @@ Error ProjectExport::export_project(const String& p_preset) {
 
 	String selected=p_preset;
 
-	DVector<String> preset_settings = Globals::get_singleton()->get("export_presets/"+selected);
-	String preset_path=Globals::get_singleton()->get("export_presets_path/"+selected);
+	DVector<String> preset_settings = GlobalConfig::get_singleton()->get("export_presets/"+selected);
+	String preset_path=GlobalConfig::get_singleton()->get("export_presets_path/"+selected);
 	if (preset_path=="") {
 
 		error->set_text("Export path empty, see export options");
@@ -1578,7 +1787,7 @@ Error ProjectExport::export_project(const String& p_preset) {
 		}
 	}
 
-	Vector<String> names = Globals::get_singleton()->get_optimizer_presets();
+	Vector<String> names = GlobalConfig::get_singleton()->get_optimizer_presets();
 
 	//prepare base paths
 
@@ -1688,7 +1897,7 @@ Error ProjectExport::export_project(const String& p_preset) {
 
 		print_line("Exporting "+itos(idx)+"/"+itos(export_action.size())+": "+path);
 
-		String base_dir = Globals::get_singleton()->localize_path(path.get_base_dir()).replace("\\","/").replace("res://","");
+		String base_dir = GlobalConfig::get_singleton()->localize_path(path.get_base_dir()).replace("\\","/").replace("res://","");
 		DirAccess *da=DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
 		String cwd = d->get_current_dir();
 		da->change_dir(cwd);
@@ -1738,14 +1947,14 @@ Error ProjectExport::export_project(const String& p_preset) {
 			delete_source=true;
 			//create an optimized source file
 
-			if (!Globals::get_singleton()->has("optimizer_presets/"+preset)) {
+			if (!GlobalConfig::get_singleton()->has("optimizer_presets/"+preset)) {
 				memdelete(d);
 				ERR_EXPLAIN("Unknown optimizer preset: "+preset);
 				ERR_FAIL_V(ERR_INVALID_DATA);
 			}
 
 
-			Dictionary dc = Globals::get_singleton()->get("optimizer_presets/"+preset);
+			Dictionary dc = GlobalConfig::get_singleton()->get("optimizer_presets/"+preset);
 
 			ERR_FAIL_COND_V(!dc.has("__type__"),ERR_INVALID_DATA);
 			String type=dc["__type__"];
@@ -1890,7 +2099,7 @@ Error ProjectExport::export_project(const String& p_preset) {
 
 	String engine_cfg_path=d->get_current_dir()+"/engine.cfg";
 	print_line("enginecfg: "+engine_cfg_path);
-	Globals::get_singleton()->save_custom(engine_cfg_path,added_settings);
+	GlobalConfig::get_singleton()->save_custom(engine_cfg_path,added_settings);
 
 	memdelete(d);
 	return OK;

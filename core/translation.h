@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -35,7 +35,7 @@
 class Translation : public Resource {
 
 
-	OBJ_TYPE( Translation, Resource );
+	GDCLASS( Translation, Resource );
 	OBJ_SAVE_TYPE( Translation );
 	RES_BASE_EXTENSION("xl");
 
@@ -68,7 +68,7 @@ public:
 
 class TranslationServer : public Object {
 
-	OBJ_TYPE(TranslationServer, Object);
+	GDCLASS(TranslationServer, Object);
 
 	String locale;
 	String fallback;

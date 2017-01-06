@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -39,11 +39,9 @@ void MenuButton::_unhandled_key_input(InputEvent p_event) {
 		if (!get_parent() || !is_visible() || is_disabled())
 			return;
 
-		if (get_viewport()->get_modal_stack_top() && !get_viewport()->get_modal_stack_top()->is_a_parent_of(this))
-			return; //ignore because of modal window
+		bool global_only = (get_viewport()->get_modal_stack_top() && !get_viewport()->get_modal_stack_top()->is_a_parent_of(this));
 
-
-		if (popup->activate_item_by_event(p_event))
+		if (popup->activate_item_by_event(p_event,global_only))
 			accept_event();
 	}
 }
@@ -100,10 +98,10 @@ void MenuButton::_set_items(const Array& p_items) {
 
 void MenuButton::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_popup:PopupMenu"),&MenuButton::get_popup);
-	ObjectTypeDB::bind_method(_MD("_unhandled_key_input"),&MenuButton::_unhandled_key_input);
-	ObjectTypeDB::bind_method(_MD("_set_items"),&MenuButton::_set_items);
-	ObjectTypeDB::bind_method(_MD("_get_items"),&MenuButton::_get_items);
+	ClassDB::bind_method(_MD("get_popup:PopupMenu"),&MenuButton::get_popup);
+	ClassDB::bind_method(_MD("_unhandled_key_input"),&MenuButton::_unhandled_key_input);
+	ClassDB::bind_method(_MD("_set_items"),&MenuButton::_set_items);
+	ClassDB::bind_method(_MD("_get_items"),&MenuButton::_get_items);
 
 	ADD_PROPERTY( PropertyInfo(Variant::ARRAY,"items",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_NOEDITOR), _SCS("_set_items"),_SCS("_get_items") );
 

@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -349,26 +349,26 @@ Vector2Array Curve2D::get_points_pos() const {
 
 void Curve2D::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_point_count"),&Curve2D::get_point_count);
-	ObjectTypeDB::bind_method(_MD("add_point","pos","in","out"),&Curve2D::add_point,DEFVAL(Vector2()),DEFVAL(Vector2()));
-	ObjectTypeDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve2D::set_point_pos);
-	ObjectTypeDB::bind_method(_MD("get_point_pos","idx"),&Curve2D::get_point_pos);
-	ObjectTypeDB::bind_method(_MD("set_point_in","idx","pos"),&Curve2D::set_point_in);
-	ObjectTypeDB::bind_method(_MD("get_point_in","idx"),&Curve2D::get_point_in);
-	ObjectTypeDB::bind_method(_MD("set_point_out","idx","pos"),&Curve2D::set_point_out);
-	ObjectTypeDB::bind_method(_MD("get_point_out","idx"),&Curve2D::get_point_out);
-	ObjectTypeDB::bind_method(_MD("remove_point","idx"),&Curve2D::remove_point);
-	ObjectTypeDB::bind_method(_MD("interpolate","idx","t"),&Curve2D::interpolate);
-	ObjectTypeDB::bind_method(_MD("bake","subdivs"),&Curve2D::bake,DEFVAL(10));
+	ClassDB::bind_method(_MD("get_point_count"),&Curve2D::get_point_count);
+	ClassDB::bind_method(_MD("add_point","pos","in","out"),&Curve2D::add_point,DEFVAL(Vector2()),DEFVAL(Vector2()));
+	ClassDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve2D::set_point_pos);
+	ClassDB::bind_method(_MD("get_point_pos","idx"),&Curve2D::get_point_pos);
+	ClassDB::bind_method(_MD("set_point_in","idx","pos"),&Curve2D::set_point_in);
+	ClassDB::bind_method(_MD("get_point_in","idx"),&Curve2D::get_point_in);
+	ClassDB::bind_method(_MD("set_point_out","idx","pos"),&Curve2D::set_point_out);
+	ClassDB::bind_method(_MD("get_point_out","idx"),&Curve2D::get_point_out);
+	ClassDB::bind_method(_MD("remove_point","idx"),&Curve2D::remove_point);
+	ClassDB::bind_method(_MD("interpolate","idx","t"),&Curve2D::interpolate);
+	ClassDB::bind_method(_MD("bake","subdivs"),&Curve2D::bake,DEFVAL(10));
 
 
-	ObjectTypeDB::bind_method(_MD("set_points_in"),&Curve2D::set_points_in);
-	ObjectTypeDB::bind_method(_MD("set_points_out"),&Curve2D::set_points_out);
-	ObjectTypeDB::bind_method(_MD("set_points_pos"),&Curve2D::set_points_pos);
+	ClassDB::bind_method(_MD("set_points_in"),&Curve2D::set_points_in);
+	ClassDB::bind_method(_MD("set_points_out"),&Curve2D::set_points_out);
+	ClassDB::bind_method(_MD("set_points_pos"),&Curve2D::set_points_pos);
 
-	ObjectTypeDB::bind_method(_MD("get_points_in"),&Curve2D::get_points_in);
-	ObjectTypeDB::bind_method(_MD("get_points_out"),&Curve2D::get_points_out);
-	ObjectTypeDB::bind_method(_MD("get_points_pos"),&Curve2D::get_points_pos);
+	ClassDB::bind_method(_MD("get_points_in"),&Curve2D::get_points_in);
+	ClassDB::bind_method(_MD("get_points_out"),&Curve2D::get_points_out);
+	ClassDB::bind_method(_MD("get_points_pos"),&Curve2D::get_points_pos);
 
 	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2_ARRAY, "points_in"), _SCS("set_points_in"),_SCS("get_points_in"));
 	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2_ARRAY, "points_out"), _SCS("set_points_out"),_SCS("get_points_out"));
@@ -462,6 +462,14 @@ void Curve2D::remove_point(int p_index) {
 	points.remove(p_index);
 	baked_cache_dirty=true;
 	emit_signal(CoreStringNames::get_singleton()->changed);
+}
+
+void Curve2D::clear_points() {
+	if (!points.empty()) {
+		points.clear();
+		baked_cache_dirty=true;
+		emit_signal(CoreStringNames::get_singleton()->changed);
+	}
 }
 
 Vector2 Curve2D::interpolate(int p_index, float p_offset) const {
@@ -781,28 +789,29 @@ Vector2Array Curve2D::tesselate(int p_max_stages,float p_tolerance) const {
 
 void Curve2D::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_point_count"),&Curve2D::get_point_count);
-	ObjectTypeDB::bind_method(_MD("add_point","pos","in","out","atpos"),&Curve2D::add_point,DEFVAL(Vector2()),DEFVAL(Vector2()),DEFVAL(-1));
-	ObjectTypeDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve2D::set_point_pos);
-	ObjectTypeDB::bind_method(_MD("get_point_pos","idx"),&Curve2D::get_point_pos);
-	ObjectTypeDB::bind_method(_MD("set_point_in","idx","pos"),&Curve2D::set_point_in);
-	ObjectTypeDB::bind_method(_MD("get_point_in","idx"),&Curve2D::get_point_in);
-	ObjectTypeDB::bind_method(_MD("set_point_out","idx","pos"),&Curve2D::set_point_out);
-	ObjectTypeDB::bind_method(_MD("get_point_out","idx"),&Curve2D::get_point_out);
-	ObjectTypeDB::bind_method(_MD("remove_point","idx"),&Curve2D::remove_point);
-	ObjectTypeDB::bind_method(_MD("interpolate","idx","t"),&Curve2D::interpolate);
-	ObjectTypeDB::bind_method(_MD("interpolatef","fofs"),&Curve2D::interpolatef);
-	//ObjectTypeDB::bind_method(_MD("bake","subdivs"),&Curve2D::bake,DEFVAL(10));
-	ObjectTypeDB::bind_method(_MD("set_bake_interval","distance"),&Curve2D::set_bake_interval);
-	ObjectTypeDB::bind_method(_MD("get_bake_interval"),&Curve2D::get_bake_interval);
+	ClassDB::bind_method(_MD("get_point_count"),&Curve2D::get_point_count);
+	ClassDB::bind_method(_MD("add_point","pos","in","out","atpos"),&Curve2D::add_point,DEFVAL(Vector2()),DEFVAL(Vector2()),DEFVAL(-1));
+	ClassDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve2D::set_point_pos);
+	ClassDB::bind_method(_MD("get_point_pos","idx"),&Curve2D::get_point_pos);
+	ClassDB::bind_method(_MD("set_point_in","idx","pos"),&Curve2D::set_point_in);
+	ClassDB::bind_method(_MD("get_point_in","idx"),&Curve2D::get_point_in);
+	ClassDB::bind_method(_MD("set_point_out","idx","pos"),&Curve2D::set_point_out);
+	ClassDB::bind_method(_MD("get_point_out","idx"),&Curve2D::get_point_out);
+	ClassDB::bind_method(_MD("remove_point","idx"),&Curve2D::remove_point);
+	ClassDB::bind_method(_MD("clear_points"),&Curve2D::clear_points);
+	ClassDB::bind_method(_MD("interpolate","idx","t"),&Curve2D::interpolate);
+	ClassDB::bind_method(_MD("interpolatef","fofs"),&Curve2D::interpolatef);
+	//ClassDB::bind_method(_MD("bake","subdivs"),&Curve2D::bake,DEFVAL(10));
+	ClassDB::bind_method(_MD("set_bake_interval","distance"),&Curve2D::set_bake_interval);
+	ClassDB::bind_method(_MD("get_bake_interval"),&Curve2D::get_bake_interval);
 
-	ObjectTypeDB::bind_method(_MD("get_baked_length"),&Curve2D::get_baked_length);
-	ObjectTypeDB::bind_method(_MD("interpolate_baked","offset","cubic"),&Curve2D::interpolate_baked,DEFVAL(false));
-	ObjectTypeDB::bind_method(_MD("get_baked_points"),&Curve2D::get_baked_points);
-	ObjectTypeDB::bind_method(_MD("tesselate","max_stages","tolerance_degrees"),&Curve2D::tesselate,DEFVAL(5),DEFVAL(4));
+	ClassDB::bind_method(_MD("get_baked_length"),&Curve2D::get_baked_length);
+	ClassDB::bind_method(_MD("interpolate_baked","offset","cubic"),&Curve2D::interpolate_baked,DEFVAL(false));
+	ClassDB::bind_method(_MD("get_baked_points"),&Curve2D::get_baked_points);
+	ClassDB::bind_method(_MD("tesselate","max_stages","tolerance_degrees"),&Curve2D::tesselate,DEFVAL(5),DEFVAL(4));
 
-	ObjectTypeDB::bind_method(_MD("_get_data"),&Curve2D::_get_data);
-	ObjectTypeDB::bind_method(_MD("_set_data"),&Curve2D::_set_data);
+	ClassDB::bind_method(_MD("_get_data"),&Curve2D::_get_data);
+	ClassDB::bind_method(_MD("_set_data"),&Curve2D::_set_data);
 
 
 	ADD_PROPERTY( PropertyInfo( Variant::REAL, "bake_interval",PROPERTY_HINT_RANGE,"0.01,512,0.01"), _SCS("set_bake_interval"),_SCS("get_bake_interval"));
@@ -928,6 +937,15 @@ void Curve3D::remove_point(int p_index) {
 	points.remove(p_index);
 	baked_cache_dirty=true;
 	emit_signal(CoreStringNames::get_singleton()->changed);
+}
+
+void Curve3D::clear_points() {
+
+	if (!points.empty()) {
+		points.clear();
+		baked_cache_dirty=true;
+		emit_signal(CoreStringNames::get_singleton()->changed);
+	}
 }
 
 Vector3 Curve3D::interpolate(int p_index, float p_offset) const {
@@ -1311,31 +1329,32 @@ Vector3Array Curve3D::tesselate(int p_max_stages,float p_tolerance) const {
 
 void Curve3D::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_point_count"),&Curve3D::get_point_count);
-	ObjectTypeDB::bind_method(_MD("add_point","pos","in","out","atpos"),&Curve3D::add_point,DEFVAL(Vector3()),DEFVAL(Vector3()),DEFVAL(-1));
-	ObjectTypeDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve3D::set_point_pos);
-	ObjectTypeDB::bind_method(_MD("get_point_pos","idx"),&Curve3D::get_point_pos);
-	ObjectTypeDB::bind_method(_MD("set_point_tilt","idx","tilt"),&Curve3D::set_point_tilt);
-	ObjectTypeDB::bind_method(_MD("get_point_tilt","idx"),&Curve3D::get_point_tilt);
-	ObjectTypeDB::bind_method(_MD("set_point_in","idx","pos"),&Curve3D::set_point_in);
-	ObjectTypeDB::bind_method(_MD("get_point_in","idx"),&Curve3D::get_point_in);
-	ObjectTypeDB::bind_method(_MD("set_point_out","idx","pos"),&Curve3D::set_point_out);
-	ObjectTypeDB::bind_method(_MD("get_point_out","idx"),&Curve3D::get_point_out);
-	ObjectTypeDB::bind_method(_MD("remove_point","idx"),&Curve3D::remove_point);
-	ObjectTypeDB::bind_method(_MD("interpolate","idx","t"),&Curve3D::interpolate);
-	ObjectTypeDB::bind_method(_MD("interpolatef","fofs"),&Curve3D::interpolatef);
-	//ObjectTypeDB::bind_method(_MD("bake","subdivs"),&Curve3D::bake,DEFVAL(10));
-	ObjectTypeDB::bind_method(_MD("set_bake_interval","distance"),&Curve3D::set_bake_interval);
-	ObjectTypeDB::bind_method(_MD("get_bake_interval"),&Curve3D::get_bake_interval);
+	ClassDB::bind_method(_MD("get_point_count"),&Curve3D::get_point_count);
+	ClassDB::bind_method(_MD("add_point","pos","in","out","atpos"),&Curve3D::add_point,DEFVAL(Vector3()),DEFVAL(Vector3()),DEFVAL(-1));
+	ClassDB::bind_method(_MD("set_point_pos","idx","pos"),&Curve3D::set_point_pos);
+	ClassDB::bind_method(_MD("get_point_pos","idx"),&Curve3D::get_point_pos);
+	ClassDB::bind_method(_MD("set_point_tilt","idx","tilt"),&Curve3D::set_point_tilt);
+	ClassDB::bind_method(_MD("get_point_tilt","idx"),&Curve3D::get_point_tilt);
+	ClassDB::bind_method(_MD("set_point_in","idx","pos"),&Curve3D::set_point_in);
+	ClassDB::bind_method(_MD("get_point_in","idx"),&Curve3D::get_point_in);
+	ClassDB::bind_method(_MD("set_point_out","idx","pos"),&Curve3D::set_point_out);
+	ClassDB::bind_method(_MD("get_point_out","idx"),&Curve3D::get_point_out);
+	ClassDB::bind_method(_MD("remove_point","idx"),&Curve3D::remove_point);
+	ClassDB::bind_method(_MD("clear_points"),&Curve3D::clear_points);
+	ClassDB::bind_method(_MD("interpolate","idx","t"),&Curve3D::interpolate);
+	ClassDB::bind_method(_MD("interpolatef","fofs"),&Curve3D::interpolatef);
+	//ClassDB::bind_method(_MD("bake","subdivs"),&Curve3D::bake,DEFVAL(10));
+	ClassDB::bind_method(_MD("set_bake_interval","distance"),&Curve3D::set_bake_interval);
+	ClassDB::bind_method(_MD("get_bake_interval"),&Curve3D::get_bake_interval);
 
-	ObjectTypeDB::bind_method(_MD("get_baked_length"),&Curve3D::get_baked_length);
-	ObjectTypeDB::bind_method(_MD("interpolate_baked","offset","cubic"),&Curve3D::interpolate_baked,DEFVAL(false));
-	ObjectTypeDB::bind_method(_MD("get_baked_points"),&Curve3D::get_baked_points);
-	ObjectTypeDB::bind_method(_MD("get_baked_tilts"),&Curve3D::get_baked_tilts);
-	ObjectTypeDB::bind_method(_MD("tesselate","max_stages","tolerance_degrees"),&Curve3D::tesselate,DEFVAL(5),DEFVAL(4));
+	ClassDB::bind_method(_MD("get_baked_length"),&Curve3D::get_baked_length);
+	ClassDB::bind_method(_MD("interpolate_baked","offset","cubic"),&Curve3D::interpolate_baked,DEFVAL(false));
+	ClassDB::bind_method(_MD("get_baked_points"),&Curve3D::get_baked_points);
+	ClassDB::bind_method(_MD("get_baked_tilts"),&Curve3D::get_baked_tilts);
+	ClassDB::bind_method(_MD("tesselate","max_stages","tolerance_degrees"),&Curve3D::tesselate,DEFVAL(5),DEFVAL(4));
 
-	ObjectTypeDB::bind_method(_MD("_get_data"),&Curve3D::_get_data);
-	ObjectTypeDB::bind_method(_MD("_set_data"),&Curve3D::_set_data);
+	ClassDB::bind_method(_MD("_get_data"),&Curve3D::_get_data);
+	ClassDB::bind_method(_MD("_set_data"),&Curve3D::_set_data);
 
 
 	ADD_PROPERTY( PropertyInfo( Variant::REAL, "bake_interval",PROPERTY_HINT_RANGE,"0.01,512,0.01"), _SCS("set_bake_interval"),_SCS("get_bake_interval"));

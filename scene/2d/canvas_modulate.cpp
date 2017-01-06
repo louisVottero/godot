@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -62,8 +62,8 @@ void CanvasModulate::_notification(int p_what) {
 
 void CanvasModulate::_bind_methods(){
 
-	ObjectTypeDB::bind_method(_MD("set_color","color"),&CanvasModulate::set_color);
-	ObjectTypeDB::bind_method(_MD("get_color"),&CanvasModulate::get_color);
+	ClassDB::bind_method(_MD("set_color","color"),&CanvasModulate::set_color);
+	ClassDB::bind_method(_MD("get_color"),&CanvasModulate::get_color);
 
 	ADD_PROPERTY(PropertyInfo(Variant::COLOR,"color"),_SCS("set_color"),_SCS("get_color"));
 }

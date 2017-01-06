@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -82,7 +82,7 @@ EditorScenePostImport::EditorScenePostImport() {
 
 class EditorImportAnimationOptions : public VBoxContainer {
 
-	OBJ_TYPE( EditorImportAnimationOptions, VBoxContainer );
+	GDCLASS( EditorImportAnimationOptions, VBoxContainer );
 
 
 
@@ -147,7 +147,7 @@ public:
 
 class EditorSceneImportDialog : public ConfirmationDialog  {
 
-	OBJ_TYPE(EditorSceneImportDialog,ConfirmationDialog);
+	GDCLASS(EditorSceneImportDialog,ConfirmationDialog);
 
 
 	struct FlagInfo {
@@ -374,10 +374,10 @@ void EditorImportAnimationOptions::_item_edited() {
 
 void EditorImportAnimationOptions::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_changed",&EditorImportAnimationOptions::_changed);
-	ObjectTypeDB::bind_method("_item_edited",&EditorImportAnimationOptions::_item_edited);
-	ObjectTypeDB::bind_method("_button_action",&EditorImportAnimationOptions::_button_action);
-//	ObjectTypeDB::bind_method("_changedp",&EditorImportAnimationOptions::_changedp);
+	ClassDB::bind_method("_changed",&EditorImportAnimationOptions::_changed);
+	ClassDB::bind_method("_item_edited",&EditorImportAnimationOptions::_item_edited);
+	ClassDB::bind_method("_button_action",&EditorImportAnimationOptions::_button_action);
+//	ClassDB::bind_method("_changedp",&EditorImportAnimationOptions::_changedp);
 
 	ADD_SIGNAL(MethodInfo("changed"));
 }
@@ -670,9 +670,9 @@ void EditorSceneImportDialog::_choose_save_file(const String& p_path) {
 
 void EditorSceneImportDialog::_choose_script(const String& p_path) {
 
-	String p = Globals::get_singleton()->localize_path(p_path);
+	String p = GlobalConfig::get_singleton()->localize_path(p_path);
 	if (!p.is_resource_file())
-		p=Globals::get_singleton()->get_resource_path().path_to(p_path.get_base_dir())+p_path.get_file();
+		p=GlobalConfig::get_singleton()->get_resource_path().path_to(p_path.get_base_dir())+p_path.get_file();
 	script_path->set_text(p);
 
 }
@@ -725,7 +725,7 @@ void EditorSceneImportDialog::_import(bool p_and_open) {
 	if (texture_action->get_selected()==0)
 		dst_path=save_path->get_text();//.get_base_dir();
 	else
-		dst_path=Globals::get_singleton()->get("import/shared_textures");
+		dst_path=GlobalConfig::get_singleton()->get("import/shared_textures");
 
 	uint32_t flags=0;
 
@@ -894,9 +894,9 @@ void EditorSceneImportDialog::_browse() {
 
 void EditorSceneImportDialog::_browse_target() {
 
+	save_select->popup_centered_ratio();
 	if (save_path->get_text()!="")
 		save_select->set_current_path(save_path->get_text());
-	save_select->popup_centered_ratio();
 
 }
 
@@ -1058,19 +1058,19 @@ void EditorSceneImportDialog::_set_root_type() {
 void EditorSceneImportDialog::_bind_methods() {
 
 
-	ObjectTypeDB::bind_method("_choose_file",&EditorSceneImportDialog::_choose_file);
-	ObjectTypeDB::bind_method("_choose_save_file",&EditorSceneImportDialog::_choose_save_file);
-	ObjectTypeDB::bind_method("_choose_script",&EditorSceneImportDialog::_choose_script);
-	ObjectTypeDB::bind_method("_import",&EditorSceneImportDialog::_import,DEFVAL(false));
-	ObjectTypeDB::bind_method("_browse",&EditorSceneImportDialog::_browse);
-	ObjectTypeDB::bind_method("_browse_target",&EditorSceneImportDialog::_browse_target);
-	ObjectTypeDB::bind_method("_browse_script",&EditorSceneImportDialog::_browse_script);
-	ObjectTypeDB::bind_method("_dialog_hid",&EditorSceneImportDialog::_dialog_hid);
-	ObjectTypeDB::bind_method("_import_confirm",&EditorSceneImportDialog::_import_confirm);
-	ObjectTypeDB::bind_method("_open_and_import",&EditorSceneImportDialog::_open_and_import);
-	ObjectTypeDB::bind_method("_root_default_pressed",&EditorSceneImportDialog::_root_default_pressed);
-	ObjectTypeDB::bind_method("_root_type_pressed",&EditorSceneImportDialog::_root_type_pressed);
-	ObjectTypeDB::bind_method("_set_root_type",&EditorSceneImportDialog::_set_root_type);
+	ClassDB::bind_method("_choose_file",&EditorSceneImportDialog::_choose_file);
+	ClassDB::bind_method("_choose_save_file",&EditorSceneImportDialog::_choose_save_file);
+	ClassDB::bind_method("_choose_script",&EditorSceneImportDialog::_choose_script);
+	ClassDB::bind_method("_import",&EditorSceneImportDialog::_import,DEFVAL(false));
+	ClassDB::bind_method("_browse",&EditorSceneImportDialog::_browse);
+	ClassDB::bind_method("_browse_target",&EditorSceneImportDialog::_browse_target);
+	ClassDB::bind_method("_browse_script",&EditorSceneImportDialog::_browse_script);
+	ClassDB::bind_method("_dialog_hid",&EditorSceneImportDialog::_dialog_hid);
+	ClassDB::bind_method("_import_confirm",&EditorSceneImportDialog::_import_confirm);
+	ClassDB::bind_method("_open_and_import",&EditorSceneImportDialog::_open_and_import);
+	ClassDB::bind_method("_root_default_pressed",&EditorSceneImportDialog::_root_default_pressed);
+	ClassDB::bind_method("_root_type_pressed",&EditorSceneImportDialog::_root_type_pressed);
+	ClassDB::bind_method("_set_root_type",&EditorSceneImportDialog::_set_root_type);
 
 
 	ADD_SIGNAL( MethodInfo("imported",PropertyInfo(Variant::OBJECT,"scene")) );
@@ -1275,7 +1275,7 @@ EditorSceneImportDialog::EditorSceneImportDialog(EditorNode *p_editor, EditorSce
 	set_hide_on_ok(false);
 
 	GLOBAL_DEF("import/shared_textures","res://");
-	Globals::get_singleton()->set_custom_property_info("import/shared_textures",PropertyInfo(Variant::STRING,"import/shared_textures",PROPERTY_HINT_DIR));
+	GlobalConfig::get_singleton()->set_custom_property_info("import/shared_textures",PropertyInfo(Variant::STRING,"import/shared_textures",PROPERTY_HINT_DIR));
 
 	import_hb->add_constant_override("separation",30);
 
@@ -1394,7 +1394,7 @@ void EditorSceneImportPlugin::_find_resources(const Variant& p_var, Map<Ref<Imag
 			Ref<Resource> res = p_var;
 			if (res.is_valid()) {
 
-				if (res->is_type("Texture") && !image_map.has(res)) {
+				if (res->is_class("Texture") && !image_map.has(res)) {
 
 					image_map.insert(res,TEXTURE_ROLE_DEFAULT);
 
@@ -1407,7 +1407,7 @@ void EditorSceneImportPlugin::_find_resources(const Variant& p_var, Map<Ref<Imag
 					for(List<PropertyInfo>::Element *E=pl.front();E;E=E->next()) {
 
 						if (E->get().type==Variant::OBJECT || E->get().type==Variant::ARRAY || E->get().type==Variant::DICTIONARY) {
-							if (E->get().type==Variant::OBJECT && res->cast_to<FixedMaterial>() && (E->get().name=="textures/diffuse" || E->get().name=="textures/detail" || E->get().name=="textures/emission")) {
+							if (E->get().type==Variant::OBJECT && res->cast_to<FixedSpatialMaterial>() && (E->get().name=="textures/diffuse" || E->get().name=="textures/detail" || E->get().name=="textures/emission")) {
 
 								Ref<ImageTexture> tex =res->get(E->get().name);
 								if (tex.is_valid()) {
@@ -1415,15 +1415,15 @@ void EditorSceneImportPlugin::_find_resources(const Variant& p_var, Map<Ref<Imag
 									image_map.insert(tex,TEXTURE_ROLE_DIFFUSE);
 								}
 
-							} else if (E->get().type==Variant::OBJECT && res->cast_to<FixedMaterial>() && (E->get().name=="textures/normal")) {
+							} else if (E->get().type==Variant::OBJECT && res->cast_to<FixedSpatialMaterial>() && (E->get().name=="textures/normal")) {
 
 								Ref<ImageTexture> tex =res->get(E->get().name);
 								if (tex.is_valid()) {
 
 									image_map.insert(tex,TEXTURE_ROLE_NORMALMAP);
-									if (p_flags&SCENE_FLAG_CONVERT_NORMALMAPS_TO_XY)
-										res->cast_to<FixedMaterial>()->set_fixed_flag(FixedMaterial::FLAG_USE_XY_NORMALMAP,true);
-								}
+									//if (p_flags&SCENE_FLAG_CONVERT_NORMALMAPS_TO_XY)
+									//	res->cast_to<FixedSpatialMaterial>()->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_XY_NORMALMAP,true);
+								}//
 
 
 							} else {
@@ -1529,12 +1529,12 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 				Ref<Mesh> m = mi->get_mesh();
 				for(int i=0;i<m->get_surface_count();i++) {
 
-					Ref<FixedMaterial> fm = m->surface_get_material(i);
+					Ref<FixedSpatialMaterial> fm = m->surface_get_material(i);
 					if (fm.is_valid()) {
-						fm->set_flag(Material::FLAG_UNSHADED,true);
-						fm->set_flag(Material::FLAG_DOUBLE_SIDED,true);
-						fm->set_depth_draw_mode(Material::DEPTH_DRAW_NEVER);
-						fm->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
+					//	fm->set_flag(Material::FLAG_UNSHADED,true);
+					//	fm->set_flag(Material::FLAG_DOUBLE_SIDED,true);
+					//	fm->set_depth_draw_mode(Material::DEPTH_DRAW_NEVER);
+					//	fm->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
 					}
 				}
 			}
@@ -1552,23 +1552,23 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 
 			for(int i=0;i<m->get_surface_count();i++) {
 
-				Ref<FixedMaterial> mat = m->surface_get_material(i);
+				Ref<FixedSpatialMaterial> mat = m->surface_get_material(i);
 				if (!mat.is_valid())
 					continue;
 
 				if (p_flags&SCENE_FLAG_DETECT_ALPHA && _teststr(mat->get_name(),"alpha")) {
 
-					mat->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
-					mat->set_name(_fixstr(mat->get_name(),"alpha"));
+				//	mat->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
+				//	mat->set_name(_fixstr(mat->get_name(),"alpha"));
 				}
 				if (p_flags&SCENE_FLAG_DETECT_VCOLOR && _teststr(mat->get_name(),"vcol")) {
 
-					mat->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY,true);
-					mat->set_name(_fixstr(mat->get_name(),"vcol"));
+					//mat->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY,true);
+					//mat->set_name(_fixstr(mat->get_name(),"vcol"));
 				}
 
 				if (p_flags&SCENE_FLAG_SET_LIGHTMAP_TO_UV2_IF_EXISTS && m->surface_get_format(i)&Mesh::ARRAY_FORMAT_TEX_UV2) {
-					mat->set_flag(Material::FLAG_LIGHTMAP_ON_UV2,true);
+					//mat->set_flag(Material::FLAG_LIGHTMAP_ON_UV2,true);
 				}
 
 			}
@@ -1627,23 +1627,23 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 					float dist = d.to_double();
 					mi->set_flag(GeometryInstance::FLAG_BILLBOARD,true);
 					mi->set_flag(GeometryInstance::FLAG_BILLBOARD_FIX_Y,true);
-					mi->set_draw_range_begin(dist);
-					mi->set_draw_range_end(100000);
+					//mi->set_draw_range_begin(dist);
+					//mi->set_draw_range_end(100000);
 
-					mip->set_draw_range_begin(0);
-					mip->set_draw_range_end(dist);
+					//mip->set_draw_range_begin(0);
+					//mip->set_draw_range_end(dist);
 
 					if (mi->get_mesh().is_valid()) {
 
 						Ref<Mesh> m = mi->get_mesh();
 						for(int i=0;i<m->get_surface_count();i++) {
 
-							Ref<FixedMaterial> fm = m->surface_get_material(i);
+							Ref<FixedSpatialMaterial> fm = m->surface_get_material(i);
 							if (fm.is_valid()) {
-								fm->set_flag(Material::FLAG_UNSHADED,true);
-								fm->set_flag(Material::FLAG_DOUBLE_SIDED,true);
-								fm->set_depth_draw_mode(Material::DEPTH_DRAW_NEVER);
-								fm->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
+							//	fm->set_flag(Material::FLAG_UNSHADED,true);
+							//	fm->set_flag(Material::FLAG_DOUBLE_SIDED,true);
+							//	fm->set_depth_draw_mode(Material::DEPTH_DRAW_NEVER);
+							//	fm->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
 							}
 						}
 					}
@@ -1675,23 +1675,23 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 		    d=d.substr(1,d.length());
 		if (d.length() && d[0]>='0' && d[0]<='9') {
 		    float dist = d.to_double();
-		    mi->set_draw_range_begin(dist);
-		    mi->set_draw_range_end(100000);
+		  ///  mi->set_draw_range_begin(dist);
+		  //  mi->set_draw_range_end(100000);
 
-		    mip->set_draw_range_begin(0);
-		    mip->set_draw_range_end(dist);
+		  //  mip->set_draw_range_begin(0);
+		  //  mip->set_draw_range_end(dist);
 
 		    /*if (mi->get_mesh().is_valid()) {
 
 			Ref<Mesh> m = mi->get_mesh();
 			for(int i=0;i<m->get_surface_count();i++) {
 
-			    Ref<FixedMaterial> fm = m->surface_get_material(i);
+			    Ref<FixedSpatialMaterial> fm = m->surface_get_material(i);
 			    if (fm.is_valid()) {
 				fm->set_flag(Material::FLAG_UNSHADED,true);
 				fm->set_flag(Material::FLAG_DOUBLE_SIDED,true);
 				fm->set_hint(Material::HINT_NO_DEPTH_DRAW,true);
-				fm->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
+				fm->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
 			    }
 			}
 		    }*/
@@ -1707,7 +1707,7 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 
 		String str=name;
 		int layer = str.substr(str.find("lm")+3,str.length()).to_int();
-		mi->set_baked_light_texture_id(layer);
+		//mi->set_baked_light_texture_id(layer);
 	}
 
 	if (p_flags&SCENE_FLAG_CREATE_COLLISIONS && _teststr(name,"colonly")) {
@@ -1903,8 +1903,8 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 		BSP_Tree bsptree(faces);
 
 		Ref<RoomBounds> area = memnew( RoomBounds );
-		area->set_bounds(faces);
-		area->set_geometry_hint(faces);
+		//area->set_bounds(faces);
+		//area->set_geometry_hint(faces);
 
 
 		Room * room = memnew( Room );
@@ -1932,7 +1932,7 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 		memdelete(p_node);
 		p_node=room;
 
-		room->compute_room_from_subtree();
+		//room->compute_room_from_subtree();
 
 	} else if (p_flags&SCENE_FLAG_CREATE_PORTALS &&_teststr(name,"portal") && p_node->cast_to<MeshInstance>()) {
 
@@ -2059,18 +2059,18 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 
 			for(int i=0;i<mesh->get_surface_count();i++) {
 
-				Ref<FixedMaterial> fm = mesh->surface_get_material(i);
+				Ref<FixedSpatialMaterial> fm = mesh->surface_get_material(i);
 				if (fm.is_valid()) {
 					String name = fm->get_name();
-					if (_teststr(name,"alpha")) {
-						fm->set_fixed_flag(FixedMaterial::FLAG_USE_ALPHA,true);
+				/*	if (_teststr(name,"alpha")) {
+						fm->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_ALPHA,true);
 						name=_fixstr(name,"alpha");
 					}
 
 					if (_teststr(name,"vcol")) {
-						fm->set_fixed_flag(FixedMaterial::FLAG_USE_COLOR_ARRAY,true);
+						fm->set_fixed_flag(FixedSpatialMaterial::FLAG_USE_COLOR_ARRAY,true);
 						name=_fixstr(name,"vcol");
-					}
+					}*/
 					fm->set_name(name);
 				}
 			}
@@ -2164,6 +2164,8 @@ Error EditorSceneImportPlugin::import1(const Ref<ResourceImportMetadata>& p_from
 	uint32_t import_flags=0;
 	if (animation_flags&EditorSceneAnimationImportPlugin::ANIMATION_DETECT_LOOP)
 		import_flags|=EditorSceneImporter::IMPORT_ANIMATION_DETECT_LOOP;
+	if (animation_flags&EditorSceneAnimationImportPlugin::ANIMATION_KEEP_VALUE_TRACKS)
+		import_flags |= EditorSceneImporter::IMPORT_ANIMATION_KEEP_VALUE_TRACKS;
 	if (animation_flags&EditorSceneAnimationImportPlugin::ANIMATION_OPTIMIZE)
 		import_flags|=EditorSceneImporter::IMPORT_ANIMATION_OPTIMIZE;
 	if (animation_flags&EditorSceneAnimationImportPlugin::ANIMATION_FORCE_ALL_TRACKS_IN_ALL_CLIPS)
@@ -2187,7 +2189,7 @@ Error EditorSceneImportPlugin::import1(const Ref<ResourceImportMetadata>& p_from
 
 	if (from->has_option("root_type")) {
 		String type = from->get_option("root_type");
-		Object *base = ObjectTypeDB::instance(type);
+		Object *base = ClassDB::instance(type);
 		Node *base_node = NULL;
 		if (base)
 			base_node=base->cast_to<Node>();
@@ -2799,7 +2801,7 @@ Error EditorSceneImportPlugin::import2(Node *scene, const String& p_dest_path, c
 
 		String path = texture->get_path();
 		String fname= path.get_file();
-		String target_path = Globals::get_singleton()->localize_path(target_res_path.plus_file(fname));
+		String target_path = GlobalConfig::get_singleton()->localize_path(target_res_path.plus_file(fname));
 		progress.step(TTR("Import Image:")+" "+fname,3+(idx)*100/imagemap.size());
 
 		idx++;

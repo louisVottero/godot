@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,7 +37,7 @@
 class CanvasItemEditor;
 
 class CollisionShape2DEditor : public Control {
-	OBJ_TYPE(CollisionShape2DEditor, Control);
+	GDCLASS(CollisionShape2DEditor, Control);
 
 	enum ShapeType {
 		CAPSULE_SHAPE,
@@ -80,7 +80,7 @@ public:
 };
 
 class CollisionShape2DEditorPlugin : public EditorPlugin {
-	OBJ_TYPE(CollisionShape2DEditorPlugin, EditorPlugin);
+	GDCLASS(CollisionShape2DEditorPlugin, EditorPlugin);
 
 	CollisionShape2DEditor* collision_shape_2d_editor;
 	EditorNode* editor;

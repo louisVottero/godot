@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -483,7 +483,7 @@ static _GlobalConstant _global_constants[]={
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_CHECKABLE ),
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_CHECKED ),
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_INTERNATIONALIZED ),
-	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_BUNDLE ),
+	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_GROUP ),
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_CATEGORY ),
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_STORE_IF_NONZERO ),
 	BIND_GLOBAL_CONSTANT( PROPERTY_USAGE_STORE_IF_NONONE ),

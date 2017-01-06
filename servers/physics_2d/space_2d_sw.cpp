@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1329,9 +1329,9 @@ Space2DSW::Space2DSW() {
 	contact_max_allowed_penetration= 0.3;
 
 	constraint_bias = 0.2;
-	body_linear_velocity_sleep_treshold=GLOBAL_DEF("physics_2d/sleep_threashold_linear",2.0);
-	body_angular_velocity_sleep_treshold=GLOBAL_DEF("physics_2d/sleep_threshold_angular",(8.0 / 180.0 * Math_PI));
-	body_time_to_sleep=GLOBAL_DEF("physics_2d/time_before_sleep",0.5);
+	body_linear_velocity_sleep_treshold=GLOBAL_DEF("physics/2d/sleep_threashold_linear",2.0);
+	body_angular_velocity_sleep_treshold=GLOBAL_DEF("physics/2d/sleep_threshold_angular",(8.0 / 180.0 * Math_PI));
+	body_time_to_sleep=GLOBAL_DEF("physics/2d/time_before_sleep",0.5);
 
 
 	broadphase = BroadPhase2DSW::create_func();

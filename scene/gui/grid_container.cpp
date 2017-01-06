@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -170,8 +170,8 @@ int GridContainer::get_columns() const{
 
 void GridContainer::_bind_methods(){
 
-	ObjectTypeDB::bind_method(_MD("set_columns","columns"),&GridContainer::set_columns);
-	ObjectTypeDB::bind_method(_MD("get_columns"),&GridContainer::get_columns);
+	ClassDB::bind_method(_MD("set_columns","columns"),&GridContainer::set_columns);
+	ClassDB::bind_method(_MD("get_columns"),&GridContainer::get_columns);
 
 	ADD_PROPERTY( PropertyInfo(Variant::INT,"columns",PROPERTY_HINT_RANGE,"1,1024,1"),_SCS("set_columns"),_SCS("get_columns"));
 }

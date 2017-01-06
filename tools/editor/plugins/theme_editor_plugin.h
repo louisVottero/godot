@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -44,7 +44,7 @@
 
 class ThemeEditor : public Control {
 
-	OBJ_TYPE( ThemeEditor, Control );
+	GDCLASS( ThemeEditor, Control );
 
 
 	ScrollContainer *scroll;
@@ -103,7 +103,7 @@ public:
 
 class ThemeEditorPlugin : public EditorPlugin {
 
-	OBJ_TYPE( ThemeEditorPlugin, EditorPlugin );
+	GDCLASS( ThemeEditorPlugin, EditorPlugin );
 
 	ThemeEditor *theme_editor;
 	EditorNode *editor;

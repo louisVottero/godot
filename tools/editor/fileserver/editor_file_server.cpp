@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -321,8 +321,8 @@ void EditorFileServer::start() {
 
 
 	stop();
-	port=EDITOR_DEF("file_server/port",6010);
-	password=EDITOR_DEF("file_server/password","");
+	port=EDITOR_DEF("filesystem/file_server/port",6010);
+	password=EDITOR_DEF("filesystem/file_server/password","");
 	cmd=CMD_ACTIVATE;
 
 }
@@ -346,8 +346,8 @@ EditorFileServer::EditorFileServer() {
 	cmd=CMD_NONE;
 	thread=Thread::create(_thread_start,this);
 
-	EDITOR_DEF("file_server/port",6010);
-	EDITOR_DEF("file_server/password","");
+	EDITOR_DEF("filesystem/file_server/port",6010);
+	EDITOR_DEF("filesystem/file_server/password","");
 }
 
 EditorFileServer::~EditorFileServer() {

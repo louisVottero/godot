@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -75,8 +75,8 @@ void ReparentDialog::set_current(const Set<Node*>& p_selection) {
 
 void ReparentDialog::_bind_methods() {
 
-	ObjectTypeDB::bind_method("_reparent",&ReparentDialog::_reparent);
-	ObjectTypeDB::bind_method("_cancel",&ReparentDialog::_cancel);
+	ClassDB::bind_method("_reparent",&ReparentDialog::_reparent);
+	ClassDB::bind_method("_cancel",&ReparentDialog::_cancel);
 
 	ADD_SIGNAL( MethodInfo("reparent",PropertyInfo(Variant::NODE_PATH,"path"),PropertyInfo(Variant::BOOL,"keep_global_xform")));
 }

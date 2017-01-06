@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -943,7 +943,7 @@ AudioServerSW::AudioServerSW(SampleManagerSW *p_sample_manager) {
 
 	sample_manager=p_sample_manager;
 	String interp = GLOBAL_DEF("audio/mixer_interp","linear");
-	Globals::get_singleton()->set_custom_property_info("audio/mixer_interp",PropertyInfo(Variant::STRING,"audio/mixer_interp",PROPERTY_HINT_ENUM,"raw,linear,cubic"));
+	GlobalConfig::get_singleton()->set_custom_property_info("audio/mixer_interp",PropertyInfo(Variant::STRING,"audio/mixer_interp",PROPERTY_HINT_ENUM,"raw,linear,cubic"));
 	if (interp=="raw")
 		mixer_interp=AudioMixerSW::INTERPOLATION_RAW;
 	else if (interp=="cubic")

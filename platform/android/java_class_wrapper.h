@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,7 +37,7 @@ class JavaObject;
 
 class JavaClass : public Reference {
 
-	OBJ_TYPE(JavaClass,Reference);
+	GDCLASS(JavaClass,Reference);
 
 	enum ArgumentType {
 
@@ -131,7 +131,7 @@ public:
 
 class JavaObject : public Reference {
 
-	OBJ_TYPE(JavaObject,Reference);
+	GDCLASS(JavaObject,Reference);
 
 	Ref<JavaClass> base_class;
 friend class JavaClass;
@@ -150,7 +150,7 @@ public:
 
 class JavaClassWrapper : public Object {
 
-	OBJ_TYPE(JavaClassWrapper,Object);
+	GDCLASS(JavaClassWrapper,Object);
 
 
 	Map<String,Ref<JavaClass> > class_cache;

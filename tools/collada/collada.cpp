@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -144,7 +144,7 @@ Transform Collada::Node::compute_transform(Collada &state) const {
 			case XForm::OP_ROTATE: {
 				if (xf.data.size()>=4) {
 
-					xform_step.rotate(Vector3(xf.data[0],xf.data[1],xf.data[2]),-Math::deg2rad(xf.data[3]));
+					xform_step.rotate(Vector3(xf.data[0],xf.data[1],xf.data[2]),Math::deg2rad(xf.data[3]));
 				}
 			} break;
 			case XForm::OP_SCALE: {
@@ -322,7 +322,7 @@ void Collada::_parse_image(XMLParser& parser) {
 		String path = parser.get_attribute_value("source").strip_edges();
 		if (path.find("://")==-1 && path.is_rel_path()) {
 			// path is relative to file being loaded, so convert to a resource path
-			image.path=Globals::get_singleton()->localize_path(state.local_path.get_base_dir()+"/"+path.percent_decode());
+			image.path=GlobalConfig::get_singleton()->localize_path(state.local_path.get_base_dir()+"/"+path.percent_decode());
 
 		}
 	} else {
@@ -342,11 +342,11 @@ void Collada::_parse_image(XMLParser& parser) {
 
 					if (path.find("://")==-1 && path.is_rel_path()) {
 						// path is relative to file being loaded, so convert to a resource path
-						path=Globals::get_singleton()->localize_path(state.local_path.get_base_dir()+"/"+path);
+						path=GlobalConfig::get_singleton()->localize_path(state.local_path.get_base_dir()+"/"+path);
 
 					} else if (path.find("file:///")==0) {
 						path=path.replace_first("file:///","");
-						path=Globals::get_singleton()->localize_path(path);
+						path=GlobalConfig::get_singleton()->localize_path(path);
 					}
 
 					image.path=path;
@@ -463,7 +463,7 @@ Transform Collada::_read_transform(XMLParser& parser) {
 	if (parser.is_empty())
 		return Transform();
 
-	Vector<float> array;
+	Vector<String> array;
 	while(parser.read()==OK) {
 		// TODO: check for comments inside the element
 		// and ignore them.
@@ -471,7 +471,7 @@ Transform Collada::_read_transform(XMLParser& parser) {
 		if (parser.get_node_type() == XMLParser::NODE_TEXT) {
 			// parse float data
 			String str = parser.get_node_data();
-			array=str.split_floats(" ",false);
+			array=str.split_spaces();
 		}
 		else
 		if (parser.get_node_type() == XMLParser::NODE_ELEMENT_END)
@@ -479,7 +479,13 @@ Transform Collada::_read_transform(XMLParser& parser) {
 	}
 
 	ERR_FAIL_COND_V(array.size()!=16,Transform());
-	return _read_transform_from_array(array);
+	Vector<float> farr;
+	farr.resize(16);
+	for(int i=0;i<16;i++) {
+		farr[i]=array[i].to_double();
+	}
+
+	return _read_transform_from_array(farr);
 }
 
 String Collada::_read_empty_draw_type(XMLParser& parser) {
@@ -1598,7 +1604,7 @@ Collada::Node* Collada::_parse_visual_instance_camera(XMLParser& parser) {
 	cam->camera= _uri_to_id(parser.get_attribute_value_safe("url"));
 
 	if (state.up_axis==Vector3::AXIS_Z) //collada weirdness
-		cam->post_transform.basis.rotate(Vector3(1,0,0),Math_PI*0.5);
+		cam->post_transform.basis.rotate(Vector3(1,0,0),-Math_PI*0.5);
 
 	if (parser.is_empty()) //nothing else to parse...
 		return cam;
@@ -1619,7 +1625,7 @@ Collada::Node* Collada::_parse_visual_instance_light(XMLParser& parser) {
 	cam->light= _uri_to_id(parser.get_attribute_value_safe("url"));
 
 	if (state.up_axis==Vector3::AXIS_Z) //collada weirdness
-		cam->post_transform.basis.rotate(Vector3(1,0,0),Math_PI*0.5);
+		cam->post_transform.basis.rotate(Vector3(1,0,0),-Math_PI*0.5);
 
 	if (parser.is_empty()) //nothing else to parse...
 		return cam;
@@ -2714,7 +2720,7 @@ Error Collada::load(const String& p_path, int p_flags) {
 	Error err = parser.open(p_path);
 	ERR_FAIL_COND_V(err,err);
 
-	state.local_path = Globals::get_singleton()->localize_path(p_path);
+	state.local_path = GlobalConfig::get_singleton()->localize_path(p_path);
 	state.import_flags=p_flags;
 	/* Skip headers */
 	err=OK;

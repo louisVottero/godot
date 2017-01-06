@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -467,7 +467,7 @@ Error ResourceInteractiveLoaderXML::parse_property(Variant& r_v, String &r_name)
 				path=path.replace("local://",local_path+"::");
 			else if (path.find("://")==-1 && path.is_rel_path()) {
 				// path is relative to file being loaded, so convert to a resource path
-				path=Globals::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
+				path=GlobalConfig::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
 
 			}
 
@@ -553,39 +553,39 @@ Error ResourceInteractiveLoaderXML::parse_property(Variant& r_v, String &r_name)
 
 			Image::Format imgformat;
 
-
+/*
 			if (format=="grayscale") {
-				imgformat=Image::FORMAT_GRAYSCALE;
+				imgformat=Image::FORMAT_L8;
 			} else if (format=="intensity") {
 				imgformat=Image::FORMAT_INTENSITY;
 			} else if (format=="grayscale_alpha") {
-				imgformat=Image::FORMAT_GRAYSCALE_ALPHA;
+				imgformat=Image::FORMAT_LA8;
 			} else if (format=="rgb") {
-				imgformat=Image::FORMAT_RGB;
+				imgformat=Image::FORMAT_RGB8;
 			} else if (format=="rgba") {
-				imgformat=Image::FORMAT_RGBA;
+				imgformat=Image::FORMAT_RGBA8;
 			} else if (format=="indexed") {
 				imgformat=Image::FORMAT_INDEXED;
 			} else if (format=="indexed_alpha") {
 				imgformat=Image::FORMAT_INDEXED_ALPHA;
 			} else if (format=="bc1") {
-				imgformat=Image::FORMAT_BC1;
+				imgformat=Image::FORMAT_DXT1;
 			} else if (format=="bc2") {
-				imgformat=Image::FORMAT_BC2;
+				imgformat=Image::FORMAT_DXT3;
 			} else if (format=="bc3") {
-				imgformat=Image::FORMAT_BC3;
+				imgformat=Image::FORMAT_DXT5;
 			} else if (format=="bc4") {
-				imgformat=Image::FORMAT_BC4;
+				imgformat=Image::FORMAT_ATI1;
 			} else if (format=="bc5") {
-				imgformat=Image::FORMAT_BC5;
+				imgformat=Image::FORMAT_ATI2;
 			} else if (format=="pvrtc2") {
 				imgformat=Image::FORMAT_PVRTC2;
 			} else if (format=="pvrtc2a") {
-				imgformat=Image::FORMAT_PVRTC2_ALPHA;
+				imgformat=Image::FORMAT_PVRTC2A;
 			} else if (format=="pvrtc4") {
 				imgformat=Image::FORMAT_PVRTC4;
 			} else if (format=="pvrtc4a") {
-				imgformat=Image::FORMAT_PVRTC4_ALPHA;
+				imgformat=Image::FORMAT_PVRTC4A;
 			} else if (format=="etc") {
 				imgformat=Image::FORMAT_ETC;
 			} else if (format=="atc") {
@@ -599,7 +599,7 @@ Error ResourceInteractiveLoaderXML::parse_property(Variant& r_v, String &r_name)
 			} else {
 
 				ERR_FAIL_V( ERR_FILE_CORRUPT );
-			}
+			}*/
 
 
 			int datasize;
@@ -614,13 +614,6 @@ Error ResourceInteractiveLoaderXML::parse_property(Variant& r_v, String &r_name)
 				return OK;
 			};
 
-			if (imgformat==Image::FORMAT_CUSTOM) {
-
-				datasize=custom_size;
-			} else {
-
-				datasize = Image::get_image_data_size(h,w,imgformat,mipmaps);
-			}
 
 			if (datasize==0) {
 				//r_v = Image(w, h, imgformat);
@@ -1432,7 +1425,7 @@ Error ResourceInteractiveLoaderXML::poll() {
 
 		if (path.find("://")==-1 && path.is_rel_path()) {
 			// path is relative to file being loaded, so convert to a resource path
-			path=Globals::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
+			path=GlobalConfig::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
 		}
 
 		if (remaps.has(path)) {
@@ -1525,7 +1518,7 @@ Error ResourceInteractiveLoaderXML::poll() {
 		type=resource_type;
 	}
 
-	Object *obj = ObjectTypeDB::instance(type);
+	Object *obj = ClassDB::instance(type);
 	if (!obj) {
 		error=ERR_FILE_CORRUPT;
 		ERR_EXPLAIN(local_path+":"+itos(get_current_line())+": Object of unrecognized type in file: "+type);
@@ -1536,7 +1529,7 @@ Error ResourceInteractiveLoaderXML::poll() {
 	if (!r) {
 		error=ERR_FILE_CORRUPT;
 		memdelete(obj); //bye
-		ERR_EXPLAIN(local_path+":"+itos(get_current_line())+": Object type in resource field not a resource, type is: "+obj->get_type());
+		ERR_EXPLAIN(local_path+":"+itos(get_current_line())+": Object type in resource field not a resource, type is: "+obj->get_class());
 		ERR_FAIL_COND_V(!r,ERR_FILE_CORRUPT);
 	}
 
@@ -1629,7 +1622,7 @@ void ResourceInteractiveLoaderXML::get_dependencies(FileAccess *f,List<String> *
 
 		if (path.find("://")==-1 && path.is_rel_path()) {
 			// path is relative to file being loaded, so convert to a resource path
-			path=Globals::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
+			path=GlobalConfig::get_singleton()->localize_path(local_path.get_base_dir().plus_file(path));
 		}
 
 		if (path.ends_with("*")) {
@@ -1767,7 +1760,7 @@ Error ResourceInteractiveLoaderXML::rename_dependencies(FileAccess *p_f, const S
 		}
 
 		Ref<ResourceInteractiveLoaderXML> ria = memnew( ResourceInteractiveLoaderXML );
-		ria->local_path=Globals::get_singleton()->localize_path(p_path);
+		ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 		ria->res_path=ria->local_path;
 		ria->remaps=p_map;
 	//	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
@@ -1931,7 +1924,7 @@ Ref<ResourceInteractiveLoader> ResourceFormatLoaderXML::load_interactive(const S
 	}
 
 	Ref<ResourceInteractiveLoaderXML> ria = memnew( ResourceInteractiveLoaderXML );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->open(f);
@@ -1947,7 +1940,7 @@ void ResourceFormatLoaderXML::get_recognized_extensions_for_type(const String& p
 	}
 
 	List<String> extensions;
-	ObjectTypeDB::get_extensions_for_type(p_type,&extensions);
+	ClassDB::get_extensions_for_type(p_type,&extensions);
 
 	extensions.sort();
 
@@ -1965,7 +1958,7 @@ void ResourceFormatLoaderXML::get_recognized_extensions_for_type(const String& p
 void ResourceFormatLoaderXML::get_recognized_extensions(List<String> *p_extensions) const{
 
 	List<String> extensions;
-	ObjectTypeDB::get_resource_base_extensions(&extensions);
+	ClassDB::get_resource_base_extensions(&extensions);
 	extensions.sort();
 
 	for(List<String>::Element *E=extensions.front();E;E=E->next()) {
@@ -1996,7 +1989,7 @@ String ResourceFormatLoaderXML::get_resource_type(const String &p_path) const{
 	}
 
 	Ref<ResourceInteractiveLoaderXML> ria = memnew( ResourceInteractiveLoaderXML );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	String r = ria->recognize(f);
@@ -2013,7 +2006,7 @@ void ResourceFormatLoaderXML::get_dependencies(const String& p_path,List<String>
 	}
 
 	Ref<ResourceInteractiveLoaderXML> ria = memnew( ResourceInteractiveLoaderXML );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->get_dependencies(f,p_dependencies,p_add_types);
@@ -2030,7 +2023,7 @@ Error ResourceFormatLoaderXML::rename_dependencies(const String &p_path,const Ma
 	}
 
 	Ref<ResourceInteractiveLoaderXML> ria = memnew( ResourceInteractiveLoaderXML );
-	ria->local_path=Globals::get_singleton()->localize_path(p_path);
+	ria->local_path=GlobalConfig::get_singleton()->localize_path(p_path);
 	ria->res_path=ria->local_path;
 //	ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	return ria->rename_dependencies(f,p_path,p_map);
@@ -2186,33 +2179,33 @@ void ResourceFormatSaverXMLInstance::write_property(const String& p_name,const V
 			params+="encoding=\"raw\"";
 			params+=" width=\""+itos(img.get_width())+"\"";
 			params+=" height=\""+itos(img.get_height())+"\"";
-			params+=" mipmaps=\""+itos(img.get_mipmaps())+"\"";
-
+			params+=" mipmaps=\""+itos(img.has_mipmaps())+"\"";
+/*
 			switch(img.get_format()) {
 
-				case Image::FORMAT_GRAYSCALE: params+=" format=\"grayscale\""; break;
+				case Image::FORMAT_L8: params+=" format=\"grayscale\""; break;
 				case Image::FORMAT_INTENSITY: params+=" format=\"intensity\""; break;
-				case Image::FORMAT_GRAYSCALE_ALPHA: params+=" format=\"grayscale_alpha\""; break;
-				case Image::FORMAT_RGB: params+=" format=\"rgb\""; break;
-				case Image::FORMAT_RGBA: params+=" format=\"rgba\""; break;
+				case Image::FORMAT_LA8: params+=" format=\"grayscale_alpha\""; break;
+				case Image::FORMAT_RGB8: params+=" format=\"rgb\""; break;
+				case Image::FORMAT_RGBA8: params+=" format=\"rgba\""; break;
 				case Image::FORMAT_INDEXED : params+=" format=\"indexed\""; break;
 				case Image::FORMAT_INDEXED_ALPHA: params+=" format=\"indexed_alpha\""; break;
-				case Image::FORMAT_BC1: params+=" format=\"bc1\""; break;
-				case Image::FORMAT_BC2: params+=" format=\"bc2\""; break;
-				case Image::FORMAT_BC3: params+=" format=\"bc3\""; break;
-				case Image::FORMAT_BC4: params+=" format=\"bc4\""; break;
-				case Image::FORMAT_BC5: params+=" format=\"bc5\""; break;
+				case Image::FORMAT_DXT1: params+=" format=\"bc1\""; break;
+				case Image::FORMAT_DXT3: params+=" format=\"bc2\""; break;
+				case Image::FORMAT_DXT5: params+=" format=\"bc3\""; break;
+				case Image::FORMAT_ATI1: params+=" format=\"bc4\""; break;
+				case Image::FORMAT_ATI2: params+=" format=\"bc5\""; break;
 				case Image::FORMAT_PVRTC2: params+=" format=\"pvrtc2\""; break;
-				case Image::FORMAT_PVRTC2_ALPHA: params+=" format=\"pvrtc2a\""; break;
+				case Image::FORMAT_PVRTC2A: params+=" format=\"pvrtc2a\""; break;
 				case Image::FORMAT_PVRTC4: params+=" format=\"pvrtc4\""; break;
-				case Image::FORMAT_PVRTC4_ALPHA: params+=" format=\"pvrtc4a\""; break;
+				case Image::FORMAT_PVRTC4A: params+=" format=\"pvrtc4a\""; break;
 				case Image::FORMAT_ETC: params+=" format=\"etc\""; break;
 				case Image::FORMAT_ATC: params+=" format=\"atc\""; break;
 				case Image::FORMAT_ATC_ALPHA_EXPLICIT: params+=" format=\"atcae\""; break;
 				case Image::FORMAT_ATC_ALPHA_INTERPOLATED: params+=" format=\"atcai\""; break;
 				case Image::FORMAT_CUSTOM: params+=" format=\"custom\" custom_size=\""+itos(img.get_data().size())+"\""; break;
 				default: {}
-			}
+			}*/
 		} break;
 		case Variant::NODE_PATH:		type="node_path"; break;
 		case Variant::OBJECT:	{
@@ -2232,7 +2225,7 @@ void ResourceFormatSaverXMLInstance::write_property(const String& p_name,const V
 
 				params="external=\""+itos(external_resources[res])+"\"";
 			} else {
-				params="resource_type=\""+res->get_save_type()+"\"";
+				params="resource_type=\""+res->get_save_class()+"\"";
 
 
 				if (res->get_path().length() && res->get_path().find("::")==-1) {
@@ -2674,7 +2667,7 @@ void ResourceFormatSaverXMLInstance::_find_resources(const Variant& p_variant,bo
 
 				PropertyInfo pi=I->get();
 
-				if (pi.usage&PROPERTY_USAGE_STORAGE || (bundle_resources && pi.usage&PROPERTY_USAGE_BUNDLE)) {
+				if (pi.usage&PROPERTY_USAGE_STORAGE) {
 
 					Variant v=res->get(I->get().name);
 					_find_resources(v);
@@ -2723,7 +2716,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 	ERR_FAIL_COND_V( err, ERR_CANT_OPEN );
 	FileAccessRef _fref(f);
 
-	local_path = Globals::get_singleton()->localize_path(p_path);
+	local_path = GlobalConfig::get_singleton()->localize_path(p_path);
 
 	relative_paths=p_flags&ResourceSaver::FLAG_RELATIVE_PATHS;
 	skip_editor=p_flags&ResourceSaver::FLAG_OMIT_EDITOR_PROPERTIES;
@@ -2741,7 +2734,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 
 	write_string("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",false); //no escape
 	write_string("\n",false);
-	enter_tag("resource_file","type=\""+p_resource->get_type()+"\" subresource_count=\""+itos(saved_resources.size()+external_resources.size())+"\" version=\""+itos(VERSION_MAJOR)+"."+itos(VERSION_MINOR)+"\" version_name=\""+VERSION_FULL_NAME+"\"");
+	enter_tag("resource_file","type=\""+p_resource->get_class()+"\" subresource_count=\""+itos(saved_resources.size()+external_resources.size())+"\" version=\""+itos(VERSION_MAJOR)+"."+itos(VERSION_MINOR)+"\" version_name=\""+VERSION_FULL_NAME+"\"");
 	write_string("\n",false);
 
 	for(Map<RES,int>::Element *E=external_resources.front();E;E=E->next()) {
@@ -2749,7 +2742,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 		write_tabs();
 		String p = E->key()->get_path();
 
-		enter_tag("ext_resource","path=\""+p+"\" type=\""+E->key()->get_save_type()+"\" index=\""+itos(E->get())+"\""); //bundled
+		enter_tag("ext_resource","path=\""+p+"\" type=\""+E->key()->get_save_class()+"\" index=\""+itos(E->get())+"\""); //bundled
 		exit_tag("ext_resource"); //bundled
 		write_string("\n",false);
 	}
@@ -2782,7 +2775,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 		if (main)
 			enter_tag("main_resource",""); //bundled
 		else if (res->get_path().length() && res->get_path().find("::") == -1 )
-			enter_tag("resource","type=\""+res->get_type()+"\" path=\""+res->get_path()+"\""); //bundled
+			enter_tag("resource","type=\""+res->get_class()+"\" path=\""+res->get_path()+"\""); //bundled
 		else {
 
 			if (res->get_subindex()==0) {
@@ -2796,7 +2789,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 			}
 
 			int idx = res->get_subindex();
-			enter_tag("resource","type=\""+res->get_type()+"\" path=\"local://"+itos(idx)+"\"");
+			enter_tag("resource","type=\""+res->get_class()+"\" path=\"local://"+itos(idx)+"\"");
 			if (takeover_paths) {
 				res->set_path(p_path+"::"+itos(idx),true);
 			}
@@ -2818,7 +2811,7 @@ Error ResourceFormatSaverXMLInstance::save(const String &p_path,const RES& p_res
 			if (skip_editor && PE->get().name.begins_with("__editor"))
 				continue;
 
-			if (PE->get().usage&PROPERTY_USAGE_STORAGE || (bundle_resources && PE->get().usage&PROPERTY_USAGE_BUNDLE)) {
+			if (PE->get().usage&PROPERTY_USAGE_STORAGE ) {
 
 				String name = PE->get().name;
 				Variant value = res->get(name);

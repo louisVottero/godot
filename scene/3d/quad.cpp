@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -120,7 +120,7 @@ void Quad::_update() {
 	} else {
 		configured=true;
 	}
-	VS::get_singleton()->mesh_add_surface(mesh,VS::PRIMITIVE_TRIANGLES,arr);
+	VS::get_singleton()->mesh_add_surface_from_arrays(mesh,VS::PRIMITIVE_TRIANGLES,arr);
 
 	pending_update=false;
 }
@@ -199,22 +199,22 @@ AABB Quad::get_aabb() const {
 
 void Quad::_bind_methods(){
 
-	ObjectTypeDB::bind_method(_MD("set_axis","axis"),&Quad::set_axis);
-	ObjectTypeDB::bind_method(_MD("get_axis"),&Quad::get_axis);
+	ClassDB::bind_method(_MD("set_axis","axis"),&Quad::set_axis);
+	ClassDB::bind_method(_MD("get_axis"),&Quad::get_axis);
 
-	ObjectTypeDB::bind_method(_MD("set_size","size"),&Quad::set_size);
-	ObjectTypeDB::bind_method(_MD("get_size"),&Quad::get_size);
+	ClassDB::bind_method(_MD("set_size","size"),&Quad::set_size);
+	ClassDB::bind_method(_MD("get_size"),&Quad::get_size);
 
-	ObjectTypeDB::bind_method(_MD("set_centered","centered"),&Quad::set_centered);
-	ObjectTypeDB::bind_method(_MD("is_centered"),&Quad::is_centered);
+	ClassDB::bind_method(_MD("set_centered","centered"),&Quad::set_centered);
+	ClassDB::bind_method(_MD("is_centered"),&Quad::is_centered);
 
-	ObjectTypeDB::bind_method(_MD("set_offset","offset"),&Quad::set_offset);
-	ObjectTypeDB::bind_method(_MD("get_offset"),&Quad::get_offset);
+	ClassDB::bind_method(_MD("set_offset","offset"),&Quad::set_offset);
+	ClassDB::bind_method(_MD("get_offset"),&Quad::get_offset);
 
-	ADD_PROPERTY( PropertyInfo( Variant::INT, "quad/axis", PROPERTY_HINT_ENUM,"X,Y,Z" ), _SCS("set_axis"), _SCS("get_axis"));
-	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2, "quad/size" ), _SCS("set_size"), _SCS("get_size"));
-	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2, "quad/offset" ), _SCS("set_offset"), _SCS("get_offset"));
-	ADD_PROPERTY( PropertyInfo( Variant::BOOL, "quad/centered" ), _SCS("set_centered"), _SCS("is_centered"));
+	ADD_PROPERTY( PropertyInfo( Variant::INT, "axis", PROPERTY_HINT_ENUM,"X,Y,Z" ), _SCS("set_axis"), _SCS("get_axis"));
+	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2, "size" ), _SCS("set_size"), _SCS("get_size"));
+	ADD_PROPERTY( PropertyInfo( Variant::VECTOR2, "offset" ), _SCS("set_offset"), _SCS("get_offset"));
+	ADD_PROPERTY( PropertyInfo( Variant::BOOL, "centered" ), _SCS("set_centered"), _SCS("is_centered"));
 
 }
 
@@ -229,4 +229,8 @@ Quad::Quad() {
 	set_base(mesh);
 	configured=false;
 
+}
+
+Quad::~Quad() {
+	VisualServer::get_singleton()->free(mesh);
 }

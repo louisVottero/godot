@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -126,12 +126,12 @@ Error PacketPeer::_get_packet_error() const {
 
 void PacketPeer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("get_var:Variant"),&PacketPeer::_bnd_get_var);
-	ObjectTypeDB::bind_method(_MD("put_var", "var:Variant"),&PacketPeer::put_var);
-	ObjectTypeDB::bind_method(_MD("get_packet"),&PacketPeer::_get_packet);
-	ObjectTypeDB::bind_method(_MD("put_packet:Error", "buffer"),&PacketPeer::_put_packet);
-	ObjectTypeDB::bind_method(_MD("get_packet_error:Error"),&PacketPeer::_get_packet_error);
-	ObjectTypeDB::bind_method(_MD("get_available_packet_count"),&PacketPeer::get_available_packet_count);
+	ClassDB::bind_method(_MD("get_var:Variant"),&PacketPeer::_bnd_get_var);
+	ClassDB::bind_method(_MD("put_var", "var:Variant"),&PacketPeer::put_var);
+	ClassDB::bind_method(_MD("get_packet"),&PacketPeer::_get_packet);
+	ClassDB::bind_method(_MD("put_packet:Error", "buffer"),&PacketPeer::_put_packet);
+	ClassDB::bind_method(_MD("get_packet_error:Error"),&PacketPeer::_get_packet_error);
+	ClassDB::bind_method(_MD("get_available_packet_count"),&PacketPeer::get_available_packet_count);
 };
 
 /***************/
@@ -145,7 +145,7 @@ void PacketPeerStream::_set_stream_peer(REF p_peer) {
 
 void PacketPeerStream::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("set_stream_peer","peer:StreamPeer"),&PacketPeerStream::_set_stream_peer);
+	ClassDB::bind_method(_MD("set_stream_peer","peer:StreamPeer"),&PacketPeerStream::_set_stream_peer);
 }
 
 Error PacketPeerStream::_poll_buffer() const {
@@ -265,7 +265,8 @@ void PacketPeerStream::set_input_buffer_max_size(int p_max_size) {
 PacketPeerStream::PacketPeerStream() {
 
 
-	int rbsize=GLOBAL_DEF( "core/packet_stream_peer_max_buffer_po2",(16));
+	int rbsize=GLOBAL_GET( "network/packets/packet_stream_peer_max_buffer_po2");
+
 
 	ring_buffer.resize(rbsize);
 	temp_buffer.resize(1<<rbsize);

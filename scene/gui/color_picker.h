@@ -5,7 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -39,26 +39,23 @@
 #include "scene/gui/texture_frame.h"
 #include "scene/gui/tool_button.h"
 #include "scene/gui/check_button.h"
-#include "scene/resources/material.h"
 
 class ColorPicker : public BoxContainer {
 
-	OBJ_TYPE(ColorPicker,BoxContainer);
+	GDCLASS(ColorPicker,BoxContainer);
 
 private:
 
 	Control *screen;
 	Image last_capture;
-	TextureFrame *uv_edit;
-	TextureFrame *w_edit;
+	Control *uv_edit;
+	Control *w_edit;
 	TextureFrame *sample;
 	TextureFrame *preset;
 	Button *bt_add_preset;
 	List<Color> presets;
 	ToolButton *btn_pick;
 	CheckButton *btn_mode;
-	Ref<CanvasItemMaterial> uv_material;
-	Ref<CanvasItemMaterial> w_material;
 	HSlider *scroll[4];
 	SpinBox *values[4];
 	Label *labels[4];
@@ -115,7 +112,7 @@ public:
 
 class ColorPickerButton : public Button {
 
-	OBJ_TYPE(ColorPickerButton,Button);
+	GDCLASS(ColorPickerButton,Button);
 
 	PopupPanel *popup;
 	ColorPicker *picker;
