@@ -31,17 +31,15 @@ Files extracted from upstream source:
 - `docs/{FTL.TXT,LICENSE.TXT}`
 
 
-## glew
+## glad
 
-- Upstream: http://glew.sourceforge.net
-- Version: 1.13.0
-- License: BSD-3-Clause
+- Upstream: https://github.com/Dav1dde/glad
+- Version: 0.1.13a0
+- License: MIT
 
-Files extracted from upstream source:
-
-- `src/glew.c`
-- include/GL/ as GL/
-- LICENSE.txt
+The files we package are automatically generated.
+See the header of glad.c for instructions on how to generate them for
+the GLES version Godot targets.
 
 
 ## jpeg-compressor
