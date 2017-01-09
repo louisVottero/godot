@@ -96,7 +96,7 @@ Size2 PopupMenu::get_minimum_size() const {
 			size.width+=check_w+hseparation;
 		}
 
-		String text = items[i].shortcut.is_valid() ? String(tr(items[i].shortcut->get_name())) : items[i].text;
+		String text = items[i].shortcut.is_valid() ? String(tr(items[i].shortcut->get_name())) : items[i].xl_text;
 		size.width+=font->get_string_size(text).width;
 		if (i>0)
 			size.height+=vseparation;
@@ -215,7 +215,7 @@ void PopupMenu::_submenu_timeout() {
 }
 
 
-void PopupMenu::_input_event(const InputEvent &p_event) {
+void PopupMenu::_gui_input(const InputEvent &p_event) {
 
 	switch( p_event.type) {
 
@@ -308,7 +308,7 @@ void PopupMenu::_input_event(const InputEvent &p_event) {
 						ie.type=InputEvent::MOUSE_MOTION;
 						ie.mouse_motion.x=b.x;
 						ie.mouse_motion.y=b.y+s;
-						_input_event(ie);
+						_gui_input(ie);
 					}
 				} break;
 				case BUTTON_WHEEL_UP: {
@@ -328,7 +328,7 @@ void PopupMenu::_input_event(const InputEvent &p_event) {
 						ie.type=InputEvent::MOUSE_MOTION;
 						ie.mouse_motion.x=b.x;
 						ie.mouse_motion.y=b.y-s;
-						_input_event(ie);
+						_gui_input(ie);
 
 
 					}
@@ -421,7 +421,16 @@ void PopupMenu::_notification(int p_what) {
 
 	switch(p_what) {
 
+		case NOTIFICATION_TRANSLATION_CHANGED: {
 
+			for(int i=0;i<items.size();i++) {
+				items[i].xl_text=XL_MESSAGE(items[i].text);
+			}
+
+			minimum_size_changed();
+			update();
+
+		} break;
 		case NOTIFICATION_DRAW: {
 
 			RID ci = get_canvas_item();
@@ -496,7 +505,7 @@ void PopupMenu::_notification(int p_what) {
 				}
 
 				item_ofs.y+=font->get_ascent();
-				String text = items[i].shortcut.is_valid() ? String(tr(items[i].shortcut->get_name())) : items[i].text;
+				String text = items[i].shortcut.is_valid() ? String(tr(items[i].shortcut->get_name())) : items[i].xl_text;
 				if (!items[i].separator) {
 
 					font->draw(ci,item_ofs+Point2(0,Math::floor((h-font_h)/2.0)),text,items[i].disabled?font_color_disabled:(i==mouse_over?font_color_hover:font_color));
@@ -537,6 +546,7 @@ void PopupMenu::add_icon_item(const Ref<Texture>& p_icon,const String& p_label,i
 	Item item;
 	item.icon=p_icon;
 	item.text=p_label;
+	item.xl_text=XL_MESSAGE(p_label);
 	item.accel=p_accel;
 	item.ID=p_ID;
 	items.push_back(item);
@@ -545,7 +555,8 @@ void PopupMenu::add_icon_item(const Ref<Texture>& p_icon,const String& p_label,i
 void PopupMenu::add_item(const String& p_label,int p_ID,uint32_t p_accel) {
 
 	Item item;
-	item.text=XL_MESSAGE(p_label);
+	item.text=p_label;
+	item.xl_text=XL_MESSAGE(p_label);
 	item.accel=p_accel;
 	item.ID=p_ID;
 	items.push_back(item);
@@ -555,7 +566,8 @@ void PopupMenu::add_item(const String& p_label,int p_ID,uint32_t p_accel) {
 void PopupMenu::add_submenu_item(const String& p_label, const String& p_submenu,int p_ID){
 
 	Item item;
-	item.text=XL_MESSAGE(p_label);
+	item.text=p_label;
+	item.xl_text=XL_MESSAGE(p_label);
 	item.ID=p_ID;
 	item.submenu=p_submenu;
 	items.push_back(item);
@@ -566,7 +578,8 @@ void PopupMenu::add_icon_check_item(const Ref<Texture>& p_icon,const String& p_l
 
 	Item item;
 	item.icon=p_icon;
-	item.text=XL_MESSAGE(p_label);
+	item.text=p_label;
+	item.xl_text=XL_MESSAGE(p_label);
 	item.accel=p_accel;
 	item.ID=p_ID;
 	item.checkable=true;
@@ -576,7 +589,8 @@ void PopupMenu::add_icon_check_item(const Ref<Texture>& p_icon,const String& p_l
 void PopupMenu::add_check_item(const String& p_label,int p_ID,uint32_t p_accel) {
 
 	Item item;
-	item.text=XL_MESSAGE(p_label);
+	item.text=p_label;
+	item.xl_text=XL_MESSAGE(p_label);
 	item.accel=p_accel;
 	item.ID=p_ID;
 	item.checkable=true;
@@ -649,7 +663,8 @@ void PopupMenu::add_check_shortcut(const Ref<ShortCut>& p_shortcut, int p_ID, bo
 void PopupMenu::set_item_text(int p_idx,const String& p_text) {
 
 	ERR_FAIL_INDEX(p_idx,items.size());
-	items[p_idx].text=XL_MESSAGE(p_text);
+	items[p_idx].text=p_text;
+	items[p_idx].xl_text=XL_MESSAGE(p_text);
 
 	update();
 
@@ -912,7 +927,8 @@ void PopupMenu::activate_item(int p_item) {
 	ERR_FAIL_INDEX(p_item,items.size());
 	ERR_FAIL_COND(items[p_item].separator);
 	int id = items[p_item].ID>=0?items[p_item].ID:p_item;
-	emit_signal("item_pressed",id);
+	emit_signal("id_pressed",id);
+	emit_signal("index_pressed",p_item);
 
 	//hide all parent PopupMenue's
 	Node *next = get_parent();
@@ -1081,8 +1097,8 @@ void PopupMenu::get_translatable_strings(List<String> *p_strings) const {
 
 	for(int i=0;i<items.size();i++) {
 
-		if (items[i].text!="")
-			p_strings->push_back(items[i].text);
+		if (items[i].xl_text!="")
+			p_strings->push_back(items[i].xl_text);
 	}
 }
 
@@ -1098,7 +1114,7 @@ void PopupMenu::clear_autohide_areas(){
 
 void PopupMenu::_bind_methods() {
 
-	ClassDB::bind_method(_MD("_input_event"),&PopupMenu::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&PopupMenu::_gui_input);
 	ClassDB::bind_method(_MD("add_icon_item","texture","label","id","accel"),&PopupMenu::add_icon_item,DEFVAL(-1),DEFVAL(0));
 	ClassDB::bind_method(_MD("add_item","label","id","accel"),&PopupMenu::add_item,DEFVAL(-1),DEFVAL(0));
 	ClassDB::bind_method(_MD("add_icon_check_item","texture","label","id","accel"),&PopupMenu::add_icon_check_item,DEFVAL(-1),DEFVAL(0));
@@ -1157,7 +1173,8 @@ void PopupMenu::_bind_methods() {
 	ADD_PROPERTY( PropertyInfo(Variant::ARRAY,"items",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_NOEDITOR), _SCS("_set_items"),_SCS("_get_items") );
 	ADD_PROPERTYNO( PropertyInfo(Variant::BOOL, "hide_on_item_selection" ), _SCS("set_hide_on_item_selection"), _SCS("is_hide_on_item_selection") );
 
-	ADD_SIGNAL( MethodInfo("item_pressed", PropertyInfo( Variant::INT,"ID") ) );
+	ADD_SIGNAL( MethodInfo("id_pressed", PropertyInfo( Variant::INT,"ID") ) );
+	ADD_SIGNAL( MethodInfo("index_pressed", PropertyInfo( Variant::INT,"index") ) );
 
 }
 

@@ -2017,7 +2017,7 @@ CustomPropertyEditor::CustomPropertyEditor() {
 	type_button = memnew( MenuButton );
 	add_child(type_button);
 	type_button->hide();
-	type_button->get_popup()->connect("item_pressed", this,"_type_create_selected");
+	type_button->get_popup()->connect("id_pressed", this,"_type_create_selected");
 
 
 	scene_tree = memnew( SceneTreeDialog );
@@ -2033,13 +2033,13 @@ CustomPropertyEditor::CustomPropertyEditor() {
 	add_child(easing_draw);
 	easing_draw->hide();
 	easing_draw->connect("draw",this,"_draw_easing");
-	easing_draw->connect("input_event",this,"_drag_easing");
+	easing_draw->connect("gui_input",this,"_drag_easing");
 	//easing_draw->emit_signal(SceneStringNames::get_singleton()->input_event,InputEvent());
 	easing_draw->set_default_cursor_shape(Control::CURSOR_MOVE);
 
 	menu = memnew(PopupMenu);
 	add_child(menu);
-	menu->connect("item_pressed",this,"_menu_option");
+	menu->connect("id_pressed",this,"_menu_option");
 
 	evaluator = NULL;
 

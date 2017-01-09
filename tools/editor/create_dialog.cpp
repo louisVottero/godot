@@ -141,7 +141,7 @@ void CreateDialog::_sbox_input(const InputEvent& p_ie) {
 		p_ie.key.scancode == KEY_PAGEUP ||
 		p_ie.key.scancode == KEY_PAGEDOWN ) ) {
 
-		search_options->call("_input_event",p_ie);
+		search_options->call("_gui_input",p_ie);
 		search_box->accept_event();
 	}
 
@@ -400,8 +400,11 @@ Object *CreateDialog::instance_selected() {
 
 	if (selected) {
 
-		String custom = selected->get_metadata(0);
+		Variant md = selected->get_metadata(0);
 
+		String custom;
+		if (md.get_type()!=Variant::NIL)
+			custom=md;
 
 		if (custom!=String()) {
 			if (EditorNode::get_editor_data().get_custom_types().has(custom)) {
@@ -682,7 +685,7 @@ CreateDialog::CreateDialog() {
 	favorite->connect("pressed",this,"_favorite_toggled");
 	vbc->add_margin_child(TTR("Search:"),search_hb);
 	search_box->connect("text_changed",this,"_text_changed");
-	search_box->connect("input_event",this,"_sbox_input");
+	search_box->connect("gui_input",this,"_sbox_input");
 	search_options = memnew( Tree );
 	vbc->add_margin_child(TTR("Matches:"),search_options,true);
 	get_ok()->set_text(TTR("Create"));

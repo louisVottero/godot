@@ -216,7 +216,7 @@ void Polygon2DEditor::_wip_close() {
 	edited_point=-1;
 }
 
-bool Polygon2DEditor::forward_input_event(const InputEvent& p_event) {
+bool Polygon2DEditor::forward_gui_input(const InputEvent& p_event) {
 
 	if (node==NULL)
 		return false;
@@ -684,7 +684,6 @@ void Polygon2DEditor::_uv_draw() {
 	mtx.elements[2]=-uv_draw_ofs;
 	mtx.scale_basis(Vector2(uv_draw_zoom,uv_draw_zoom));
 
-	VS::get_singleton()->canvas_item_set_clip(uv_edit_draw->get_canvas_item(),true);
 	VS::get_singleton()->canvas_item_add_set_transform(uv_edit_draw->get_canvas_item(),mtx);
 	uv_edit_draw->draw_texture(base_tex,Point2());
 	VS::get_singleton()->canvas_item_add_set_transform(uv_edit_draw->get_canvas_item(),Matrix32());
@@ -840,7 +839,7 @@ Polygon2DEditor::Polygon2DEditor(EditorNode *p_editor) {
 	options->set_area_as_parent_rect();
 	options->set_text("Polygon");
 	//options->get_popup()->add_item("Parse BBCode",PARSE_BBCODE);
-	options->get_popup()->connect("item_pressed", this,"_menu_option");
+	options->get_popup()->connect("id_pressed", this,"_menu_option");
 #endif
 
 	mode = MODE_EDIT;
@@ -885,7 +884,7 @@ Polygon2DEditor::Polygon2DEditor(EditorNode *p_editor) {
 	uv_menu->get_popup()->add_item(TTR("UV->Polygon"),UVEDIT_UV_TO_POLYGON);
 	uv_menu->get_popup()->add_separator();
 	uv_menu->get_popup()->add_item(TTR("Clear UV"),UVEDIT_UV_CLEAR);
-	uv_menu->get_popup()->connect("item_pressed",this,"_menu_option");
+	uv_menu->get_popup()->connect("id_pressed",this,"_menu_option");
 
 	uv_mode_hb->add_child( memnew( VSeparator ));
 
@@ -975,7 +974,7 @@ Polygon2DEditor::Polygon2DEditor(EditorNode *p_editor) {
 	uv_hscroll->connect("value_changed",this,"_uv_scroll_changed");
 
 	uv_edit_draw->connect("draw",this,"_uv_draw");
-	uv_edit_draw->connect("input_event",this,"_uv_input");
+	uv_edit_draw->connect("gui_input",this,"_uv_input");
 	uv_draw_zoom=1.0;
 	uv_drag_index=-1;
 	uv_drag=false;
@@ -983,6 +982,8 @@ Polygon2DEditor::Polygon2DEditor(EditorNode *p_editor) {
 
 	error = memnew( AcceptDialog);
 	add_child(error);
+
+	uv_edit_draw->set_clip_contents(true);
 
 }
 

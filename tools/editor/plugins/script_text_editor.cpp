@@ -979,7 +979,7 @@ void ScriptTextEditor::_bind_methods() {
 	ClassDB::bind_method("_edit_option",&ScriptTextEditor::_edit_option);
 	ClassDB::bind_method("_goto_line",&ScriptTextEditor::_goto_line);
 	ClassDB::bind_method("_lookup_symbol",&ScriptTextEditor::_lookup_symbol);
-	ClassDB::bind_method("_text_edit_input_event", &ScriptTextEditor::_text_edit_input_event);
+	ClassDB::bind_method("_text_edit_gui_input", &ScriptTextEditor::_text_edit_gui_input);
 	ClassDB::bind_method("_color_changed", &ScriptTextEditor::_color_changed);
 
 
@@ -1159,7 +1159,7 @@ void ScriptTextEditor::drop_data_fw(const Point2& p_point,const Variant& p_data,
 
 }
 
-void ScriptTextEditor::_text_edit_input_event(const InputEvent& ev) {
+void ScriptTextEditor::_text_edit_gui_input(const InputEvent& ev) {
 	if (ev.type == InputEvent::MOUSE_BUTTON) {
 		InputEventMouseButton mb = ev.mouse_button;
 		if (mb.button_index == BUTTON_RIGHT && !mb.pressed) {
@@ -1226,20 +1226,21 @@ void ScriptTextEditor::_make_context_menu(bool p_selection, bool p_color) {
 
 	context_menu->clear();
 	if (p_selection) {
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/cut"));
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/copy"));
+		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/cut"), EDIT_CUT);
+		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/copy"), EDIT_COPY);
 	}
 
-	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/paste"));
+	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/paste"), EDIT_PASTE);
 	context_menu->add_separator();
-	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/select_all"));
-	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/undo"));
+	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/select_all"), EDIT_SELECT_ALL);
+	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/undo"), EDIT_UNDO);
+	context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/redo"), EDIT_REDO);
 
 	if (p_selection) {
 		context_menu->add_separator();
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/indent_left"));
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/indent_right"));
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/toggle_comment"));
+		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/indent_left"), EDIT_INDENT_LEFT);
+		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/indent_right"), EDIT_INDENT_RIGHT);
+		context_menu->add_shortcut(ED_GET_SHORTCUT("script_text_editor/toggle_comment"), EDIT_TOGGLE_COMMENT);
 	}
 	if (p_color) {
 		context_menu->add_separator();
@@ -1269,11 +1270,11 @@ ScriptTextEditor::ScriptTextEditor() {
 
 	code_editor->get_text_edit()->set_select_identifiers_on_hover(true);
 	code_editor->get_text_edit()->set_context_menu_enabled(false);
-	code_editor->get_text_edit()->connect("input_event", this, "_text_edit_input_event");
+	code_editor->get_text_edit()->connect("gui_input", this, "_text_edit_gui_input");
 
 	context_menu = memnew(PopupMenu);
 	add_child(context_menu);
-	context_menu->connect("item_pressed", this, "_edit_option");
+	context_menu->connect("id_pressed", this, "_edit_option");
 
 	color_panel = memnew(PopupPanel);
 	add_child(color_panel);
@@ -1309,7 +1310,7 @@ ScriptTextEditor::ScriptTextEditor() {
 #endif
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/trim_trailing_whitespace"), EDIT_TRIM_TRAILING_WHITESAPCE);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/auto_indent"), EDIT_AUTO_INDENT);
-	edit_menu->get_popup()->connect("item_pressed", this,"_edit_option");
+	edit_menu->get_popup()->connect("id_pressed", this,"_edit_option");
 	edit_menu->get_popup()->add_separator();
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/toggle_breakpoint"), DEBUG_TOGGLE_BREAKPOINT);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/remove_all_breakpoints"), DEBUG_REMOVE_ALL_BREAKPOINTS);
@@ -1329,7 +1330,7 @@ ScriptTextEditor::ScriptTextEditor() {
 	search_menu->get_popup()->add_separator();
 	search_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/contextual_help"), HELP_CONTEXTUAL);
 
-	search_menu->get_popup()->connect("item_pressed", this,"_edit_option");
+	search_menu->get_popup()->connect("id_pressed", this,"_edit_option");
 
 	edit_hb->add_child(edit_menu);
 

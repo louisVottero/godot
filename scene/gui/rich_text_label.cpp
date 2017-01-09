@@ -687,8 +687,6 @@ void RichTextLabel::_notification(int p_what) {
 			RID ci=get_canvas_item();
 			Size2 size = get_size();
 
-			VisualServer::get_singleton()->canvas_item_set_clip(ci,true);
-
 			if (has_focus()) {
 				VisualServer::get_singleton()->canvas_item_add_clip_ignore(ci,true);
 				draw_style_box(get_stylebox("focus"),Rect2(Point2(),size));
@@ -789,7 +787,7 @@ Control::CursorShape RichTextLabel::get_cursor_shape(const Point2& p_pos) const 
 }
 
 
-void RichTextLabel::_input_event(InputEvent p_event) {
+void RichTextLabel::_gui_input(InputEvent p_event) {
 
 	switch(p_event.type) {
 
@@ -1902,7 +1900,7 @@ String RichTextLabel::get_text() {
 void RichTextLabel::_bind_methods() {
 
 
-	ClassDB::bind_method(_MD("_input_event"),&RichTextLabel::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&RichTextLabel::_gui_input);
 	ClassDB::bind_method(_MD("_scroll_changed"),&RichTextLabel::_scroll_changed);
 	ClassDB::bind_method(_MD("get_text"),&RichTextLabel::get_text);
 	ClassDB::bind_method(_MD("add_text","text"),&RichTextLabel::add_text);
@@ -2046,6 +2044,7 @@ RichTextLabel::RichTextLabel() {
 
 	visible_characters=-1;
 
+	set_clip_contents(true);
 }
 
 RichTextLabel::~RichTextLabel() {

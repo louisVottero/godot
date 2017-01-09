@@ -824,7 +824,7 @@ void SpatialEditorViewport::_sinput(const InputEvent &p_event) {
 		EditorPluginList *over_plugin_list = en->get_editor_plugins_over();
 
 		if (!over_plugin_list->empty()) {
-			bool discard = over_plugin_list->forward_spatial_input_event(camera,p_event);
+			bool discard = over_plugin_list->forward_spatial_gui_input(camera,p_event);
 			if (discard)
 				return;
 		}
@@ -1852,7 +1852,7 @@ void SpatialEditorViewport::_notification(int p_what) {
 	if (p_what==NOTIFICATION_ENTER_TREE) {
 
 		surface->connect("draw",this,"_draw");
-		surface->connect("input_event",this,"_sinput");
+		surface->connect("gui_input",this,"_sinput");
 		surface->connect("mouse_enter",this,"_smouseenter");
 		preview_camera->set_icon(get_icon("Camera","EditorIcons"));
 		_init_gizmo_instance(index);
@@ -2423,7 +2423,7 @@ SpatialEditorViewport::SpatialEditorViewport(SpatialEditor *p_spatial_editor, Ed
 	view_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("spatial_editor/focus_origin"), VIEW_CENTER_TO_ORIGIN);
 	view_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("spatial_editor/focus_selection"), VIEW_CENTER_TO_SELECTION);
 	view_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("spatial_editor/align_selection_with_view"), VIEW_ALIGN_SELECTION_WITH_VIEW);
-	view_menu->get_popup()->connect("item_pressed",this,"_menu_option");
+	view_menu->get_popup()->connect("id_pressed",this,"_menu_option");
 
 	preview_camera = memnew( Button );
 	preview_camera->set_toggle_mode(true);
@@ -2440,7 +2440,7 @@ SpatialEditorViewport::SpatialEditorViewport(SpatialEditor *p_spatial_editor, Ed
 	selection_menu = memnew( PopupMenu );
 	add_child(selection_menu);
 	selection_menu->set_custom_minimum_size(Vector2(100, 0));
-	selection_menu->connect("item_pressed", this, "_selection_result_pressed");
+	selection_menu->connect("id_pressed", this, "_selection_result_pressed");
 	selection_menu->connect("popup_hide", this, "_selection_menu_hide");
 
 	if (p_index==0) {
@@ -2963,9 +2963,9 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 
 			}
 			viewports[0]->set_area_as_parent_rect();
-			viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
 			viewports[2]->set_area_as_parent_rect();
-			viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
 
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_1_VIEWPORT), false );
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_2_VIEWPORTS), true );
@@ -2987,9 +2987,9 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 
 			}
 			viewports[0]->set_area_as_parent_rect();
-			viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
 			viewports[2]->set_area_as_parent_rect();
-			viewports[2]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
 
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_1_VIEWPORT), false );
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_2_VIEWPORTS), false );
@@ -3009,13 +3009,13 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 					viewports[i]->show();
 			}
 			viewports[0]->set_area_as_parent_rect();
-			viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
 			viewports[2]->set_area_as_parent_rect();
-			viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
-			viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
 			viewports[3]->set_area_as_parent_rect();
-			viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
-			viewports[3]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
+			//viewports[3]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
 
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_1_VIEWPORT), false );
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_2_VIEWPORTS), false );
@@ -3035,13 +3035,13 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 					viewports[i]->show();
 			}
 			viewports[0]->set_area_as_parent_rect();
-			viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
-			viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
 			viewports[2]->set_area_as_parent_rect();
-			viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
-			viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
 			viewports[3]->set_area_as_parent_rect();
-			viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
+			//viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
 
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_1_VIEWPORT), false );
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_2_VIEWPORTS), false );
@@ -3058,17 +3058,17 @@ void SpatialEditor::_menu_item_pressed(int p_option) {
 				viewports[i]->show();
 			}
 			viewports[0]->set_area_as_parent_rect();
-			viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
-			viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[0]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
 			viewports[1]->set_area_as_parent_rect();
-			viewports[1]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
-			viewports[1]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
+			//viewports[1]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
+			//viewports[1]->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_RATIO,0.5);
 			viewports[2]->set_area_as_parent_rect();
-			viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
-			viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_RATIO,0.5);
+			//viewports[2]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
 			viewports[3]->set_area_as_parent_rect();
-			viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
-			viewports[3]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
+			//viewports[3]->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_RATIO,0.5);
+			//viewports[3]->set_anchor_and_margin(MARGIN_TOP,ANCHOR_RATIO,0.5);
 
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_1_VIEWPORT), false );
 			view_menu->get_popup()->set_item_checked( view_menu->get_popup()->get_item_index(MENU_VIEW_USE_2_VIEWPORTS), false );
@@ -3505,7 +3505,7 @@ void SpatialEditor::_unhandled_key_input(InputEvent p_event) {
 		EditorNode *en = editor;
 		EditorPluginList *over_plugin_list = en->get_editor_plugins_over();
 
-		if (!over_plugin_list->empty() && over_plugin_list->forward_input_event(p_event)) {
+		if (!over_plugin_list->empty() && over_plugin_list->forward_gui_input(p_event)) {
 
 			return; //ate the over input event
 		}
@@ -3702,7 +3702,7 @@ void SpatialEditor::_node_removed(Node* p_node) {
 
 void SpatialEditor::_bind_methods() {
 
-//	ClassDB::bind_method("_input_event",&SpatialEditor::_input_event);
+//	ClassDB::bind_method("_gui_input",&SpatialEditor::_gui_input);
 	ClassDB::bind_method("_unhandled_key_input",&SpatialEditor::_unhandled_key_input);
 	ClassDB::bind_method("_node_removed",&SpatialEditor::_node_removed);
 	ClassDB::bind_method("_menu_item_pressed",&SpatialEditor::_menu_item_pressed);
@@ -3907,7 +3907,7 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	p->add_separator();
 	p->add_shortcut(ED_SHORTCUT("spatial_editor/transform_dialog", TTR("Transform Dialog..")), MENU_TRANSFORM_DIALOG);
 
-	p->connect("item_pressed", this,"_menu_item_pressed");
+	p->connect("id_pressed", this,"_menu_item_pressed");
 
 	view_menu = memnew( MenuButton );
 	view_menu->set_text(TTR("View"));
@@ -3945,7 +3945,7 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	p->set_item_checked( p->get_item_index(MENU_VIEW_GRID), true );
 
 
-	p->connect("item_pressed", this,"_menu_item_pressed");
+	p->connect("id_pressed", this,"_menu_item_pressed");
 
 
 	/* REST OF MENU */
@@ -4007,7 +4007,7 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 
 	settings_light_base = memnew( ViewportContainer );
 	settings_light_base->set_custom_minimum_size(Size2(128,128));
-	settings_light_base->connect("input_event",this,"_default_light_angle_input");
+	settings_light_base->connect("gui_input",this,"_default_light_angle_input");
 	settings_vbc->add_margin_child(TTR("Default Light Normal:"),settings_light_base);
 	settings_light_vp = memnew( Viewport );
 	settings_light_vp->set_disable_input(true);

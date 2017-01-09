@@ -30,10 +30,11 @@
 #include "os_windows.h"
 
 #include "drivers/gles3/rasterizer_gles3.h"
-#include "os/memory_pool_dynamic_static.h"
+
 #include "drivers/windows/thread_windows.h"
 #include "drivers/windows/semaphore_windows.h"
 #include "drivers/windows/mutex_windows.h"
+#include "drivers/windows/rw_lock_windows.h"
 #include "main/main.h"
 #include "drivers/windows/file_access_windows.h"
 #include "drivers/windows/dir_access_windows.h"
@@ -47,10 +48,10 @@
 #include "packet_peer_udp_winsock.h"
 #include "stream_peer_winsock.h"
 #include "lang_table.h"
-#include "os/memory_pool_dynamic_prealloc.h"
+
 #include "globals.h"
 #include "io/marshalls.h"
-#include "joystick.h"
+#include "joypad.h"
 
 #include "shlobj.h"
 #include <regstr.h>
@@ -166,7 +167,6 @@ const char * OS_Windows::get_audio_driver_name(int p_driver) const {
 	return AudioDriverManagerSW::get_driver(p_driver)->get_name();
 }
 
-static MemoryPoolDynamic *mempool_dynamic=NULL;
 
 void OS_Windows::initialize_core() {
 
@@ -181,6 +181,7 @@ void OS_Windows::initialize_core() {
 	ThreadWindows::make_default();
 	SemaphoreWindows::make_default();
 	MutexWindows::make_default();
+	RWLockWindows::make_default();
 
 	FileAccess::make_default<FileAccessWindows>(FileAccess::ACCESS_RESOURCES);
 	FileAccess::make_default<FileAccessWindows>(FileAccess::ACCESS_USERDATA);
@@ -194,14 +195,6 @@ void OS_Windows::initialize_core() {
 	StreamPeerWinsock::make_default();
 	PacketPeerUDPWinsock::make_default();
 
-#if 1
-	mempool_dynamic = memnew( MemoryPoolDynamicStatic );
-#else
-#define DYNPOOL_SIZE 4*1024*1024
-	void * buffer = malloc( DYNPOOL_SIZE );
-	mempool_dynamic = memnew( MemoryPoolDynamicPrealloc(buffer,DYNPOOL_SIZE) );
-
-#endif
 
 	   // We need to know how often the clock is updated
 	if( !QueryPerformanceFrequency((LARGE_INTEGER *)&ticks_per_second) )
@@ -684,7 +677,7 @@ LRESULT OS_Windows::WndProc(HWND hWnd,UINT uMsg, WPARAM	wParam,	LPARAM	lParam) {
 			print_line("input lang change");
 		} break;
 
-		#if WINVER >= 0x0700 // for windows 7
+		#if WINVER >= 0x0601 // for windows 7
 		case WM_TOUCH: {
 
 			BOOL bHandled = FALSE;
@@ -721,7 +714,7 @@ LRESULT OS_Windows::WndProc(HWND hWnd,UINT uMsg, WPARAM	wParam,	LPARAM	lParam) {
 		#endif
 		case WM_DEVICECHANGE: {
 
-			joystick->probe_joysticks();
+			joypad->probe_joypads();
 		} break;
 		case WM_SETCURSOR: {
 
@@ -1127,7 +1120,7 @@ void OS_Windows::initialize(const VideoMode& p_desired,int p_video_driver,int p_
 	visual_server->init();
 
 	input = memnew( InputDefault );
-	joystick = memnew (joystick_windows(input, &hWnd));
+	joypad = memnew (JoypadWindows(input, &hWnd));
 
 	AudioDriverManagerSW::get_driver(p_audio_driver)->set_singleton();
 
@@ -1260,7 +1253,7 @@ void OS_Windows::finalize() {
 
 	main_loop=NULL;
 
-	memdelete(joystick);
+	memdelete(joypad);
 	memdelete(input);
 
 	visual_server->finish();
@@ -1302,9 +1295,6 @@ void OS_Windows::finalize() {
 void OS_Windows::finalize_core() {
 
 	memdelete(process_map);
-
-	if (mempool_dynamic)
-		memdelete( mempool_dynamic );
 
 
 	TCPServerWinsock::cleanup();
@@ -1938,7 +1928,7 @@ void OS_Windows::process_events() {
 
 	MSG msg;
 
-	last_id = joystick->process_joysticks(last_id);
+	last_id = joypad->process_joypads(last_id);
 
 	while(PeekMessageW(&msg,NULL,0,0,PM_REMOVE)) {
 

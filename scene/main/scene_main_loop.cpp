@@ -366,7 +366,7 @@ void SceneTree::input_text( const String& p_text ) {
 void SceneTree::input_event( const InputEvent& p_event ) {
 
 
-	if (is_editor_hint() && (p_event.type==InputEvent::JOYSTICK_MOTION || p_event.type==InputEvent::JOYSTICK_BUTTON))
+	if (is_editor_hint() && (p_event.type==InputEvent::JOYPAD_MOTION || p_event.type==InputEvent::JOYPAD_BUTTON))
 		return; //avoid joy input on editor
 
 	root_lock++;
@@ -649,6 +649,9 @@ void SceneTree::_notification(int p_notification) {
 		case NOTIFICATION_WM_FOCUS_OUT: {
 
 			get_root()->propagate_notification(p_notification);
+		} break;
+		case NOTIFICATION_TRANSLATION_CHANGED: {
+			get_root()->propagate_notification(Node::NOTIFICATION_TRANSLATION_CHANGED);
 		} break;
 		case NOTIFICATION_WM_UNFOCUS_REQUEST: {
 

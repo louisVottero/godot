@@ -41,7 +41,7 @@ static bool _is_text_char(CharType c) {
 	return (c>='a' && c<='z') || (c>='A' && c<='Z') || (c>='0' && c<='9') || c=='_';
 }
 
-void LineEdit::_input_event(InputEvent p_event) {
+void LineEdit::_gui_input(InputEvent p_event) {
 
 
 	switch(p_event.type) {
@@ -1267,7 +1267,7 @@ void LineEdit::_bind_methods() {
 	ClassDB::bind_method(_MD("set_align", "align"), &LineEdit::set_align);
 	ClassDB::bind_method(_MD("get_align"), &LineEdit::get_align);
 
-	ClassDB::bind_method(_MD("_input_event"),&LineEdit::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&LineEdit::_gui_input);
 	ClassDB::bind_method(_MD("clear"),&LineEdit::clear);
 	ClassDB::bind_method(_MD("select_all"),&LineEdit::select_all);
 	ClassDB::bind_method(_MD("set_text","text"),&LineEdit::set_text);
@@ -1341,7 +1341,7 @@ LineEdit::LineEdit() {
 	set_focus_mode( FOCUS_ALL );
 	editable=true;
 	set_default_cursor_shape(CURSOR_IBEAM);
-	set_stop_mouse(true);
+	set_mouse_filter(MOUSE_FILTER_STOP);
 
 	draw_caret=true;
 	caret_blink_enabled=false;
@@ -1361,7 +1361,7 @@ LineEdit::LineEdit() {
 	menu->add_item(TTR("Clear"),MENU_CLEAR);
 	menu->add_separator();
 	menu->add_item(TTR("Undo"),MENU_UNDO,KEY_MASK_CMD|KEY_Z);
-	menu->connect("item_pressed",this,"menu_option");
+	menu->connect("id_pressed",this,"menu_option");
 	expand_to_text_length=false;
 
 

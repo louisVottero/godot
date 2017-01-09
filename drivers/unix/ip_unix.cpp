@@ -37,19 +37,25 @@
   #ifndef AI_ADDRCONFIG
     #define AI_ADDRCONFIG 0x00000400
   #endif
- #ifdef UWP_ENABLED
   #include <ws2tcpip.h>
   #include <winsock2.h>
   #include <windows.h>
   #include <stdio.h>
- #else
-  #define WINVER 0x0600
-  #include <ws2tcpip.h>
-  #include <winsock2.h>
-  #include <windows.h>
-  #include <stdio.h>
-  #include <iphlpapi.h>
- #endif
+  #ifndef UWP_ENABLED
+    #if defined(__MINGW32__ ) && (!defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 4)
+      // MinGW-w64 on Ubuntu 12.04 (our Travis build env) has bugs in this code where
+      // some includes are missing in dependencies of iphlpapi.h for WINVER >= 0x0600 (Vista).
+      // We don't use this Vista code for now, so working it around by disabling it.
+      // MinGW-w64 >= 4.0 seems to be better judging by its headers.
+      #undef _WIN32_WINNT
+      #define _WIN32_WINNT 0x0501 // Windows XP, disable Vista API
+      #include <iphlpapi.h>
+      #undef _WIN32_WINNT
+      #define _WIN32_WINNT 0x0600 // Reenable Vista API
+    #else
+      #include <iphlpapi.h>
+    #endif // MINGW hack
+  #endif
 #else
  #include <netdb.h>
  #ifdef ANDROID_ENABLED

@@ -37,7 +37,7 @@
 #include "os/keyboard.h"
 #include "canvas_item_editor_plugin.h"
 
-void GraphColorRampEdit::_input_event(const InputEvent& p_event) {
+void GraphColorRampEdit::_gui_input(const InputEvent& p_event) {
 
 	if (p_event.type==InputEvent::KEY && p_event.key.pressed && p_event.key.scancode==KEY_DELETE && grabbed!=-1) {
 
@@ -296,7 +296,7 @@ Vector<Color> GraphColorRampEdit::get_colors() const{
 
 void GraphColorRampEdit::_bind_methods(){
 
-	ClassDB::bind_method(_MD("_input_event"),&GraphColorRampEdit::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&GraphColorRampEdit::_gui_input);
 	ClassDB::bind_method(_MD("_color_changed"),&GraphColorRampEdit::_color_changed);
 	ADD_SIGNAL(MethodInfo("ramp_changed"));
 }
@@ -316,7 +316,7 @@ GraphColorRampEdit::GraphColorRampEdit(){
 }
 ////////////
 
-void GraphCurveMapEdit::_input_event(const InputEvent& p_event) {
+void GraphCurveMapEdit::_gui_input(const InputEvent& p_event) {
 
 	if (p_event.type==InputEvent::KEY && p_event.key.pressed && p_event.key.scancode==KEY_DELETE && grabbed!=-1) {
 
@@ -658,7 +658,7 @@ Vector<Vector2> GraphCurveMapEdit::get_points() const {
 
 void GraphCurveMapEdit::_bind_methods(){
 
-	ClassDB::bind_method(_MD("_input_event"),&GraphCurveMapEdit::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&GraphCurveMapEdit::_gui_input);
 	ADD_SIGNAL(MethodInfo("curve_changed"));
 }
 
@@ -2320,7 +2320,7 @@ void ShaderGraphView::_create_node(int p_id) {
 		tex->set_custom_minimum_size(Size2(80,80));
 		tex->set_drag_forwarding(this);
 		gn->add_child(tex);
-		tex->set_ignore_mouse(false);
+		tex->set_mouse_filter(MOUSE_FILTER_PASS);
 		tex->set_texture(graph->texture_input_node_get_value(type,p_id));
 		ToolButton *edit = memnew( ToolButton );
 		edit->set_text("edit..");
@@ -2807,7 +2807,7 @@ void ShaderGraphEditor::_notification(int p_what) {
 			if (addsep)
 				popup->add_separator();
 		}
-		popup->connect("item_pressed",this,"_add_node");
+		popup->connect("id_pressed",this,"_add_node");
 
 
 	}

@@ -2638,12 +2638,6 @@ void EditorNode::_menu_option_confirm(int p_option,bool p_confirmed) {
 			_set_editing_top_editors(current);
 
 		} break;
-		case OBJECT_CALL_METHOD: {
-
-			editor_data.apply_changes_in_editors();;
-			call_dialog->set_object(current);
-			call_dialog->popup_centered_ratio();
-		} break;
 		case RUN_PLAY: {
 			_menu_option_confirm(RUN_STOP,true);
 			_call_build();
@@ -5618,7 +5612,7 @@ EditorNode::EditorNode() {
 
 	dock_select = memnew( Control );
 	dock_select->set_custom_minimum_size(Size2(128,64)*EDSCALE);
-	dock_select->connect("input_event",this,"_dock_select_input");
+	dock_select->connect("gui_input",this,"_dock_select_input");
 	dock_select->connect("draw",this,"_dock_select_draw");
 	dock_select->connect("mouse_exit",this,"_dock_popup_exit");
 	dock_select->set_v_size_flags(Control::SIZE_EXPAND_FILL);
@@ -5771,7 +5765,7 @@ EditorNode::EditorNode() {
 	pm_export->add_separator();
 	pm_export->add_shortcut(ED_SHORTCUT("editor/convert_to_MeshLibrary", TTR("MeshLibrary..")), FILE_EXPORT_MESH_LIBRARY);
 	pm_export->add_shortcut(ED_SHORTCUT("editor/convert_to_TileSet", TTR("TileSet..")), FILE_EXPORT_TILESET);
-	pm_export->connect("item_pressed",this,"_menu_option");
+	pm_export->connect("id_pressed",this,"_menu_option");
 
 	p->add_separator();
 	p->add_shortcut(ED_SHORTCUT("editor/undo", TTR("Undo"),KEY_MASK_CMD+KEY_Z),EDIT_UNDO,true);
@@ -5793,7 +5787,7 @@ EditorNode::EditorNode() {
 	recent_scenes = memnew( PopupMenu );
 	recent_scenes->set_name("RecentScenes");
 	p->add_child(recent_scenes);
-	recent_scenes->connect("item_pressed",this,"_open_recent_scene");
+	recent_scenes->connect("id_pressed",this,"_open_recent_scene");
 
 	{
 		Control *sp = memnew( Control );
@@ -5850,7 +5844,7 @@ EditorNode::EditorNode() {
 	left_menu_hb->add_child( import_menu );
 
 	p=import_menu->get_popup();
-	p->connect("item_pressed",this,"_menu_option");
+	p->connect("id_pressed",this,"_menu_option");
 
 	tool_menu = memnew( MenuButton );
 	tool_menu->set_tooltip(TTR("Miscellaneous project or scene-wide tools."));
@@ -5860,7 +5854,7 @@ EditorNode::EditorNode() {
 	left_menu_hb->add_child( tool_menu );
 
 	p=tool_menu->get_popup();
-	p->connect("item_pressed",this,"_menu_option");
+	p->connect("id_pressed",this,"_menu_option");
 	p->add_item(TTR("Orphan Resource Explorer"),TOOLS_ORPHAN_RESOURCES);
 
 	export_button = memnew( ToolButton );
@@ -5879,7 +5873,7 @@ EditorNode::EditorNode() {
 
 
 	play_cc = memnew( CenterContainer );
-	play_cc->set_ignore_mouse(true);
+	play_cc->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
 	gui_base->add_child( play_cc );
 	play_cc->set_area_as_parent_rect();
 	play_cc->set_anchor_and_margin(MARGIN_BOTTOM,Control::ANCHOR_BEGIN,10);
@@ -5930,7 +5924,7 @@ EditorNode::EditorNode() {
 	native_play_button->set_text("NTV");
 	menu_hb->add_child(native_play_button);
 	native_play_button->hide();
-	native_play_button->get_popup()->connect("item_pressed",this,"_run_in_device");
+	native_play_button->get_popup()->connect("id_pressed",this,"_run_in_device");
 	run_native->connect("native_run",this,"_menu_option",varray(RUN_PLAY_NATIVE));
 
 //	VSeparator *s1 = memnew( VSeparator );
@@ -5979,7 +5973,7 @@ EditorNode::EditorNode() {
 	p->set_item_tooltip(p->get_item_count()-1,TTR("When this option is turned on, any changes made to the scene in the editor will be replicated in the running game.\nWhen used remotely on a device, this is more efficient with network filesystem."));
 	p->add_check_item(TTR("Sync Script Changes"),RUN_RELOAD_SCRIPTS);
 	p->set_item_tooltip(p->get_item_count()-1,TTR("When this option is turned on, any script that is saved will be reloaded on the running game.\nWhen used remotely on a device, this is more efficient with network filesystem."));
-	p->connect("item_pressed",this,"_menu_option");
+	p->connect("id_pressed",this,"_menu_option");
 
 	/*
 	run_settings_button = memnew( ToolButton );
@@ -6053,7 +6047,7 @@ EditorNode::EditorNode() {
 	editor_layouts = memnew( PopupMenu );
 	editor_layouts->set_name("Layouts");
 	p->add_child(editor_layouts);
-	editor_layouts->connect("item_pressed",this,"_layout_menu_option");
+	editor_layouts->connect("id_pressed",this,"_layout_menu_option");
 	p->add_submenu_item(TTR("Editor Layout"), "Layouts");
 
 	p->add_shortcut(ED_SHORTCUT("editor/fullscreen_mode",TTR("Toggle Fullscreen"),KEY_MASK_SHIFT|KEY_F11),SETTINGS_TOGGLE_FULLSCREN);
@@ -6165,7 +6159,7 @@ EditorNode::EditorNode() {
 	prop_editor_hb->add_child(resource_save_button);
 	resource_save_button->get_popup()->add_item(TTR("Save"),RESOURCE_SAVE);
 	resource_save_button->get_popup()->add_item(TTR("Save As.."),RESOURCE_SAVE_AS);
-	resource_save_button->get_popup()->connect("item_pressed",this,"_menu_option");
+	resource_save_button->get_popup()->connect("id_pressed",this,"_menu_option");
 	resource_save_button->set_focus_mode(Control::FOCUS_NONE);
 	resource_save_button->set_disabled(true);
 
@@ -6193,7 +6187,7 @@ EditorNode::EditorNode() {
 	editor_history_menu->set_icon( gui_base->get_icon("History","EditorIcons"));
 	prop_editor_hb->add_child(editor_history_menu);
 	editor_history_menu->connect("about_to_show",this,"_prepare_history");
-	editor_history_menu->get_popup()->connect("item_pressed",this,"_select_history");
+	editor_history_menu->get_popup()->connect("id_pressed",this,"_select_history");
 
 
 	prop_editor_hb = memnew( HBoxContainer ); //again...
@@ -6346,9 +6340,7 @@ EditorNode::EditorNode() {
 
 
 
-	call_dialog = memnew( CallDialog );
-	call_dialog->hide();
-	gui_base->add_child( call_dialog );
+
 
 
 
@@ -6504,11 +6496,11 @@ EditorNode::EditorNode() {
 
 
 
-	file_menu->get_popup()->connect("item_pressed", this,"_menu_option");
-	object_menu->get_popup()->connect("item_pressed", this,"_menu_option");
+	file_menu->get_popup()->connect("id_pressed", this,"_menu_option");
+	object_menu->get_popup()->connect("id_pressed", this,"_menu_option");
 
-	update_menu->get_popup()->connect("item_pressed", this,"_menu_option");
-	settings_menu->get_popup()->connect("item_pressed", this,"_menu_option");
+	update_menu->get_popup()->connect("id_pressed", this,"_menu_option");
+	settings_menu->get_popup()->connect("id_pressed", this,"_menu_option");
 
 
 	file->connect("file_selected", this,"_dialog_action");
@@ -6785,12 +6777,12 @@ void EditorPluginList::edit(Object* p_object) {
 
 }
 
-bool EditorPluginList::forward_input_event(const Matrix32& p_canvas_xform,const InputEvent& p_event) {
+bool EditorPluginList::forward_gui_input(const Matrix32& p_canvas_xform,const InputEvent& p_event) {
 
 	bool discard = false;
 
 	for (int i = 0; i < plugins_list.size(); i++) {
-		if (plugins_list[i]->forward_canvas_input_event(p_canvas_xform,p_event)) {
+		if (plugins_list[i]->forward_canvas_gui_input(p_canvas_xform,p_event)) {
 			discard = true;
 		}
 	}
@@ -6798,11 +6790,11 @@ bool EditorPluginList::forward_input_event(const Matrix32& p_canvas_xform,const 
 	return discard;
 }
 
-bool EditorPluginList::forward_spatial_input_event(Camera* p_camera, const InputEvent& p_event) {
+bool EditorPluginList::forward_spatial_gui_input(Camera* p_camera, const InputEvent& p_event) {
 	bool discard = false;
 
 	for (int i = 0; i < plugins_list.size(); i++) {
-		if (plugins_list[i]->forward_spatial_input_event(p_camera, p_event)) {
+		if (plugins_list[i]->forward_spatial_gui_input(p_camera, p_event)) {
 			discard = true;
 		}
 	}

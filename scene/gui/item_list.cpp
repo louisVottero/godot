@@ -446,7 +446,7 @@ Size2 ItemList::Item::get_icon_size() const {
 	return icon_region.size;
 }
 
-void ItemList::_input_event(const InputEvent& p_event) {
+void ItemList::_gui_input(const InputEvent& p_event) {
 
 	if (defer_select_single>=0 && p_event.type==InputEvent::MOUSE_MOTION) {
 		defer_select_single=-1;
@@ -788,7 +788,6 @@ void ItemList::_notification(int p_what) {
 
 	if (p_what==NOTIFICATION_DRAW) {
 
-		VS::get_singleton()->canvas_item_set_clip(get_canvas_item(),true);
 		Ref<StyleBox> bg = get_stylebox("bg");
 
 		int mw = scroll_bar->get_minimum_size().x;
@@ -1361,7 +1360,7 @@ void ItemList::_bind_methods(){
 	ClassDB::bind_method(_MD("get_v_scroll"),&ItemList::get_v_scroll);
 
 	ClassDB::bind_method(_MD("_scroll_changed"),&ItemList::_scroll_changed);
-	ClassDB::bind_method(_MD("_input_event"),&ItemList::_input_event);
+	ClassDB::bind_method(_MD("_gui_input"),&ItemList::_gui_input);
 
 	BIND_CONSTANT( ICON_MODE_TOP );
 	BIND_CONSTANT( ICON_MODE_LEFT );
@@ -1402,6 +1401,7 @@ ItemList::ItemList() {
 	allow_rmb_select=false;
 
 	icon_scale = 1.0f;
+	set_clip_contents(true);
 }
 
 ItemList::~ItemList() {

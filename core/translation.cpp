@@ -309,6 +309,7 @@ static const char* locale_list[]={
 "sa_IN", //  Sanskrit (India)
 "sat_IN", //  Santali (India)
 "sc_IT", //  Sardinian (Italy)
+"sco", //  Scots
 "sd_IN", //  Sindhi (India)
 "se_NO", //  Northern Sami (Norway)
 "sgs_LT", //  Samogitian (Lithuania)
@@ -937,6 +938,10 @@ void TranslationServer::set_locale(const String& p_locale) {
 	}
 	else {
 		locale=univ_locale;
+	}
+
+	if (OS::get_singleton()->get_main_loop()) {
+		OS::get_singleton()->get_main_loop()->notification(MainLoop::NOTIFICATION_TRANSLATION_CHANGED);
 	}
 }
 

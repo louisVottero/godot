@@ -61,7 +61,6 @@ void TextureRegionEditor::_region_draw()
 	mtx.elements[2]=-draw_ofs;
 	mtx.scale_basis(Vector2(draw_zoom,draw_zoom));
 
-	VS::get_singleton()->canvas_item_set_clip(edit_draw->get_canvas_item(),true);
 	VS::get_singleton()->canvas_item_add_set_transform(edit_draw->get_canvas_item(),mtx);
 	edit_draw->draw_texture(base_tex,Point2());
 	VS::get_singleton()->canvas_item_add_set_transform(edit_draw->get_canvas_item(),Matrix32());
@@ -818,7 +817,7 @@ TextureRegionEditor::TextureRegionEditor(EditorNode* p_editor)
 	for (int i = 0; i < 4; i++)
 		p->set_item_as_checkable(i,true);
 	p->set_item_checked(0,true);
-	p->connect("item_pressed", this, "_set_snap_mode");
+	p->connect("id_pressed", this, "_set_snap_mode");
 	hb_grid = memnew( HBoxContainer );
 	hb_tools->add_child(hb_grid);
 	hb_grid->add_child( memnew( VSeparator ));
@@ -921,9 +920,11 @@ TextureRegionEditor::TextureRegionEditor(EditorNode* p_editor)
 	hscroll->connect("value_changed",this,"_scroll_changed");
 
 	edit_draw->connect("draw",this,"_region_draw");
-	edit_draw->connect("input_event",this,"_region_input");
+	edit_draw->connect("gui_input",this,"_region_input");
 	draw_zoom=1.0;
 	updating_scroll=false;
+
+	edit_draw->set_clip_contents(true);
 
 }
 
