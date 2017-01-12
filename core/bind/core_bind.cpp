@@ -87,12 +87,12 @@ void _ResourceLoader::set_abort_on_missing_resources(bool p_abort) {
 	ResourceLoader::set_abort_on_missing_resources(p_abort);
 }
 
-StringArray _ResourceLoader::get_dependencies(const String& p_path) {
+PoolStringArray _ResourceLoader::get_dependencies(const String& p_path) {
 
 	List<String> deps;
 	ResourceLoader::get_dependencies(p_path, &deps);
 
-	StringArray ret;
+	PoolStringArray ret;
 	for(List<String>::Element *E=deps.front();E;E=E->next()) {
 		ret.push_back(E->get());
 	}
@@ -551,6 +551,16 @@ int _OS::get_dynamic_memory_usage() const{
 void _OS::set_icon(const Image& p_icon) {
 
 	OS::get_singleton()->set_icon(p_icon);
+}
+
+int _OS::get_exit_code() const {
+
+	return OS::get_singleton()->get_exit_code();
+}
+
+void _OS::set_exit_code(int p_code) {
+
+	OS::get_singleton()->set_exit_code(p_code);
 }
 
 /**
@@ -1111,6 +1121,9 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(_MD("get_system_time_secs"), &_OS::get_system_time_secs);
 
 	ClassDB::bind_method(_MD("set_icon","icon"),&_OS::set_icon);
+
+	ClassDB::bind_method(_MD("get_exit_code"),&_OS::get_exit_code);
+	ClassDB::bind_method(_MD("set_exit_code","code"),&_OS::set_exit_code);
 
 	ClassDB::bind_method(_MD("delay_usec","usec"),&_OS::delay_usec);
 	ClassDB::bind_method(_MD("delay_msec","msec"),&_OS::delay_msec);
@@ -2385,12 +2398,12 @@ _Thread::~_Thread() {
 /////////////////////////////////////
 
 
-StringArray _ClassDB::get_class_list() const {
+PoolStringArray _ClassDB::get_class_list() const {
 
 	List<StringName> classes;
 	ClassDB::get_class_list(&classes);
 
-	StringArray ret;
+	PoolStringArray ret;
 	ret.resize(classes.size());
 	int idx=0;
 	for (List<StringName>::Element *E=classes.front();E;E=E->next()) {
@@ -2400,12 +2413,12 @@ StringArray _ClassDB::get_class_list() const {
 	return ret;
 
 }
-StringArray _ClassDB::get_inheriters_from_class( const StringName& p_class) const {
+PoolStringArray _ClassDB::get_inheriters_from_class( const StringName& p_class) const {
 
 	List<StringName> classes;
 	ClassDB::get_inheriters_from_class(p_class,&classes);
 
-	StringArray ret;
+	PoolStringArray ret;
 	ret.resize(classes.size());
 	int idx=0;
 	for (List<StringName>::Element *E=classes.front();E;E=E->next()) {
@@ -2504,12 +2517,12 @@ Array _ClassDB::get_method_list(StringName p_class,bool p_no_inheritance) const 
 	return ret;
 }
 
-StringArray _ClassDB::get_integer_constant_list(const StringName& p_class, bool p_no_inheritance) const {
+PoolStringArray _ClassDB::get_integer_constant_list(const StringName& p_class, bool p_no_inheritance) const {
 
 	List<String> constants;
 	ClassDB::get_integer_constant_list(p_class,&constants,p_no_inheritance);
 
-	StringArray ret;
+	PoolStringArray ret;
 	ret.resize(constants.size());
 	int idx=0;
 	for (List<String>::Element *E=constants.front();E;E=E->next()) {

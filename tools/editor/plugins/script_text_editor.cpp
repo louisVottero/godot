@@ -225,7 +225,7 @@ void ScriptTextEditor::_notification(int p_what) {
 	}
 }
 
-void ScriptTextEditor::add_callback(const String& p_function,StringArray p_args) {
+void ScriptTextEditor::add_callback(const String& p_function,PoolStringArray p_args) {
 
 	String code = code_editor->get_text_edit()->get_text();
 	int pos = script->get_language()->find_function(p_function,code);
@@ -1280,7 +1280,7 @@ ScriptTextEditor::ScriptTextEditor() {
 	add_child(color_panel);
 	color_picker = memnew(ColorPicker);
 	color_panel->add_child(color_picker);
-	color_panel->set_child_rect(color_picker);
+	color_panel->set_child_rect(color_picker); //NOT
 	color_picker->connect("color_changed", this, "_color_changed");
 
 	edit_hb = memnew (HBoxContainer);

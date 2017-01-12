@@ -1115,7 +1115,7 @@ EditorSceneImportDialog::EditorSceneImportDialog(EditorNode *p_editor, EditorSce
 	set_title(TTR("Import 3D Scene"));
 	HBoxContainer *import_hb = memnew( HBoxContainer );
 	add_child(import_hb);
-	set_child_rect(import_hb);
+	//set_child_rect(import_hb);
 
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	import_hb->add_child(vbc);
@@ -1302,7 +1302,7 @@ EditorSceneImportDialog::EditorSceneImportDialog(EditorNode *p_editor, EditorSce
 	add_child(confirm_import);
 	VBoxContainer *cvb = memnew( VBoxContainer );
 	confirm_import->add_child(cvb);
-	confirm_import->set_child_rect(cvb);
+//	confirm_import->set_child_rect(cvb);
 
 	PanelContainer *pc = memnew( PanelContainer );
 	pc->add_style_override("panel",get_stylebox("normal","TextEdit"));
@@ -1773,7 +1773,7 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 
 		// get mesh instance and bounding box
 		MeshInstance *mi = p_node->cast_to<MeshInstance>();
-		AABB aabb = mi->get_aabb();
+		Rect3 aabb = mi->get_aabb();
 
 		// create a new rigid body collision node
 		RigidBody * rigid_body = memnew( RigidBody );
@@ -1788,7 +1788,7 @@ Node* EditorSceneImportPlugin::_fix_node(Node *p_node,Node *p_root,Map<Ref<Mesh>
 		Node * mesh = p_node->duplicate();
 		mesh->set_name(_fixstr(name,"rigid"));
 		// reset the xform matrix of the duplicated node so it can inherit parent node xform
-		mesh->cast_to<Spatial>()->set_transform(Transform(Matrix3()));
+		mesh->cast_to<Spatial>()->set_transform(Transform(Basis()));
 		// reparent the new mesh node to the rigid body collision node
 		p_node->add_child(mesh);
 		mesh->set_owner(p_node->get_owner());

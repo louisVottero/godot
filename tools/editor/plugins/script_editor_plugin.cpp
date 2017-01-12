@@ -254,7 +254,7 @@ ScriptEditorQuickOpen::ScriptEditorQuickOpen() {
 
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	add_child(vbc);
-	set_child_rect(vbc);
+	//set_child_rect(vbc);
 	search_box = memnew( LineEdit );
 	vbc->add_margin_child(TTR("Search:"),search_box);
 	search_box->connect("text_changed",this,"_text_changed");
@@ -1654,7 +1654,7 @@ void ScriptEditor::_editor_stop() {
 }
 
 
-void ScriptEditor::_add_callback(Object *p_obj, const String& p_function, const StringArray& p_args) {
+void ScriptEditor::_add_callback(Object *p_obj, const String& p_function, const PoolStringArray& p_args) {
 
 	//print_line("add callback! hohoho"); kinda sad to remove this
 	ERR_FAIL_COND(!p_obj);
@@ -2247,7 +2247,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	{
 		VBoxContainer *vbc = memnew( VBoxContainer );
 		disk_changed->add_child(vbc);
-		disk_changed->set_child_rect(vbc);
+	//	disk_changed->set_child_rect(vbc);
 
 		Label *dl = memnew( Label );
 		dl->set_text(TTR("The following files are newer on disk.\nWhat action should be taken?:"));

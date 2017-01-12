@@ -236,11 +236,12 @@ void MultiMeshEditor::_populate() {
 		xform = xform * axis_xform;
 
 
-		Matrix3 post_xform;
+		Basis post_xform;
 
-		post_xform.rotate(xform.basis.get_axis(0),-Math::random(-_tilt_random,_tilt_random)*Math_PI);
-		post_xform.rotate(xform.basis.get_axis(2),-Math::random(-_tilt_random,_tilt_random)*Math_PI);
 		post_xform.rotate(xform.basis.get_axis(1),-Math::random(-_rotate_random,_rotate_random)*Math_PI);
+		post_xform.rotate(xform.basis.get_axis(2),-Math::random(-_tilt_random,_tilt_random)*Math_PI);
+		post_xform.rotate(xform.basis.get_axis(0),-Math::random(-_tilt_random,_tilt_random)*Math_PI);
+
 		xform.basis = post_xform * xform.basis;
 		//xform.basis.orthonormalize();
 
@@ -341,7 +342,7 @@ MultiMeshEditor::MultiMeshEditor() {
 
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	populate_dialog->add_child(vbc);
-	populate_dialog->set_child_rect(vbc);
+	//populate_dialog->set_child_rect(vbc);
 
 	HBoxContainer *hbc = memnew( HBoxContainer );
 

@@ -3248,12 +3248,12 @@ void AnimationKeyEditor::set_animation(const Ref<Animation>& p_anim) {
 void AnimationKeyEditor::set_root(Node *p_root) {
 
 	if (root)
-		root->disconnect("exit_tree",this,"_root_removed");
+		root->disconnect("tree_exited",this,"_root_removed");
 
 	root=p_root;
 
 	if (root)
-		root->connect("exit_tree",this,"_root_removed",make_binds(),CONNECT_ONESHOT);
+		root->connect("tree_exited",this,"_root_removed",make_binds(),CONNECT_ONESHOT);
 
 
 }
@@ -3525,7 +3525,7 @@ int AnimationKeyEditor::_confirm_insert(InsertData p_id,int p_last_track) {
 					h.type==Variant::VECTOR2 ||
 					h.type==Variant::RECT2 ||
 					h.type==Variant::VECTOR3 ||
-					h.type==Variant::_AABB ||
+					h.type==Variant::RECT3 ||
 					h.type==Variant::QUAT ||
 					h.type==Variant::COLOR ||
 					h.type==Variant::TRANSFORM ) {
@@ -4104,7 +4104,7 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	optimize_dialog->set_title(TTR("Anim. Optimizer"));
 	VBoxContainer *optimize_vb = memnew( VBoxContainer );
 	optimize_dialog->add_child(optimize_vb);
-	optimize_dialog->set_child_rect(optimize_vb);
+
 	optimize_linear_error = memnew( SpinBox );
 	optimize_linear_error->set_max(1.0);
 	optimize_linear_error->set_min(0.001);
@@ -4272,7 +4272,7 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	scale_dialog = memnew( ConfirmationDialog );
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	scale_dialog->add_child(vbc);
-	scale_dialog->set_child_rect(vbc);
+
 	scale = memnew( SpinBox );
 	scale->set_min(-99999);
 	scale->set_max(99999);
@@ -4289,7 +4289,7 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	add_child(cleanup_dialog);
 	VBoxContainer *cleanup_vb = memnew( VBoxContainer );
 	cleanup_dialog->add_child(cleanup_vb);
-	cleanup_dialog->set_child_rect(cleanup_vb);
+
 	cleanup_keys = memnew( CheckButton );
 	cleanup_keys->set_text(TTR("Remove invalid keys"));
 	cleanup_keys->set_pressed(true);

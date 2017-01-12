@@ -723,7 +723,7 @@ void FileDialog::_bind_methods() {
 	ClassDB::bind_method(_MD("invalidate"),&FileDialog::invalidate);
 
 	ADD_SIGNAL(MethodInfo("file_selected",PropertyInfo( Variant::STRING,"path")));
-	ADD_SIGNAL(MethodInfo("files_selected",PropertyInfo( Variant::STRING_ARRAY,"paths")));
+	ADD_SIGNAL(MethodInfo("files_selected",PropertyInfo( Variant::POOL_STRING_ARRAY,"paths")));
 	ADD_SIGNAL(MethodInfo("dir_selected",PropertyInfo( Variant::STRING,"dir")));
 
 	BIND_CONSTANT( MODE_OPEN_FILE );
@@ -739,7 +739,7 @@ void FileDialog::_bind_methods() {
 
 	ADD_PROPERTY( PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Open one,Open many,Open folder,Open any,Save"),_SCS("set_mode"),_SCS("get_mode") );
 	ADD_PROPERTY( PropertyInfo(Variant::INT, "access", PROPERTY_HINT_ENUM, "Resources,User data,File system"),_SCS("set_access"),_SCS("get_access") );
-	ADD_PROPERTY( PropertyInfo(Variant::STRING_ARRAY, "filters"),_SCS("set_filters"),_SCS("get_filters") );
+	ADD_PROPERTY( PropertyInfo(Variant::POOL_STRING_ARRAY, "filters"),_SCS("set_filters"),_SCS("get_filters") );
 	ADD_PROPERTY( PropertyInfo(Variant::BOOL, "show_hidden_files"),_SCS("set_show_hidden_files"),_SCS("is_showing_hidden_files") );
 
 }
@@ -764,7 +764,7 @@ FileDialog::FileDialog() {
 
 	VBoxContainer *vbc = memnew( VBoxContainer );
 	add_child(vbc);
-	set_child_rect(vbc);
+
 
 	mode=MODE_SAVE_FILE;
 	set_title(RTR("Save a File"));
@@ -828,7 +828,7 @@ FileDialog::FileDialog() {
 	makedialog->set_title(RTR("Create Folder"));
 	VBoxContainer *makevb= memnew( VBoxContainer );
 	makedialog->add_child(makevb);
-	makedialog->set_child_rect(makevb);
+
 	makedirname = memnew( LineEdit );
 	makevb->add_margin_child(RTR("Name:"),makedirname);
 	add_child(makedialog);
