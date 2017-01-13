@@ -1361,7 +1361,7 @@ void ScriptEditor::_update_script_colors() {
 
 		bool current = tab_container->get_current_tab() == c;
 		if (current && highlight_current) {
-			script_list->set_item_custom_bg_color(i, EditorSettings::get_singleton()->get("text_editor/current_script_background_color"));
+			script_list->set_item_custom_bg_color(i, EditorSettings::get_singleton()->get("text_editor/open_scripts/current_script_background_color"));
 
 		} else if (script_temperature_enabled) {
 
@@ -2178,7 +2178,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	menu_hb->add_spacer();
 
 
-	script_icon = memnew( TextureFrame );
+	script_icon = memnew( TextureRect );
 	menu_hb->add_child(script_icon);
 	script_name_label = memnew( Label );
 	menu_hb->add_child(script_name_label);
