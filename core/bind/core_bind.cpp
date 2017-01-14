@@ -996,11 +996,12 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(_MD("set_clipboard","clipboard"),&_OS::set_clipboard);
 	ClassDB::bind_method(_MD("get_clipboard"),&_OS::get_clipboard);
 
-	ClassDB::bind_method(_MD("set_video_mode","size","fullscreen","resizable","screen"),&_OS::set_video_mode,DEFVAL(0));
-	ClassDB::bind_method(_MD("get_video_mode_size","screen"),&_OS::get_video_mode,DEFVAL(0));
-	ClassDB::bind_method(_MD("is_video_mode_fullscreen","screen"),&_OS::is_video_mode_fullscreen,DEFVAL(0));
-	ClassDB::bind_method(_MD("is_video_mode_resizable","screen"),&_OS::is_video_mode_resizable,DEFVAL(0));
-	ClassDB::bind_method(_MD("get_fullscreen_mode_list","screen"),&_OS::get_fullscreen_mode_list,DEFVAL(0));
+	//will not delete for now, just unexpose
+	//ClassDB::bind_method(_MD("set_video_mode","size","fullscreen","resizable","screen"),&_OS::set_video_mode,DEFVAL(0));
+	//ClassDB::bind_method(_MD("get_video_mode_size","screen"),&_OS::get_video_mode,DEFVAL(0));
+	//ClassDB::bind_method(_MD("is_video_mode_fullscreen","screen"),&_OS::is_video_mode_fullscreen,DEFVAL(0));
+	//ClassDB::bind_method(_MD("is_video_mode_resizable","screen"),&_OS::is_video_mode_resizable,DEFVAL(0));
+	//ClassDB::bind_method(_MD("get_fullscreen_mode_list","screen"),&_OS::get_fullscreen_mode_list,DEFVAL(0));
 
 
 	ClassDB::bind_method(_MD("get_screen_count"),&_OS::get_screen_count);
@@ -1830,9 +1831,9 @@ Error _Directory::open(const String& p_path) {
 	return OK;
 }
 
-bool _Directory::list_dir_begin() {
+Error _Directory::list_dir_begin() {
 
-	ERR_FAIL_COND_V(!d,false);
+	ERR_FAIL_COND_V(!d,ERR_UNCONFIGURED);
 	return d->list_dir_begin();
 }
 
@@ -1977,7 +1978,7 @@ void _Directory::_bind_methods() {
 	ClassDB::bind_method(_MD("make_dir_recursive:Error","path"),&_Directory::make_dir_recursive);
 	ClassDB::bind_method(_MD("file_exists","path"),&_Directory::file_exists);
 	ClassDB::bind_method(_MD("dir_exists","path"),&_Directory::dir_exists);
-//	ClassDB::bind_method(_MD("get_modified_time","file"),&_Directory::get_modified_time);
+	//ClassDB::bind_method(_MD("get_modified_time","file"),&_Directory::get_modified_time);
 	ClassDB::bind_method(_MD("get_space_left"),&_Directory::get_space_left);
 	ClassDB::bind_method(_MD("copy:Error","from","to"),&_Directory::copy);
 	ClassDB::bind_method(_MD("rename:Error","from","to"),&_Directory::rename);
@@ -2507,22 +2508,22 @@ void _ClassDB::_bind_methods() {
 	ClassDB::bind_method(_MD("can_instance","class"),&_ClassDB::can_instance);
 	ClassDB::bind_method(_MD("instance","class"),&_ClassDB::instance);
 
-	ClassDB::bind_method(_MD("has_signal","class","signal"),&_ClassDB::has_signal);
-	ClassDB::bind_method(_MD("get_signal","class","signal"),&_ClassDB::get_signal);
-	ClassDB::bind_method(_MD("get_signal_list","class","no_inheritance"),&_ClassDB::get_signal_list,DEFVAL(false));
+	ClassDB::bind_method(_MD("class_has_signal","class","signal"),&_ClassDB::has_signal);
+	ClassDB::bind_method(_MD("class_get_signal","class","signal"),&_ClassDB::get_signal);
+	ClassDB::bind_method(_MD("class_get_signal_list","class","no_inheritance"),&_ClassDB::get_signal_list,DEFVAL(false));
 
-	ClassDB::bind_method(_MD("get_property_list","class","no_inheritance"),&_ClassDB::get_property_list,DEFVAL(false));
+	ClassDB::bind_method(_MD("class_get_property_list","class","no_inheritance"),&_ClassDB::get_property_list,DEFVAL(false));
 
-	ClassDB::bind_method(_MD("has_method","class","method","no_inheritance"),&_ClassDB::has_method,DEFVAL(false));
+	ClassDB::bind_method(_MD("class_has_method","class","method","no_inheritance"),&_ClassDB::has_method,DEFVAL(false));
 
-	ClassDB::bind_method(_MD("get_method_list","class","no_inheritance"),&_ClassDB::get_method_list,DEFVAL(false));
+	ClassDB::bind_method(_MD("class_get_method_list","class","no_inheritance"),&_ClassDB::get_method_list,DEFVAL(false));
 
-	ClassDB::bind_method(_MD("get_integer_constant_list","class","no_inheritance"),&_ClassDB::get_integer_constant_list,DEFVAL(false));
+	ClassDB::bind_method(_MD("class_get_integer_constant_list","class","no_inheritance"),&_ClassDB::get_integer_constant_list,DEFVAL(false));
 
-	ClassDB::bind_method(_MD("has_integer_constant","class","name"),&_ClassDB::has_integer_constant);
-	ClassDB::bind_method(_MD("get_integer_constant","class","name"),&_ClassDB::get_integer_constant);
+	ClassDB::bind_method(_MD("class_has_integer_constant","class","name"),&_ClassDB::has_integer_constant);
+	ClassDB::bind_method(_MD("class_get_integer_constant","class","name"),&_ClassDB::get_integer_constant);
 
-	ClassDB::bind_method(_MD("get_category","class"),&_ClassDB::get_category);
+	ClassDB::bind_method(_MD("class_get_category","class"),&_ClassDB::get_category);
 	ClassDB::bind_method(_MD("is_class_enabled","class"),&_ClassDB::is_class_enabled);
 
 
