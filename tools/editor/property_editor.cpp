@@ -27,10 +27,11 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "property_editor.h"
+
 #include "scene/gui/label.h"
 #include "io/resource_loader.h"
 #include "io/image_loader.h"
-#include "object_type_db.h"
+#include "class_db.h"
 #include "print_string.h"
 #include "globals.h"
 #include "scene/resources/font.h"
@@ -3730,7 +3731,7 @@ void PropertyEditor::update_tree() {
 				item->set_cell_mode(1, TreeItem::CELL_MODE_STRING);
 				item->set_editable( 1, !read_only );
 				item->set_text(1,obj->get(p.name));
-				item->add_button(1, get_icon("Collapse", "EditorIcons"));
+				item->add_button(1, get_icon("CopyNodePath", "EditorIcons"));
 
 			} break;
 			case Variant::OBJECT: {
@@ -4660,7 +4661,7 @@ void SectionedPropertyEditor::_section_selected() {
 void SectionedPropertyEditor::set_current_section(const String& p_section) {
 
 	if (section_map.has(p_section)) {
-		section_map[p_section]->select(0);;
+		section_map[p_section]->select(0);
 	}
 }
 

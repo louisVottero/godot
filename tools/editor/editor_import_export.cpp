@@ -26,8 +26,9 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#include "version.h"
 #include "editor_import_export.h"
+
+#include "version.h"
 #include "script_language.h"
 #include "globals.h"
 #include "os/file_access.h"
@@ -1174,7 +1175,7 @@ Error EditorExportPlatform::save_pack_file(void *p_userdata,const String& p_path
 	pd->f->store_32(cs.length());
 	pd->f->store_buffer((uint8_t*)cs.get_data(),cs.length());
 	TempData td;
-	td.pos=pd->f->get_pos();;
+	td.pos=pd->f->get_pos();
 	td.ofs=pd->ftmp->get_pos();
 	td.size=p_data.size();
 	pd->file_ofs.push_back(td);
@@ -2093,13 +2094,21 @@ void EditorImportExport::save_config() {
 
 	if (image_groups.size() && image_group_files.size()){
 
-		Vector<String> igfsave;
-		igfsave.resize(image_group_files.size()*2);
+		Vector<String> igfkeys;
+		igfkeys.resize(image_group_files.size());
 		int idx=0;
 		for (Map<StringName,StringName>::Element *E=image_group_files.front();E;E=E->next()) {
+			igfkeys[idx++]=E->key();
+		}
+		igfkeys.sort();
 
-			igfsave[idx++]=E->key();
-			igfsave[idx++]=E->get();
+		Vector<String> igfsave;
+		igfsave.resize(image_group_files.size()*2);
+		idx=0;
+		for (int i=0;i<igfkeys.size();++i) {
+
+			igfsave[idx++]=igfkeys[i];
+			igfsave[idx++]=image_group_files[igfkeys[i]];
 		}
 		cf->set_value("image_group_files","files",igfsave);
 	}

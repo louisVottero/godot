@@ -1,6 +1,6 @@
 #include "visual_script_builtin_funcs.h"
 #include "math_funcs.h"
-#include "object_type_db.h"
+#include "class_db.h"
 #include "reference.h"
 #include "func_ref.h"
 #include "os/os.h"
@@ -802,14 +802,14 @@ void VisualScriptBuiltinFunc::exec_func(BuiltinFunc p_func,const Variant** p_inp
 		case VisualScriptBuiltinFunc::MATH_SEED: {
 
 			VALIDATE_ARG_NUM(0);
-			uint32_t seed=*p_inputs[0];
+			uint64_t seed=*p_inputs[0];
 			Math::seed(seed);
 
 		} break;
 		case VisualScriptBuiltinFunc::MATH_RANDSEED: {
 
 			VALIDATE_ARG_NUM(0);
-			uint32_t seed=*p_inputs[0];
+			uint64_t seed=*p_inputs[0];
 			int ret = Math::rand_from_seed(&seed);
 			Array reta;
 			reta.push_back(ret);
