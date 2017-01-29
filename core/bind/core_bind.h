@@ -54,7 +54,6 @@ public:
 	void set_abort_on_missing_resources(bool p_abort);
 	PoolStringArray get_dependencies(const String& p_path);
 	bool has(const String& p_path);
-	Ref<ResourceImportMetadata> load_import_metadata(const String& p_path);
 
 	_ResourceLoader();
 };
@@ -440,6 +439,8 @@ public:
 
 	bool file_exists(const String& p_name) const; ///< return true if a file exists
 
+	uint64_t get_modified_time(const String& p_file) const;
+
 	_File();
 	virtual ~_File();
 
@@ -456,7 +457,7 @@ public:
 
 	Error open(const String& p_path);
 
-	Error list_dir_begin(); ///< This starts dir listing
+	Error list_dir_begin(bool p_skip_internal = false, bool p_skip_hidden = false); ///< This starts dir listing
 	String get_next();
 	bool current_is_dir() const;
 
@@ -485,6 +486,9 @@ public:
 	_Directory();
 	virtual ~_Directory();
 
+private:
+	bool _list_skip_navigational;
+	bool _list_skip_hidden;
 };
 
 class _Marshalls : public Reference {

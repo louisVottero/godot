@@ -153,7 +153,7 @@ private:
 	void _dir_selected();
 	void _update_tree();
 	void _rescan();
-	void _set_scannig_mode();
+	void _set_scanning_mode();
 
 
 	void _favorites_pressed();
@@ -198,6 +198,10 @@ public:
 	void fix_dependencies(const String& p_for_file);
 
 	void set_display_mode(int p_mode);
+
+	int get_split_offset() { return split_box->get_split_offset(); }
+	void set_split_offset(int p_offset) { split_box->set_split_offset(p_offset); }
+	void select_file(const String& p_file);
 
 	FileSystemDock(EditorNode *p_editor);
 	~FileSystemDock();

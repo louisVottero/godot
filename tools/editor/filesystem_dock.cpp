@@ -170,7 +170,7 @@ void FileSystemDock::_notification(int p_what) {
 			_update_tree(); //maybe it finished already
 
 			if (EditorFileSystem::get_singleton()->is_scanning()) {
-				_set_scannig_mode();
+				_set_scanning_mode();
 			}
 
 		} break;
@@ -363,11 +363,11 @@ void FileSystemDock::_search(EditorFileSystemDirectory *p_path,List<FileInfo>* m
 				fi.import_status=0;
 			}
 			for(int j=0;j<p_path->get_source_count(i);j++) {
-				String s = EditorImportPlugin::expand_source_path(p_path->get_source_file(i,j));
+				/*String s = EditorImportPlugin::expand_source_path(p_path->get_source_file(i,j));
 				if (p_path->is_source_file_missing(i,j)) {
 					s+=" (Missing)";
 				}
-				fi.sources.push_back(s);
+				fi.sources.push_back(s);*/
 			}
 
 			matches->push_back(fi);
@@ -510,11 +510,11 @@ void FileSystemDock::_update_files(bool p_keep_selection) {
 				}
 
 				for(int j=0;j<efd->get_source_count(i);j++) {
-					String s = EditorImportPlugin::expand_source_path(efd->get_source_file(i,j));
+					/*String s = EditorImportPlugin::expand_source_path(efd->get_source_file(i,j));
 					if (efd->is_source_file_missing(i,j)) {
 						s+=" (Missing)";
 					}
-					fi.sources.push_back(s);
+					fi.sources.push_back(s);*/
 				}
 			} else {
 				fi.import_status=0;
@@ -662,7 +662,7 @@ void FileSystemDock::_fs_changed() {
 	set_process(false);
 }
 
-void FileSystemDock::_set_scannig_mode() {
+void FileSystemDock::_set_scanning_mode() {
 
 	split_box->hide();
 	button_hist_prev->set_disabled(true);
@@ -1068,7 +1068,7 @@ void FileSystemDock::_file_option(int p_option) {
 			}
 
 			ERR_FAIL_COND(reimport.size()==0);
-
+/*
 			Ref<ResourceImportMetadata> rimd = ResourceLoader::load_import_metadata(reimport[0]);
 			ERR_FAIL_COND(!rimd.is_valid());
 			String editor=rimd->get_editor();
@@ -1086,6 +1086,7 @@ void FileSystemDock::_file_option(int p_option) {
 				rimp->reimport_multiple_files(reimport);
 
 			}
+			*/
 
 		} break;
 		case FILE_COPY_PATH:
@@ -1174,7 +1175,7 @@ void FileSystemDock::_search_changed(const String& p_text) {
 
 void FileSystemDock::_rescan() {
 
-	_set_scannig_mode();
+	_set_scanning_mode();
 	EditorFileSystem::get_singleton()->scan();
 
 }
@@ -1186,6 +1187,14 @@ void FileSystemDock::fix_dependencies(const String& p_for_file) {
 
 void FileSystemDock::focus_on_filter() {
 
+	if (!search_box->is_visible_in_tree()) {
+		// Tree mode, switch to files list with search box
+		tree->hide();
+		file_list_vb->show();
+		button_favorite->hide();
+	}
+
+	search_box->grab_focus();
 }
 
 void FileSystemDock::set_display_mode(int p_mode) {
@@ -1534,6 +1543,7 @@ void FileSystemDock::_files_list_rmb_select(int p_item,const Vector2& p_pos) {
 
 
 			} else {
+				/*
 				Ref<ResourceImportMetadata> rimd = ResourceLoader::load_import_metadata(path);
 				if (rimd.is_valid()) {
 
@@ -1546,7 +1556,7 @@ void FileSystemDock::_files_list_rmb_select(int p_item,const Vector2& p_pos) {
 				} else {
 					all_can_reimport=false;
 
-				}
+				}*/
 			}
 		} else {
 			all_can_reimport=false;
@@ -1595,7 +1605,7 @@ void FileSystemDock::_files_list_rmb_select(int p_item,const Vector2& p_pos) {
 
 	if (all_can_reimport && types.size()==1) { //all can reimport and are of the same type
 
-
+/*
 		bool valid=true;
 		Ref<EditorImportPlugin> rimp = EditorImportExport::get_singleton()->get_import_plugin_by_name(types.front()->get());
 		if (rimp.is_valid()) {
@@ -1611,10 +1621,24 @@ void FileSystemDock::_files_list_rmb_select(int p_item,const Vector2& p_pos) {
 			file_options->add_separator();
 			file_options->add_item(TTR("Re-Import.."),FILE_REIMPORT);
 		}
+		*/
 	}
 
 	file_options->set_pos(files->get_global_pos() + p_pos);
 	file_options->popup();
+
+}
+
+void FileSystemDock::select_file(const String& p_file) {
+
+	_go_to_dir(p_file.get_base_dir());
+	for(int i=0;i<files->get_item_count();i++) {
+		if (files->get_item_metadata(i)==p_file) {
+			files->select(i);
+			files->ensure_current_is_visible();
+			break;
+		}
+	}
 
 }
 

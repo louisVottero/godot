@@ -106,17 +106,12 @@ bool _ResourceLoader::has(const String &p_path) {
 	return ResourceCache::has(local_path);
 };
 
-Ref<ResourceImportMetadata> _ResourceLoader::load_import_metadata(const String& p_path) {
-
-	return ResourceLoader::load_import_metadata(p_path);
-}
 
 void _ResourceLoader::_bind_methods() {
 
 
 	ClassDB::bind_method(_MD("load_interactive:ResourceInteractiveLoader","path","type_hint"),&_ResourceLoader::load_interactive,DEFVAL(""));
 	ClassDB::bind_method(_MD("load:Resource","path","type_hint", "p_no_cache"),&_ResourceLoader::load,DEFVAL(""), DEFVAL(false));
-	ClassDB::bind_method(_MD("load_import_metadata:ResourceImportMetadata","path"),&_ResourceLoader::load_import_metadata);
 	ClassDB::bind_method(_MD("get_recognized_extensions_for_type","type"),&_ResourceLoader::get_recognized_extensions_for_type);
 	ClassDB::bind_method(_MD("set_abort_on_missing_resources","abort"),&_ResourceLoader::set_abort_on_missing_resources);
 	ClassDB::bind_method(_MD("get_dependencies","path"),&_ResourceLoader::get_dependencies);
@@ -1732,6 +1727,11 @@ Variant _File::get_var() const {
 	return v;
 }
 
+uint64_t _File::get_modified_time(const String &p_file) const {
+
+	return FileAccess::get_modified_time(p_file);
+}
+
 void _File::_bind_methods() {
 
 
@@ -1780,6 +1780,7 @@ void _File::_bind_methods() {
 	ClassDB::bind_method(_MD("get_pascal_string"),&_File::get_pascal_string);
 
 	ClassDB::bind_method(_MD("file_exists","path"),&_File::file_exists);
+	ClassDB::bind_method(_MD("get_modified_time", "file"),&_File::get_modified_time);
 
 	BIND_CONSTANT( READ );
 	BIND_CONSTANT( WRITE );
@@ -1819,16 +1820,28 @@ Error _Directory::open(const String& p_path) {
 	return OK;
 }
 
-Error _Directory::list_dir_begin() {
+Error _Directory::list_dir_begin(bool p_skip_navigational, bool p_skip_hidden) {
 
 	ERR_FAIL_COND_V(!d,ERR_UNCONFIGURED);
+
+	_list_skip_navigational = p_skip_navigational;
+	_list_skip_hidden = p_skip_hidden;
+
 	return d->list_dir_begin();
 }
 
 String _Directory::get_next(){
 
 	ERR_FAIL_COND_V(!d,"");
-	return d->get_next();
+
+	String next = d->get_next();
+	while (next != ""
+		&& ((_list_skip_navigational && (next == "." || next == ".."))
+		|| (_list_skip_hidden && d->current_is_hidden()))) {
+
+		next = d->get_next();
+	}
+	return next;
 }
 bool _Directory::current_is_dir() const{
 
@@ -1958,7 +1971,7 @@ void _Directory::_bind_methods() {
 
 
 	ClassDB::bind_method(_MD("open:Error","path"),&_Directory::open);
-	ClassDB::bind_method(_MD("list_dir_begin"),&_Directory::list_dir_begin);
+	ClassDB::bind_method(_MD("list_dir_begin", "skip_navigational", "skip_hidden"), &_Directory::list_dir_begin, DEFVAL(false), DEFVAL(false));
 	ClassDB::bind_method(_MD("get_next"),&_Directory::get_next);
 	ClassDB::bind_method(_MD("current_is_dir"),&_Directory::current_is_dir);
 	ClassDB::bind_method(_MD("list_dir_end"),&_Directory::list_dir_end);

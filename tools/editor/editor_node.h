@@ -139,7 +139,6 @@ private:
 		FILE_OPEN_OLD_SCENE,
 		FILE_QUICK_OPEN_SCENE,
 		FILE_QUICK_OPEN_SCRIPT,
-		FILE_QUICK_OPEN_FILE,
 		FILE_RUN_SCRIPT,
 		FILE_OPEN_PREV,
 		FILE_CLOSE,
@@ -280,7 +279,7 @@ private:
 	PropertyEditor *property_editor;
 	NodeDock *node_dock;
 	VBoxContainer *prop_editor_vb;
-	FileSystemDock *scenes_dock;
+	FileSystemDock *filesystem_dock;
 	EditorRunNative *run_native;
 
 	HBoxContainer *search_bar;
@@ -341,7 +340,7 @@ private:
 	Vector<ToolButton*> main_editor_buttons;
 	Vector<EditorPlugin*> editor_table;
 
-	EditorReImportDialog *reimport_dialog;
+//	EditorReImportDialog *reimport_dialog;
 
 	ProgressDialog *progress_dialog;
 	BackgroundProgress *progress_hb;
@@ -392,8 +391,8 @@ private:
 	EditorData editor_data;
 	EditorRun editor_run;
 	EditorSelection *editor_selection;
-	ProjectExport *project_export;
-	ProjectExportDialog *project_export_settings;
+//	ProjectExport *project_export;
+//	ProjectExportDialog *project_export_settings;
 	EditorResourcePreview *resource_preview;
 
 	EditorFileServer *file_server;
@@ -648,9 +647,6 @@ public:
 	void add_control_to_dock(DockSlot p_slot,Control* p_control);
 	void remove_control_from_dock(Control* p_control);
 
-	void add_editor_import_plugin(const Ref<EditorImportPlugin>& p_editor_import);
-	void remove_editor_import_plugin(const Ref<EditorImportPlugin>& p_editor_import);
-
 	void set_addon_plugin_enabled(const String& p_addon,bool p_enabled);
 	bool is_addon_plugin_enabled(const String &p_addon) const;
 
@@ -706,7 +702,7 @@ public:
 
 	void request_instance_scene(const String &p_path);
 	void request_instance_scenes(const Vector<String>& p_files);
-	FileSystemDock *get_scenes_dock();
+	FileSystemDock *get_filesystem_dock();
 	SceneTreeDock *get_scene_tree_dock();
 	static UndoRedo* get_undo_redo() { return &singleton->editor_data.get_undo_redo(); }
 
