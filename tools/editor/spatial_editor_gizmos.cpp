@@ -618,14 +618,14 @@ void EditorSpatialGizmo::free(){
 
 void EditorSpatialGizmo::_bind_methods() {
 
-	ClassDB::bind_method(_MD("add_lines","lines","material:Material","billboard"),&EditorSpatialGizmo::add_lines,DEFVAL(false));
-	ClassDB::bind_method(_MD("add_mesh","mesh:Mesh","billboard","skeleton"),&EditorSpatialGizmo::add_mesh,DEFVAL(false),DEFVAL(RID()));
-	ClassDB::bind_method(_MD("add_collision_segments","segments"),&EditorSpatialGizmo::add_collision_segments);
-	ClassDB::bind_method(_MD("add_collision_triangles","triangles:TriangleMesh"),&EditorSpatialGizmo::add_collision_triangles);
-	ClassDB::bind_method(_MD("add_unscaled_billboard","material:Material","default_scale"),&EditorSpatialGizmo::add_unscaled_billboard,DEFVAL(1));
-	ClassDB::bind_method(_MD("add_handles","handles","billboard","secondary"),&EditorSpatialGizmo::add_handles,DEFVAL(false),DEFVAL(false));
-	ClassDB::bind_method(_MD("set_spatial_node","node:Spatial"),&EditorSpatialGizmo::_set_spatial_node);
-	ClassDB::bind_method(_MD("clear"),&EditorSpatialGizmo::clear);
+	ClassDB::bind_method(D_METHOD("add_lines","lines","material:Material","billboard"),&EditorSpatialGizmo::add_lines,DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("add_mesh","mesh:Mesh","billboard","skeleton"),&EditorSpatialGizmo::add_mesh,DEFVAL(false),DEFVAL(RID()));
+	ClassDB::bind_method(D_METHOD("add_collision_segments","segments"),&EditorSpatialGizmo::add_collision_segments);
+	ClassDB::bind_method(D_METHOD("add_collision_triangles","triangles:TriangleMesh"),&EditorSpatialGizmo::add_collision_triangles);
+	ClassDB::bind_method(D_METHOD("add_unscaled_billboard","material:Material","default_scale"),&EditorSpatialGizmo::add_unscaled_billboard,DEFVAL(1));
+	ClassDB::bind_method(D_METHOD("add_handles","handles","billboard","secondary"),&EditorSpatialGizmo::add_handles,DEFVAL(false),DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("set_spatial_node","node:Spatial"),&EditorSpatialGizmo::_set_spatial_node);
+	ClassDB::bind_method(D_METHOD("clear"),&EditorSpatialGizmo::clear);
 
 	BIND_VMETHOD( MethodInfo("redraw"));
 	BIND_VMETHOD( MethodInfo(Variant::STRING,"get_handle_name",PropertyInfo(Variant::INT,"index")));
@@ -2484,7 +2484,7 @@ void GIProbeGizmo::redraw(){
 
 	}
 
-	add_lines(lines,SpatialEditorGizmos::singleton->reflection_probe_material_internal);
+	add_lines(lines,SpatialEditorGizmos::singleton->gi_probe_material_internal);
 
 	Vector<Vector3> handles;
 
@@ -3406,7 +3406,7 @@ SpatialEditorGizmos::SpatialEditorGizmos() {
 	reflection_probe_material = create_line_material(Color(0.5,1.0,0.7));
 	reflection_probe_material_internal = create_line_material(Color(0.3,0.8,0.5,0.15));
 	gi_probe_material = create_line_material(Color(0.7,1.0,0.5));
-	gi_probe_material_internal = create_line_material(Color(0.5,0.8,0.3,0.4));
+	gi_probe_material_internal = create_line_material(Color(0.5,0.8,0.3,0.1));
 	joint_material = create_line_material(Color(0.6,0.8,1.0));
 
 	stream_player_icon = Ref<FixedSpatialMaterial>( memnew( FixedSpatialMaterial ));

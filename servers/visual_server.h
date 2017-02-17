@@ -129,6 +129,11 @@ public:
 
 	virtual void texture_set_shrink_all_x2_on_set_data(bool p_enable)=0;
 
+	typedef void (*TextureDetectCallback)(void*);
+
+	virtual void texture_set_detect_3d_callback(RID p_texture,TextureDetectCallback p_callback,void* p_userdata)=0;
+	virtual void texture_set_detect_srgb_callback(RID p_texture,TextureDetectCallback p_callback,void* p_userdata)=0;
+
 	struct TextureInfo {
 		RID texture;
 		Size2 size;
@@ -360,6 +365,7 @@ public:
 		LIGHT_PARAM_ATTENUATION,
 		LIGHT_PARAM_SPOT_ANGLE,
 		LIGHT_PARAM_SPOT_ATTENUATION,
+		LIGHT_PARAM_CONTACT_SHADOW_SIZE,
 		LIGHT_PARAM_SHADOW_MAX_DISTANCE,
 		LIGHT_PARAM_SHADOW_SPLIT_1_OFFSET,
 		LIGHT_PARAM_SHADOW_SPLIT_2_OFFSET,
@@ -468,6 +474,12 @@ public:
 
 	virtual void gi_probe_set_energy(RID p_probe,float p_range)=0;
 	virtual float gi_probe_get_energy(RID p_probe) const=0;
+
+	virtual void gi_probe_set_bias(RID p_probe,float p_range)=0;
+	virtual float gi_probe_get_bias(RID p_probe) const=0;
+
+	virtual void gi_probe_set_propagation(RID p_probe,float p_range)=0;
+	virtual float gi_probe_get_propagation(RID p_probe) const=0;
 
 	virtual void gi_probe_set_interior(RID p_probe,bool p_enable)=0;
 	virtual bool gi_probe_is_interior(RID p_probe) const=0;
@@ -937,6 +949,8 @@ public:
 	};
 
 	virtual bool has_feature(Features p_feature) const=0;
+
+	virtual bool has_os_feature(const String& p_feature) const=0;
 
 	VisualServer();
 	virtual ~VisualServer();

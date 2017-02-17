@@ -1,5 +1,6 @@
 #include "resource_import.h"
 #include "variant_parser.h"
+#include "os/os.h"
 
 Error ResourceFormatImporter::_get_path_and_type(const String& p_path, PathAndType &r_path_and_type) const {
 
@@ -36,7 +37,13 @@ Error ResourceFormatImporter::_get_path_and_type(const String& p_path, PathAndTy
 		}
 
 		if (assign!=String()) {
-			if (assign=="path") {
+			if (assign.begins_with("path.") && r_path_and_type.path==String()) {
+				String feature = assign.get_slicec('.',1);
+				if (OS::get_singleton()->check_feature_support(feature)) {
+					r_path_and_type.path=value;
+				}
+
+			} else if (assign=="path") {
 				r_path_and_type.path=value;
 			} else if (assign=="type") {
 				r_path_and_type.type=value;
@@ -74,8 +81,10 @@ RES ResourceFormatImporter::load(const String &p_path,const String& p_original_p
 	RES res =  ResourceLoader::load(pat.path,pat.type,false,r_error);
 
 #ifdef TOOLS_ENABLED
-	res->set_import_last_modified_time( res->get_last_modified_time() ); //pass this, if used
-	res->set_import_path(pat.path);
+	if (res.is_valid()) {
+		res->set_import_last_modified_time( res->get_last_modified_time() ); //pass this, if used
+		res->set_import_path(pat.path);
+	}
 #endif
 
 	return res;
@@ -84,7 +93,6 @@ RES ResourceFormatImporter::load(const String &p_path,const String& p_original_p
 
 void ResourceFormatImporter::get_recognized_extensions(List<String> *p_extensions) const{
 
-	print_line("getting exts from: "+itos(importers.size()));
 	Set<String> found;
 
 	for (Set< Ref<ResourceImporter> >::Element *E=importers.front();E;E=E->next()) {
@@ -92,7 +100,6 @@ void ResourceFormatImporter::get_recognized_extensions(List<String> *p_extension
 		E->get()->get_recognized_extensions(&local_exts);
 		for (List<String>::Element *F=local_exts.front();F;F=F->next()) {
 			if (!found.has(F->get())) {
-				print_line("adding ext "+String(F->get()));
 				p_extensions->push_back(F->get());
 				found.insert(F->get());
 			}
@@ -152,6 +159,20 @@ bool ResourceFormatImporter::handles_type(const String& p_type) const {
 	}
 
 	return true;
+}
+
+
+String ResourceFormatImporter::get_internal_resource_path(const String& p_path) const {
+
+	PathAndType pat;
+	Error err = _get_path_and_type(p_path,pat);
+
+	if (err!=OK) {
+
+		return String();
+	}
+
+	return pat.path;
 }
 
 String ResourceFormatImporter::get_resource_type(const String &p_path) const {

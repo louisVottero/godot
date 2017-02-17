@@ -228,6 +228,12 @@ public:
 
 		Image images[6];
 
+		VisualServer::TextureDetectCallback detect_3d;
+		void *detect_3d_ud;
+
+		VisualServer::TextureDetectCallback detect_srgb;
+		void *detect_srgb_ud;
+
 		Texture() {
 
 			using_srgb=false;
@@ -243,6 +249,10 @@ public:
 			total_data_size=0;
 			target=GL_TEXTURE_2D;
 			mipmaps=0;
+			detect_3d=NULL;
+			detect_3d_ud=NULL;
+			detect_srgb=NULL;
+			detect_srgb_ud=NULL;
 
 		}
 
@@ -280,6 +290,10 @@ public:
 	virtual RID texture_create_radiance_cubemap(RID p_source,int p_resolution=-1) const;
 
 	virtual void textures_keep_original(bool p_enable);
+
+	virtual void texture_set_detect_3d_callback(RID p_texture,VisualServer::TextureDetectCallback p_callback,void* p_userdata);
+	virtual void texture_set_detect_srgb_callback(RID p_texture,VisualServer::TextureDetectCallback p_callback,void* p_userdata);
+
 
 	/* SKYBOX API */
 
@@ -553,6 +567,7 @@ public:
 
 		virtual void material_changed_notify() {
 			mesh->instance_material_change_notify();
+			mesh->update_multimeshes();
 		}
 
 		Surface() {
@@ -577,6 +592,7 @@ public:
 		}
 	};
 
+	class MultiMesh;
 
 	struct Mesh : public GeometryOwner {
 
@@ -586,6 +602,17 @@ public:
 		VS::BlendShapeMode blend_shape_mode;
 		Rect3 custom_aabb;
 		mutable uint64_t last_pass;
+		SelfList<MultiMesh>::List multimeshes;
+
+		_FORCE_INLINE_ void update_multimeshes() {
+
+			SelfList<MultiMesh> *mm = multimeshes.first();
+			while(mm) {
+				mm->self()->instance_material_change_notify();
+				mm=mm->next();
+			}
+		}
+
 		Mesh() {
 			blend_shape_mode=VS::BLEND_SHAPE_MODE_NORMALIZED;
 			blend_shape_count=0;
@@ -645,6 +672,7 @@ public:
 		Vector<float> data;
 		Rect3 aabb;
 		SelfList<MultiMesh> update_list;
+		SelfList<MultiMesh> mesh_list;
 		GLuint buffer;
 		int visible_instances;
 
@@ -654,7 +682,7 @@ public:
 		bool dirty_aabb;
 		bool dirty_data;
 
-		MultiMesh() : update_list(this) {
+		MultiMesh() : update_list(this), mesh_list(this) {
 			dirty_aabb=true;
 			dirty_data=true;
 			xform_floats=0;
@@ -907,6 +935,8 @@ public:
 
 		int dynamic_range;
 		float energy;
+		float bias;
+		float propagation;
 		bool interior;
 		bool compress;
 
@@ -938,6 +968,12 @@ public:
 
 	virtual void gi_probe_set_energy(RID p_probe,float p_range);
 	virtual float gi_probe_get_energy(RID p_probe) const;
+
+	virtual void gi_probe_set_bias(RID p_probe,float p_range);
+	virtual float gi_probe_get_bias(RID p_probe) const;
+
+	virtual void gi_probe_set_propagation(RID p_probe,float p_range);
+	virtual float gi_probe_get_propagation(RID p_probe) const;
 
 	virtual void gi_probe_set_interior(RID p_probe,bool p_enable);
 	virtual bool gi_probe_is_interior(RID p_probe) const;
@@ -1160,8 +1196,10 @@ public:
 			height=0;
 			depth=0;
 			fbo=0;
+			exposure.fbo=0;
 			buffers.fbo=0;
 			used_in_frame=false;
+
 
 			flags[RENDER_TARGET_VFLIP]=false;
 			flags[RENDER_TARGET_TRANSPARENT]=false;
@@ -1237,7 +1275,9 @@ public:
 	void initialize();
 	void finalize();
 
+	virtual bool has_os_feature(const String& p_feature) const;
 
+	virtual void update_dirty_resources();
 
 	RasterizerStorageGLES3();
 };

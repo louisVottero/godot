@@ -27,6 +27,272 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "editor_import_export.h"
+#include "version.h"
+#include "script_language.h"
+#include "globals.h"
+#include "os/file_access.h"
+#include "os/dir_access.h"
+#include "tools/editor/editor_file_system.h"
+#include "io/resource_loader.h"
+#include "editor_node.h"
+#include "editor_settings.h"
+#include "io/config_file.h"
+#include "io/resource_saver.h"
+#include "io/md5.h"
+#include "tools/editor/plugins/script_editor_plugin.h"
+#include "io/zip_io.h"
+
+
+
+
+bool EditorExportPreset::_set(const StringName& p_name, const Variant& p_value) {
+
+	if (values.has(p_name))	 {
+		values[p_name]=p_value;
+		return true;
+	}
+
+	return false;
+}
+
+bool EditorExportPreset::_get(const StringName& p_name,Variant &r_ret) const{
+
+	if (values.has(p_name)) {
+		r_ret=values[p_name];
+		return true;
+	}
+
+	return false;
+}
+void EditorExportPreset::_get_property_list( List<PropertyInfo> *p_list) const{
+
+	for (const List<PropertyInfo>::Element *E=properties.front();E;E=E->next()) {
+
+		p_list->push_back(E->get());
+	}
+}
+
+Vector<StringName> EditorExportPreset::get_files_to_export() const {
+
+	return Vector<StringName>();
+}
+
+
+EditorExportPreset::EditorExportPreset() {
+
+
+}
+
+
+///////////////////////////////////
+
+void EditorExportPlatform::gen_debug_flags(Vector<String> &r_flags, int p_flags) {
+
+	String host = EditorSettings::get_singleton()->get("network/debug_host");
+
+	if (p_flags&DEBUG_FLAG_REMOTE_DEBUG_LOCALHOST)
+		host="localhost";
+
+	if (p_flags&DEBUG_FLAG_DUMB_CLIENT) {
+		int port = EditorSettings::get_singleton()->get("filesystem/file_server/port");
+		String passwd = EditorSettings::get_singleton()->get("filesystem/file_server/password");
+		r_flags.push_back("-rfs");
+		r_flags.push_back(host+":"+itos(port));
+		if (passwd!="") {
+			r_flags.push_back("-rfs_pass");
+			r_flags.push_back(passwd);
+		}
+	}
+
+	if (p_flags&DEBUG_FLAG_REMOTE_DEBUG) {
+
+		r_flags.push_back("-rdebug");
+
+		r_flags.push_back(host+":"+String::num(GLOBAL_DEF("network/debug/remote_port", 6007)));
+
+		List<String> breakpoints;
+		ScriptEditor::get_singleton()->get_breakpoints(&breakpoints);
+
+
+		if (breakpoints.size()) {
+
+			r_flags.push_back("-bp");
+			String bpoints;
+			for(const List<String>::Element *E=breakpoints.front();E;E=E->next()) {
+
+				bpoints+=E->get().replace(" ","%20");
+				if (E->next())
+					bpoints+=",";
+			}
+
+			r_flags.push_back(bpoints);
+		}
+
+	}
+
+	if (p_flags&DEBUG_FLAG_VIEW_COLLISONS) {
+
+		r_flags.push_back("-debugcol");
+	}
+
+	if (p_flags&DEBUG_FLAG_VIEW_NAVIGATION) {
+
+		r_flags.push_back("-debugnav");
+	}
+}
+
+Error EditorExportPlatform::_save_pack_file(void *p_userdata,const String& p_path, const Vector<uint8_t>& p_data,int p_file,int p_total) {
+
+
+}
+
+Error EditorExportPlatform::_save_zip_file(void *p_userdata,const String& p_path, const Vector<uint8_t>& p_data,int p_file,int p_total) {
+
+
+	String path=p_path.replace_first("res://","");
+
+	ZipData *zd = (ZipData*)p_userdata;
+
+	zipFile zip=(zipFile)zd->zip;
+
+	zipOpenNewFileInZip(zip,
+		path.utf8().get_data(),
+		NULL,
+		NULL,
+		0,
+		NULL,
+		0,
+		NULL,
+		Z_DEFLATED,
+		Z_DEFAULT_COMPRESSION);
+
+	zipWriteInFileInZip(zip,p_data.ptr(),p_data.size());
+	zipCloseFileInZip(zip);
+
+	zd->ep->step(TTR("Storing File:")+" "+p_path,2+p_file*100/p_total,false);
+	zd->count++;
+	return OK;
+}
+
+String EditorExportPlatform::find_export_template(String template_file_name, String *err) const {
+
+	String user_file = EditorSettings::get_singleton()->get_settings_path()
+		+"/templates/"+template_file_name;
+	String system_file=OS::get_singleton()->get_installed_templates_path();
+	bool has_system_path=(system_file!="");
+	system_file+=template_file_name;
+
+	// Prefer user file
+	if (FileAccess::exists(user_file)) {
+		return user_file;
+	}
+
+	// Now check system file
+	if (has_system_path) {
+		if (FileAccess::exists(system_file)) {
+			return system_file;
+		}
+	}
+
+	// Not found
+	if (err) {
+		*err+="No export template found at \""+user_file+"\"";
+		if (has_system_path)
+			*err+="\n or \""+system_file+"\".";
+		else
+			*err+=".";
+	}
+	return "";
+}
+
+
+Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset>& p_preset,EditorExportSaveFunction p_func, void* p_udata) {
+
+	return OK;
+}
+
+Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset>& p_preset,FileAccess *p_where) {
+
+	return OK;
+}
+
+Error EditorExportPlatform::save_zip(const Ref<EditorExportPreset>& p_preset,const String& p_path) {
+
+	return OK;
+}
+
+EditorExportPlatform::EditorExportPlatform() {
+
+
+}
+
+
+////
+
+void EditorExport::add_export_platform(const Ref<EditorExportPlatform>& p_platform) {
+
+	export_platforms.push_back(p_platform);
+}
+
+int EditorExport::get_export_platform_count() {
+
+	return export_platforms.size();
+}
+
+Ref<EditorExportPlatform> EditorExport::get_export_platform(int p_idx) {
+
+	ERR_FAIL_INDEX_V(p_idx,export_platforms.size(),Ref<EditorExportPlatform>());
+
+	return export_platforms[p_idx];
+}
+
+
+void EditorExport::add_export_preset(const Ref<EditorExportPreset>& p_preset,int p_at_pos) {
+
+	if (p_at_pos<0)
+		export_presets.push_back(p_preset);
+	else
+		export_presets.insert(p_at_pos,p_preset);
+
+
+}
+
+int EditorExport::get_export_preset_count() const {
+
+	return export_presets.size();
+}
+
+Ref<EditorExportPreset> EditorExport::get_export_preset(int p_idx) {
+
+	ERR_FAIL_INDEX_V( p_idx, export_presets.size(),Ref<EditorExportPreset>() );
+	return export_presets[p_idx];
+}
+
+void EditorExport::remove_export_preset(int p_idx) {
+
+	export_presets.remove(p_idx);
+}
+
+void EditorExport::load_config() {
+
+
+}
+
+void EditorExport::save_config() {
+
+}
+
+EditorExport::EditorExport() {
+
+
+}
+
+EditorExport::~EditorExport() {
+
+
+}
+
+////////
 
 #if 0
 #include "version.h"
@@ -79,8 +345,8 @@ String EditorImportPlugin::_expand_source_path(const String& p_path) {
 void EditorImportPlugin::_bind_methods() {
 
 
-	ClassDB::bind_method(_MD("validate_source_path","path"),&EditorImportPlugin::_validate_source_path);
-	ClassDB::bind_method(_MD("expand_source_path","path"),&EditorImportPlugin::_expand_source_path);
+	ClassDB::bind_method(D_METHOD("validate_source_path","path"),&EditorImportPlugin::_validate_source_path);
+	ClassDB::bind_method(D_METHOD("expand_source_path","path"),&EditorImportPlugin::_expand_source_path);
 
 	ClassDB::add_virtual_method(get_class_static(),MethodInfo(Variant::STRING,"get_name"));
 	ClassDB::add_virtual_method(get_class_static(),MethodInfo(Variant::STRING,"get_visible_name"));
@@ -390,8 +656,8 @@ Vector<StringName> EditorExportPlatform::get_dependencies(bool p_bundles) const 
 
 	Set<StringName> exported;
 
-	if (FileAccess::exists("res://engine.cfg"))
-		exported.insert("res://engine.cfg");
+	if (FileAccess::exists("res://godot.cfg"))
+		exported.insert("res://godot.cfg");
 
 	if (EditorImportExport::get_singleton()->get_export_filter()!=EditorImportExport::EXPORT_SELECTED) {
 
@@ -745,7 +1011,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 			} break; //use default
 		}
 
-		String image_list_md5;
+		String image_listD_METHOD5;
 
 		{
 			MD5_CTX ctx;
@@ -758,7 +1024,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 			}
 
 			MD5Final(&ctx);
-			image_list_md5=String::md5(ctx.digest);
+			image_listD_METHOD5=String::md5(ctx.digest);
 		}
 		//ok see if cached
 		String md5;
@@ -803,7 +1069,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 
 		if (atlas_valid) {
 			//check md5 of list of image /names/
-			if (f->get_line().strip_edges()!=image_list_md5) {
+			if (f->get_line().strip_edges()!=image_listD_METHOD5) {
 				atlas_valid=false;
 				print_line("IMAGE MD5 INVALID!");
 			}
@@ -829,10 +1095,10 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 				uint64_t file_mod_time = FileAccess::get_modified_time(F->get());
 				if (mod_time!=file_mod_time) {
 
-					String image_md5 = slices[1];
-					String file_md5 = FileAccess::get_md5(F->get());
+					String imageD_METHOD5 = slices[1];
+					String fileD_METHOD5 = FileAccess::getD_METHOD5(F->get());
 
-					if (image_md5!=file_md5) {
+					if (imageD_METHOD5!=fileD_METHOD5) {
 						atlas_valid=false;
 						print_line("IMAGE INVALID "+slices[0]);
 						break;
@@ -867,7 +1133,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 
 			for (List<StringName>::Element *F=atlas_images.front();F;F=F->next()) {
 
-				imd->add_source(EditorImportPlugin::validate_source_path(F->get()),FileAccess::get_md5(F->get()));
+				imd->add_source(EditorImportPlugin::validate_source_path(F->get()),FileAccess::getD_METHOD5(F->get()));
 
 			}
 
@@ -925,7 +1191,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 			options["shrink"]=EditorImportExport::get_singleton()->image_export_group_get_shrink(E->get());
 			options["image_format"]=group_format;
 			//f->store_line(options.to_json());
-			f->store_line(image_list_md5);
+			f->store_line(image_listD_METHOD5);
 		}
 
 		//go through all ATEX files
@@ -961,8 +1227,8 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 				if (f) {
 					//recreating deps..
 					String depline;
-					//depline=String(F->get())+"::"+itos(FileAccess::get_modified_time(F->get()))+"::"+FileAccess::get_md5(F->get()); name unneccesary by top md5
-					depline=itos(FileAccess::get_modified_time(F->get()))+"::"+FileAccess::get_md5(F->get());
+					//depline=String(F->get())+"::"+itos(FileAccess::get_modified_time(F->get()))+"::"+FileAccess::getD_METHOD5(F->get()); name unneccesary by top md5
+					depline=itos(FileAccess::get_modified_time(F->get()))+"::"+FileAccess::getD_METHOD5(F->get());
 					depline+="::"+itos(region.pos.x)+"::"+itos(region.pos.y)+"::"+itos(region.size.x)+"::"+itos(region.size.y);
 					depline+="::"+itos(margin.pos.x)+"::"+itos(margin.pos.y)+"::"+itos(margin.size.x)+"::"+itos(margin.size.y);
 					f->store_line(depline);
@@ -987,7 +1253,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 	}
 
 
-	StringName engine_cfg="res://engine.cfg";
+	StringName engine_cfg="res://godot.cfg";
 	StringName boot_splash;
 	{
 		String splash=GlobalConfig::get_singleton()->get("application/boot_splash"); //avoid splash from being converted
@@ -1041,7 +1307,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 
 	{
 
-		//make binary engine.cfg config
+		//make binary godot.cfg config
 		Map<String,Variant> custom;
 
 
@@ -1085,7 +1351,7 @@ Error EditorExportPlatform::export_project_files(EditorExportSaveFunction p_func
 
 		}
 
-		String remap_file="engine.cfb";
+		String remap_file="godot.cfb";
 		String engine_cfb =EditorSettings::get_singleton()->get_settings_path()+"/tmp/tmp"+remap_file;
 		GlobalConfig::get_singleton()->save_custom(engine_cfb,custom);
 		Vector<uint8_t> data = FileAccess::get_file_as_array(engine_cfb);
@@ -2210,49 +2476,49 @@ PoolVector<String> EditorImportExport::_get_export_platforms() {
 
 void EditorImportExport::_bind_methods() {
 
-	ClassDB::bind_method(_MD("add_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::add_import_plugin);
-	ClassDB::bind_method(_MD("remove_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::remove_import_plugin);
-	ClassDB::bind_method(_MD("get_import_plugin_count"),&EditorImportExport::get_import_plugin_count);
-	ClassDB::bind_method(_MD("get_import_plugin:EditorImportPlugin","idx"),&EditorImportExport::get_import_plugin);
-	ClassDB::bind_method(_MD("get_import_plugin_by_name:EditorImportPlugin","name"),&EditorImportExport::get_import_plugin_by_name);
+	ClassDB::bind_method(D_METHOD("add_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::add_import_plugin);
+	ClassDB::bind_method(D_METHOD("remove_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::remove_import_plugin);
+	ClassDB::bind_method(D_METHOD("get_import_plugin_count"),&EditorImportExport::get_import_plugin_count);
+	ClassDB::bind_method(D_METHOD("get_import_plugin:EditorImportPlugin","idx"),&EditorImportExport::get_import_plugin);
+	ClassDB::bind_method(D_METHOD("get_import_plugin_by_name:EditorImportPlugin","name"),&EditorImportExport::get_import_plugin_by_name);
 
-	ClassDB::bind_method(_MD("add_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::add_export_plugin);
-	ClassDB::bind_method(_MD("remove_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::remove_export_plugin);
-	ClassDB::bind_method(_MD("get_export_plugin_count"),&EditorImportExport::get_export_plugin_count);
-	ClassDB::bind_method(_MD("get_export_plugin:EditorExportPlugin","idx"),&EditorImportExport::get_export_plugin);
+	ClassDB::bind_method(D_METHOD("add_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::add_export_plugin);
+	ClassDB::bind_method(D_METHOD("remove_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::remove_export_plugin);
+	ClassDB::bind_method(D_METHOD("get_export_plugin_count"),&EditorImportExport::get_export_plugin_count);
+	ClassDB::bind_method(D_METHOD("get_export_plugin:EditorExportPlugin","idx"),&EditorImportExport::get_export_plugin);
 
-	ClassDB::bind_method(_MD("set_export_file_action","file","action"),&EditorImportExport::set_export_file_action);
-	ClassDB::bind_method(_MD("get_export_file_action","file"),&EditorImportExport::get_export_file_action);
-	ClassDB::bind_method(_MD("get_export_file_list"),&EditorImportExport::_get_export_file_list);
+	ClassDB::bind_method(D_METHOD("set_export_file_action","file","action"),&EditorImportExport::set_export_file_action);
+	ClassDB::bind_method(D_METHOD("get_export_file_action","file"),&EditorImportExport::get_export_file_action);
+	ClassDB::bind_method(D_METHOD("get_export_file_list"),&EditorImportExport::_get_export_file_list);
 
-	ClassDB::bind_method(_MD("add_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
-	//ClassDB::bind_method(_MD("remove_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
-	ClassDB::bind_method(_MD("get_export_platform:EditorExportPlatform","name"),&EditorImportExport::get_export_platform);
-	ClassDB::bind_method(_MD("get_export_platforms"),&EditorImportExport::_get_export_platforms);
+	ClassDB::bind_method(D_METHOD("add_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
+	//ClassDB::bind_method(D_METHOD("remove_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
+	ClassDB::bind_method(D_METHOD("get_export_platform:EditorExportPlatform","name"),&EditorImportExport::get_export_platform);
+	ClassDB::bind_method(D_METHOD("get_export_platforms"),&EditorImportExport::_get_export_platforms);
 
-	ClassDB::bind_method(_MD("set_export_filter","filter"),&EditorImportExport::set_export_filter);
-	ClassDB::bind_method(_MD("get_export_filter"),&EditorImportExport::get_export_filter);
+	ClassDB::bind_method(D_METHOD("set_export_filter","filter"),&EditorImportExport::set_export_filter);
+	ClassDB::bind_method(D_METHOD("get_export_filter"),&EditorImportExport::get_export_filter);
 
-	ClassDB::bind_method(_MD("set_export_custom_filter","filter"),&EditorImportExport::set_export_custom_filter);
-	ClassDB::bind_method(_MD("get_export_custom_filter"),&EditorImportExport::get_export_custom_filter);
+	ClassDB::bind_method(D_METHOD("set_export_custom_filter","filter"),&EditorImportExport::set_export_custom_filter);
+	ClassDB::bind_method(D_METHOD("get_export_custom_filter"),&EditorImportExport::get_export_custom_filter);
 
-	ClassDB::bind_method(_MD("set_export_custom_filter_exclude","filter_exclude"),&EditorImportExport::set_export_custom_filter_exclude);
-	ClassDB::bind_method(_MD("get_export_custom_filter_exclude"),&EditorImportExport::get_export_custom_filter_exclude);
+	ClassDB::bind_method(D_METHOD("set_export_custom_filter_exclude","filter_exclude"),&EditorImportExport::set_export_custom_filter_exclude);
+	ClassDB::bind_method(D_METHOD("get_export_custom_filter_exclude"),&EditorImportExport::get_export_custom_filter_exclude);
 
 
-	ClassDB::bind_method(_MD("image_export_group_create"),&EditorImportExport::image_export_group_create);
-	ClassDB::bind_method(_MD("image_export_group_remove"),&EditorImportExport::image_export_group_remove);
-	ClassDB::bind_method(_MD("image_export_group_set_image_action"),&EditorImportExport::image_export_group_set_image_action);
-	ClassDB::bind_method(_MD("image_export_group_set_make_atlas"),&EditorImportExport::image_export_group_set_make_atlas);
-	ClassDB::bind_method(_MD("image_export_group_set_shrink"),&EditorImportExport::image_export_group_set_shrink);
-	ClassDB::bind_method(_MD("image_export_group_get_image_action"),&EditorImportExport::image_export_group_get_image_action);
-	ClassDB::bind_method(_MD("image_export_group_get_make_atlas"),&EditorImportExport::image_export_group_get_make_atlas);
-	ClassDB::bind_method(_MD("image_export_group_get_shrink"),&EditorImportExport::image_export_group_get_shrink);
-	ClassDB::bind_method(_MD("image_add_to_export_group"),&EditorImportExport::image_add_to_export_group);
-	ClassDB::bind_method(_MD("script_set_action"),&EditorImportExport::script_set_action);
-	ClassDB::bind_method(_MD("script_set_encryption_key"),&EditorImportExport::script_set_encryption_key);
-	ClassDB::bind_method(_MD("script_get_action"),&EditorImportExport::script_get_action);
-	ClassDB::bind_method(_MD("script_get_encryption_key"),&EditorImportExport::script_get_encryption_key);
+	ClassDB::bind_method(D_METHOD("image_export_group_create"),&EditorImportExport::image_export_group_create);
+	ClassDB::bind_method(D_METHOD("image_export_group_remove"),&EditorImportExport::image_export_group_remove);
+	ClassDB::bind_method(D_METHOD("image_export_group_set_image_action"),&EditorImportExport::image_export_group_set_image_action);
+	ClassDB::bind_method(D_METHOD("image_export_group_set_make_atlas"),&EditorImportExport::image_export_group_set_make_atlas);
+	ClassDB::bind_method(D_METHOD("image_export_group_set_shrink"),&EditorImportExport::image_export_group_set_shrink);
+	ClassDB::bind_method(D_METHOD("image_export_group_get_image_action"),&EditorImportExport::image_export_group_get_image_action);
+	ClassDB::bind_method(D_METHOD("image_export_group_get_make_atlas"),&EditorImportExport::image_export_group_get_make_atlas);
+	ClassDB::bind_method(D_METHOD("image_export_group_get_shrink"),&EditorImportExport::image_export_group_get_shrink);
+	ClassDB::bind_method(D_METHOD("image_add_to_export_group"),&EditorImportExport::image_add_to_export_group);
+	ClassDB::bind_method(D_METHOD("script_set_action"),&EditorImportExport::script_set_action);
+	ClassDB::bind_method(D_METHOD("script_set_encryption_key"),&EditorImportExport::script_set_encryption_key);
+	ClassDB::bind_method(D_METHOD("script_get_action"),&EditorImportExport::script_get_action);
+	ClassDB::bind_method(D_METHOD("script_get_encryption_key"),&EditorImportExport::script_get_encryption_key);
 
 
 

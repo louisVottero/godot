@@ -1556,8 +1556,10 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance,const
 						cull_count--;
 						SWAP(instance_shadow_cull_result[j],instance_shadow_cull_result[cull_count]);
 						j--;
+						continue;
 
 					}
+
 
 					instance->transformed_aabb.project_range_in_plane(Plane(z_vec,0),min,max);
 					if (max>z_max)
@@ -2239,7 +2241,6 @@ void VisualServerScene::_render_scene(const Transform p_cam_transform,const Came
 			bool redraw = VSG::scene_render->shadow_atlas_update_light(p_shadow_atlas,light->instance,coverage,light->last_version);
 
 			if (redraw) {
-				print_line("redraw shadow");
 				//must redraw!
 				_light_instance_update_shadow(ins,p_cam_transform,p_cam_projection,p_cam_orthogonal,p_shadow_atlas,scenario);
 			}
@@ -2448,6 +2449,7 @@ void VisualServerScene::_setup_gi_probe(Instance *p_instance) {
 	probe->dynamic.bake_dynamic_range=VSG::storage->gi_probe_get_dynamic_range(p_instance->base);
 
 	probe->dynamic.mipmaps_3d.clear();
+	probe->dynamic.propagate=VSG::storage->gi_probe_get_propagation(p_instance->base);
 
 	probe->dynamic.grid_size[0]=header->width;
 	probe->dynamic.grid_size[1]=header->height;
@@ -2942,14 +2944,12 @@ void VisualServerScene::_bake_gi_probe_light(const GIProbeDataHeader *header,con
 }
 
 
-void VisualServerScene::_bake_gi_downscale_light(int p_idx, int p_level, const GIProbeDataCell* p_cells, const GIProbeDataHeader *p_header, InstanceGIProbeData::LocalData *p_local_data) {
+void VisualServerScene::_bake_gi_downscale_light(int p_idx, int p_level, const GIProbeDataCell* p_cells, const GIProbeDataHeader *p_header, InstanceGIProbeData::LocalData *p_local_data,float p_propagate) {
 
 	//average light to upper level
-	p_local_data[p_idx].energy[0]=0;
-	p_local_data[p_idx].energy[1]=0;
-	p_local_data[p_idx].energy[2]=0;
 
-	int divisor=0;
+	float divisor=0;
+	float sum[3]={0.0,0.0,0.0};
 
 	for(int i=0;i<8;i++) {
 
@@ -2959,20 +2959,25 @@ void VisualServerScene::_bake_gi_downscale_light(int p_idx, int p_level, const G
 			continue;
 
 		if (p_level+1 < (int)p_header->cell_subdiv-1) {
-			_bake_gi_downscale_light(child,p_level+1,p_cells,p_header,p_local_data);
+			_bake_gi_downscale_light(child,p_level+1,p_cells,p_header,p_local_data,p_propagate);
 		}
 
-		p_local_data[p_idx].energy[0]+=p_local_data[child].energy[0];
-		p_local_data[p_idx].energy[1]+=p_local_data[child].energy[1];
-		p_local_data[p_idx].energy[2]+=p_local_data[child].energy[2];
-		divisor++;
+		sum[0]+=p_local_data[child].energy[0];
+		sum[1]+=p_local_data[child].energy[1];
+		sum[2]+=p_local_data[child].energy[2];
+		divisor+=1.0;
 
 	}
 
+	divisor=Math::lerp((float)8.0,divisor,p_propagate);
+	sum[0]/=divisor;
+	sum[1]/=divisor;
+	sum[2]/=divisor;
+
 	//divide by eight for average
-	p_local_data[p_idx].energy[0]/=divisor;
-	p_local_data[p_idx].energy[1]/=divisor;
-	p_local_data[p_idx].energy[2]/=divisor;
+	p_local_data[p_idx].energy[0]=Math::fast_ftoi(sum[0]);
+	p_local_data[p_idx].energy[1]=Math::fast_ftoi(sum[1]);
+	p_local_data[p_idx].energy[2]=Math::fast_ftoi(sum[2]);
 
 }
 
@@ -3024,7 +3029,7 @@ void VisualServerScene::_bake_gi_probe(Instance *p_gi_probe) {
 	SWAP(probe_data->dynamic.light_cache_changes,probe_data->dynamic.light_cache);
 
 	//downscale to lower res levels
-	_bake_gi_downscale_light(0,0,cells,header,local_data);
+	_bake_gi_downscale_light(0,0,cells,header,local_data,probe_data->dynamic.propagate);
 
 	//plot result to 3D texture!
 
@@ -3337,6 +3342,14 @@ void VisualServerScene::render_probes() {
 			force_lighting=true;
 		}
 
+		float propagate = VSG::storage->gi_probe_get_propagation(instance_probe->base);
+
+		if (probe->dynamic.propagate!=propagate) {
+			probe->dynamic.propagate=propagate;
+			force_lighting=true;
+		}
+
+
 		if (probe->invalid==false && probe->dynamic.enabled) {
 
 			switch(probe->dynamic.updating_stage) {
@@ -3464,6 +3477,7 @@ void VisualServerScene::_update_dirty_instance(Instance *p_instance) {
 				} else if (p_instance->base_type==VS::INSTANCE_MULTIMESH) {
 					RID mesh = VSG::storage->multimesh_get_mesh(p_instance->base);
 					if (mesh.is_valid()) {
+
 						bool cast_shadows=false;
 
 						int sc = VSG::storage->mesh_get_surface_count(mesh);
@@ -3480,6 +3494,7 @@ void VisualServerScene::_update_dirty_instance(Instance *p_instance) {
 								cast_shadows=true;
 								break;
 							}
+
 						}
 
 						if (!cast_shadows) {
@@ -3526,6 +3541,8 @@ void VisualServerScene::_update_dirty_instance(Instance *p_instance) {
 
 
 void VisualServerScene::update_dirty_instances() {
+
+	VSG::storage->update_dirty_resources();
 
 	while(_instance_update_list.first()) {
 

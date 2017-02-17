@@ -185,12 +185,8 @@ void RasterizerGLES3::begin_frame(){
 	storage->frame.prev_tick=tick;
 
 
+	storage->update_dirty_resources();
 
-	storage->update_dirty_multimeshes();
-	storage->update_dirty_skeletons();
-	storage->update_dirty_shaders();
-	storage->update_dirty_materials();
-	storage->update_particles();
 
 	storage->info.render_object_count=0;
 	storage->info.render_material_switch_count=0;

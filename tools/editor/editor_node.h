@@ -346,6 +346,10 @@ private:
 	DependencyErrorDialog *dependency_error;
 	DependencyEditor *dependency_fixer;
 	OrphanResourcesDialog *orphan_resources;
+	ConfirmationDialog *open_imported;
+	Button *new_inherited_button;
+	String open_import_request;
+
 
 	TabContainer *dock_slot[DOCK_SLOT_MAX];
 	Rect2 dock_select_rect[DOCK_SLOT_MAX];
@@ -428,6 +432,7 @@ private:
 	void _menu_option(int p_option);
 	void _menu_confirm_current();
 	void _menu_option_confirm(int p_option,bool p_confirmed);
+	void _update_debug_options();
 
 	void _property_editor_forward();
 	void _property_editor_back();
@@ -584,6 +589,8 @@ private:
 		MAX_BUILD_CALLBACKS=128
 	};
 
+	void _inherit_imported(const String &p_action);
+	void _open_imported();
 
 
 	static int plugin_init_callback_count;
@@ -684,7 +691,7 @@ public:
 
 	void fix_dependencies(const String& p_for_file);
 	void clear_scene() { _cleanup_scene(); }
-	Error load_scene(const String& p_scene, bool p_ignore_broken_deps=false, bool p_set_inherited=false, bool p_clear_errors=true);
+	Error load_scene(const String& p_scene, bool p_ignore_broken_deps=false, bool p_set_inherited=false, bool p_clear_errors=true,bool p_force_open_imported=false);
 	Error load_resource(const String& p_scene);
 
 	bool is_scene_open(const String& p_path);
