@@ -28,7 +28,7 @@
 /*************************************************************************/
 #include "item_list.h"
 #include "os/os.h"
-#include "globals.h"
+#include "global_config.h"
 
 
 void ItemList::add_item(const String& p_item,const Ref<Texture>& p_texture,bool p_selectable) {
@@ -1203,6 +1203,22 @@ int ItemList::get_item_at_pos(const Point2& p_pos, bool p_exact) const {
 
 	return closest;
 }
+
+bool ItemList::is_pos_at_end_of_items(const Point2& p_pos) const {
+
+	if (items.empty())
+		return true;
+
+	Vector2 pos=p_pos;
+	Ref<StyleBox> bg = get_stylebox("bg");
+	pos-=bg->get_offset();
+	pos.y+=scroll_bar->get_value();
+
+	Rect2 endrect = items[items.size()-1].rect_cache;
+	return (pos.y > endrect.pos.y + endrect.size.y);
+
+}
+
 
 String ItemList::get_tooltip(const Point2& p_pos) const {
 

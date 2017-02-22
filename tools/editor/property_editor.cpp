@@ -33,12 +33,12 @@
 #include "io/image_loader.h"
 #include "class_db.h"
 #include "print_string.h"
-#include "globals.h"
+#include "global_config.h"
 #include "scene/resources/font.h"
 #include "pair.h"
 #include "scene/scene_string_names.h"
 #include "editor_settings.h"
-#include "editor_import_export.h"
+#include "editor_export.h"
 #include "editor_node.h"
 #include "multi_node_edit.h"
 #include "array_property_edit.h"
@@ -48,7 +48,7 @@
 #include "editor_file_system.h"
 #include "create_dialog.h"
 #include "property_selector.h"
-#include "globals.h"
+#include "global_config.h"
 
 void CustomPropertyEditor::_notification(int p_what) {
 
