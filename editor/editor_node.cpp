@@ -925,6 +925,11 @@ void EditorNode::_save_scene(String p_file, int idx) {
 		return;
 	}
 
+	// force creation of node path cache
+	// (hacky but needed for the tree to update properly)
+	Node *dummy_scene = sdata->instance(PackedScene::GEN_EDIT_STATE_INSTANCE);
+	memdelete(dummy_scene);
+
 	int flg = 0;
 	if (EditorSettings::get_singleton()->get("filesystem/on_save/compress_binary_resources"))
 		flg |= ResourceSaver::FLAG_COMPRESS;
@@ -2289,7 +2294,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 #endif
 		case RESOURCE_NEW: {
 
-			create_dialog->popup(true);
+			create_dialog->popup_create(true);
 		} break;
 		case RESOURCE_LOAD: {
 
@@ -4716,6 +4721,44 @@ void EditorNode::_open_imported() {
 	load_scene(open_import_request, true, false, true, true);
 }
 
+void EditorNode::dim_editor(bool p_dimming) {
+	static int dim_count = 0;
+	bool dim_ui = EditorSettings::get_singleton()->get("interface/dim_editor_on_dialog_popup");
+	if (p_dimming) {
+		if (dim_ui && dim_count == 0)
+			_start_dimming(true);
+		dim_count++;
+	} else {
+		dim_count--;
+		if (dim_count < 1)
+			_start_dimming(false);
+	}
+}
+
+void EditorNode::_start_dimming(bool p_dimming) {
+	_dimming = p_dimming;
+	_dim_time = 0.0f;
+	_dim_timer->start();
+}
+
+void EditorNode::_dim_timeout() {
+
+	_dim_time += _dim_timer->get_wait_time();
+	float wait_time = EditorSettings::get_singleton()->get("interface/dim_transition_time");
+
+	float c = 1.0f - (float)EditorSettings::get_singleton()->get("interface/dim_amount");
+
+	Color base = _dimming ? Color(1, 1, 1) : Color(c, c, c);
+	Color final = _dimming ? Color(c, c, c) : Color(1, 1, 1);
+
+	if (_dim_time + _dim_timer->get_wait_time() >= wait_time) {
+		gui_base->set_modulate(final);
+		_dim_timer->stop();
+	} else {
+		gui_base->set_modulate(base.linear_interpolate(final, _dim_time / wait_time));
+	}
+}
+
 void EditorNode::_bind_methods() {
 
 	ClassDB::bind_method("_menu_option", &EditorNode::_menu_option);
@@ -4792,6 +4835,7 @@ void EditorNode::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_open_imported"), &EditorNode::_open_imported);
 	ClassDB::bind_method(D_METHOD("_inherit_imported"), &EditorNode::_inherit_imported);
+	ClassDB::bind_method(D_METHOD("_dim_timeout"), &EditorNode::_dim_timeout);
 
 	ADD_SIGNAL(MethodInfo("play_pressed"));
 	ADD_SIGNAL(MethodInfo("pause_pressed"));
@@ -5813,18 +5857,17 @@ EditorNode::EditorNode() {
 
 	about = memnew(AcceptDialog);
 	about->set_title(TTR("Thanks from the Godot community!"));
-	//about->get_cancel()->hide();
 	about->get_ok()->set_text(TTR("Thanks!"));
 	about->set_hide_on_ok(true);
+	gui_base->add_child(about);
+	HBoxContainer *hbc = memnew(HBoxContainer);
+	about->add_child(hbc);
 	Label *about_text = memnew(Label);
 	about_text->set_text(VERSION_FULL_NAME "\n(c) 2008-2017 Juan Linietsky, Ariel Manzur.\n");
-	about_text->set_pos(Point2(gui_base->get_icon("Logo", "EditorIcons")->get_size().width + 30, 20));
-	gui_base->add_child(about);
-	about->add_child(about_text);
 	TextureRect *logo = memnew(TextureRect);
-	about->add_child(logo);
-	logo->set_pos(Point2(20, 20));
 	logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
+	hbc->add_child(logo);
+	hbc->add_child(about_text);
 
 	warning = memnew(AcceptDialog);
 	gui_base->add_child(warning);
@@ -6102,6 +6145,13 @@ EditorNode::EditorNode() {
 	FileAccess::set_file_close_fail_notify_callback(_file_access_close_error_notify);
 
 	waiting_for_first_scan = true;
+
+	_dimming = false;
+	_dim_time = 0.0f;
+	_dim_timer = memnew(Timer);
+	_dim_timer->set_wait_time(0.01666f);
+	_dim_timer->connect("timeout", this, "_dim_timeout");
+	add_child(_dim_timer);
 }
 
 EditorNode::~EditorNode() {
