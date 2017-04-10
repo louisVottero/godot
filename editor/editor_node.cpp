@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -73,7 +74,9 @@
 #include "plugins/collision_shape_2d_editor_plugin.h"
 #include "plugins/color_ramp_editor_plugin.h"
 #include "plugins/cube_grid_theme_editor_plugin.h"
+#include "plugins/curve_editor_plugin.h"
 #include "plugins/gi_probe_editor_plugin.h"
+#include "plugins/gradient_texture_editor_plugin.h"
 #include "plugins/item_list_editor_plugin.h"
 #include "plugins/light_occluder_2d_editor_plugin.h"
 #include "plugins/line_2d_editor_plugin.h"
@@ -1088,7 +1091,7 @@ void EditorNode::_dialog_action(String p_file) {
 
 			GlobalConfig::get_singleton()->set("application/main_scene", p_file);
 			GlobalConfig::get_singleton()->save();
-			//would be nice to show the project manager opened with the hilighted field..
+			//would be nice to show the project manager opened with the highlighted field..
 		} break;
 		case FILE_SAVE_OPTIMIZED: {
 
@@ -2812,7 +2815,7 @@ void EditorNode::set_addon_plugin_enabled(const String &p_addon, bool p_enabled)
 	}
 
 	if (!script->is_tool()) {
-		show_warning("Unable to load addon script from path: '" + path + "' Script is does not support tool mode.");
+		show_warning("Unable to load addon script from path: '" + path + "' Script is not in tool mode.");
 		return;
 	}
 
@@ -4859,9 +4862,9 @@ EditorNode::EditorNode() {
 		import_wav.instance();
 		ResourceFormatImporter::get_singleton()->add_importer(import_wav);
 
-		Ref<ResourceImporterOBJ> import_obj;
-		import_obj.instance();
-		ResourceFormatImporter::get_singleton()->add_importer(import_obj);
+		//Ref<ResourceImporterOBJ> import_obj;
+		//import_obj.instance();
+		//ResourceFormatImporter::get_singleton()->add_importer(import_obj);
 
 		Ref<ResourceImporterScene> import_scene;
 		import_scene.instance();
@@ -5909,7 +5912,7 @@ EditorNode::EditorNode() {
 	//add_editor_plugin( memnew( MeshLibraryEditorPlugin(this) ) );
 	//add_editor_plugin( memnew( StreamEditorPlugin(this) ) );
 	add_editor_plugin(memnew(StyleBoxEditorPlugin(this)));
-	//add_editor_plugin( memnew( ParticlesEditorPlugin(this) ) );
+	add_editor_plugin(memnew(ParticlesEditorPlugin(this)));
 	add_editor_plugin(memnew(ResourcePreloaderEditorPlugin(this)));
 	add_editor_plugin(memnew(ItemListEditorPlugin(this)));
 	//add_editor_plugin( memnew( RichTextEditorPlugin(this) ) );
@@ -5929,7 +5932,9 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(LightOccluder2DEditorPlugin(this)));
 	add_editor_plugin(memnew(NavigationPolygonEditorPlugin(this)));
 	add_editor_plugin(memnew(ColorRampEditorPlugin(this)));
+	add_editor_plugin(memnew(GradientTextureEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionShape2DEditorPlugin(this)));
+	add_editor_plugin(memnew(CurveTextureEditorPlugin(this)));
 	add_editor_plugin(memnew(TextureEditorPlugin(this)));
 	add_editor_plugin(memnew(AudioBusesEditorPlugin(audio_bus_editor)));
 	//add_editor_plugin( memnew( MaterialEditorPlugin(this) ) );

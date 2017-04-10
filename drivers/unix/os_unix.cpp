@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -453,7 +454,7 @@ Error OS_Unix::close_dynamic_library(void *p_library_handle) {
 }
 
 Error OS_Unix::get_dynamic_library_symbol_handle(void *p_library_handle, const String p_name, void *&p_symbol_handle) {
-	char *error;
+	const char *error;
 	dlerror(); // Clear existing errors
 
 	p_symbol_handle = dlsym(p_library_handle, p_name.utf8().get_data());
