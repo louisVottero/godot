@@ -435,7 +435,7 @@ void EditorNode::_sources_changed(bool p_exist) {
 
 		if (defer_load_scene != "") {
 
-			print_line("loading scene DEFERED");
+			print_line("loading scene DEFERRED");
 			load_scene(defer_load_scene);
 			defer_load_scene = "";
 		}
@@ -2697,7 +2697,7 @@ void EditorNode::add_editor_plugin(EditorPlugin *p_editor) {
 		ToolButton *tb = memnew(ToolButton);
 		tb->set_toggle_mode(true);
 		tb->connect("pressed", singleton, "_editor_select", varray(singleton->main_editor_buttons.size()));
-		tb->set_text(p_editor->get_name());
+		tb->set_icon(singleton->gui_base->get_icon(p_editor->get_name(), "EditorIcons"));
 		singleton->main_editor_buttons.push_back(tb);
 		singleton->main_editor_button_vb->add_child(tb);
 		singleton->editor_table.push_back(p_editor);
@@ -4942,11 +4942,13 @@ EditorNode::EditorNode() {
 	//top_dark_vb->add_child(scene_tabs);
 	//left
 	left_l_hsplit = memnew(HSplitContainer);
+	left_l_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	main_vbox->add_child(left_l_hsplit);
 
 	left_l_hsplit->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 
 	left_l_vsplit = memnew(VSplitContainer);
+	left_l_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_l_hsplit->add_child(left_l_vsplit);
 	dock_slot[DOCK_SLOT_LEFT_UL] = memnew(TabContainer);
 	left_l_vsplit->add_child(dock_slot[DOCK_SLOT_LEFT_UL]);
@@ -4957,8 +4959,10 @@ EditorNode::EditorNode() {
 	dock_slot[DOCK_SLOT_LEFT_BL]->hide();
 
 	left_r_hsplit = memnew(HSplitContainer);
+	left_r_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_l_hsplit->add_child(left_r_hsplit);
 	left_r_vsplit = memnew(VSplitContainer);
+	left_r_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_r_hsplit->add_child(left_r_vsplit);
 	dock_slot[DOCK_SLOT_LEFT_UR] = memnew(TabContainer);
 	left_r_vsplit->add_child(dock_slot[DOCK_SLOT_LEFT_UR]);
@@ -4969,6 +4973,7 @@ EditorNode::EditorNode() {
 	//dock_slot[DOCK_SLOT_LEFT_BR]->hide();
 
 	main_hsplit = memnew(HSplitContainer);
+	main_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_r_hsplit->add_child(main_hsplit);
 	//main_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	VBoxContainer *center_vb = memnew(VBoxContainer);
@@ -4976,15 +4981,18 @@ EditorNode::EditorNode() {
 	center_vb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 
 	center_split = memnew(VSplitContainer);
+	center_split->add_constant_override("separation", 8 * EDSCALE);
 	//main_hsplit->add_child(center_split);
 	center_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	center_split->set_collapsed(false);
 	center_vb->add_child(center_split);
 
 	right_hsplit = memnew(HSplitContainer);
+	right_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	main_hsplit->add_child(right_hsplit);
 
 	right_l_vsplit = memnew(VSplitContainer);
+	right_l_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	right_hsplit->add_child(right_l_vsplit);
 	dock_slot[DOCK_SLOT_RIGHT_UL] = memnew(TabContainer);
 	right_l_vsplit->add_child(dock_slot[DOCK_SLOT_RIGHT_UL]);
@@ -4995,6 +5003,7 @@ EditorNode::EditorNode() {
 	//dock_slot[DOCK_SLOT_RIGHT_BL]->hide();
 
 	right_r_vsplit = memnew(VSplitContainer);
+	right_r_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	right_hsplit->add_child(right_r_vsplit);
 	dock_slot[DOCK_SLOT_RIGHT_UR] = memnew(TabContainer);
 	right_r_vsplit->add_child(dock_slot[DOCK_SLOT_RIGHT_UR]);
@@ -5048,13 +5057,12 @@ EditorNode::EditorNode() {
 	dock_select_rect_over = -1;
 	dock_popup_selected = -1;
 	//dock_select_popoup->set_(Size2(20,20));
-
 	for (int i = 0; i < DOCK_SLOT_MAX; i++) {
 		dock_slot[i]->set_custom_minimum_size(Size2(230, 220) * EDSCALE);
 		dock_slot[i]->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 		dock_slot[i]->set_popup(dock_select_popoup);
 		dock_slot[i]->connect("pre_popup_pressed", this, "_dock_pre_popup", varray(i));
-
+		dock_slot[i]->add_constant_override("side_margin", 0);
 		//dock_slot[i]->set_tab_align(TabContainer::ALIGN_LEFT);
 	}
 
@@ -5065,6 +5073,7 @@ EditorNode::EditorNode() {
 	dock_drag_timer->connect("timeout", this, "_save_docks");
 
 	top_split = memnew(VSplitContainer);
+	top_split->add_constant_override("separation", 8 * EDSCALE);
 	center_split->add_child(top_split);
 	top_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	top_split->set_collapsed(true);
@@ -5080,19 +5089,22 @@ EditorNode::EditorNode() {
 */
 	scene_tabs = memnew(Tabs);
 	scene_tabs->add_tab("unsaved");
-	scene_tabs->set_tab_align(Tabs::ALIGN_CENTER);
+	scene_tabs->set_tab_align(Tabs::ALIGN_LEFT);
 	scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
 	scene_tabs->connect("tab_changed", this, "_scene_tab_changed");
 	scene_tabs->connect("right_button_pressed", this, "_scene_tab_script_edited");
 	scene_tabs->connect("tab_close", this, "_scene_tab_closed");
 
+	// MarginContainer *st_mc = memnew( MarginContainer );
+	// st_mc->add_child(scene_tabs);
 	srt->add_child(scene_tabs);
 
 	scene_root_parent = memnew(PanelContainer);
 	scene_root_parent->set_custom_minimum_size(Size2(0, 80) * EDSCALE);
+	scene_root_parent->add_style_override("panel", gui_base->get_stylebox("EditorPanel", "EditorStyles"));
 
-	//Ref<StyleBox> sp = scene_root_parent->get_stylebox("panel","TabContainer");
-	//scene_root_parent->add_style_override("panel",sp);
+	// Ref<StyleBox> sp = scene_root_parent->get_stylebox("panel_full","PanelContainer");
+	// scene_root_parent->add_style_override("panel",sp);
 
 	/*scene_root_parent->set_anchor( MARGIN_RIGHT, Control::ANCHOR_END );
 	scene_root_parent->set_anchor( MARGIN_BOTTOM, Control::ANCHOR_END );
@@ -5115,13 +5127,14 @@ EditorNode::EditorNode() {
 
 	viewport = memnew(VBoxContainer);
 	viewport->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	viewport->add_constant_override("separation", 0);
 	/*for(int i=0;i<4;i++) {
 		viewport->set_margin(Margin(i),sp->get_margin(Margin(i)));
 	}*/
 	scene_root_parent->add_child(viewport);
 
 	PanelContainer *top_region = memnew(PanelContainer);
-	top_region->add_style_override("panel", gui_base->get_stylebox("hover", "Button"));
+	top_region->add_style_override("panel", memnew(StyleBoxEmpty));
 	HBoxContainer *left_menu_hb = memnew(HBoxContainer);
 	top_region->add_child(left_menu_hb);
 	menu_hb->add_child(top_region);
@@ -5204,7 +5217,7 @@ EditorNode::EditorNode() {
 	}
 
 	PanelContainer *editor_region = memnew(PanelContainer);
-	editor_region->add_style_override("panel", gui_base->get_stylebox("hover", "Button"));
+	editor_region->add_style_override("panel", memnew(StyleBoxEmpty));
 	main_editor_button_vb = memnew(HBoxContainer);
 	editor_region->add_child(main_editor_button_vb);
 	menu_hb->add_child(editor_region);
@@ -5271,6 +5284,8 @@ EditorNode::EditorNode() {
 	//s1->set_size(Point2(10,15));
 
 	play_cc = memnew(CenterContainer);
+	// play_cc->add_style_override("bg",gui_base->get_stylebox("panel","PanelContainer"));
+
 	play_cc->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
 	gui_base->add_child(play_cc);
 	play_cc->set_area_as_parent_rect();
@@ -5278,7 +5293,7 @@ EditorNode::EditorNode() {
 	play_cc->set_margin(MARGIN_TOP, 5);
 
 	top_region = memnew(PanelContainer);
-	top_region->add_style_override("panel", gui_base->get_stylebox("hover", "Button"));
+	top_region->add_style_override("panel", gui_base->get_stylebox("panel", "ButtonGroup"));
 	play_cc->add_child(top_region);
 
 	HBoxContainer *play_hb = memnew(HBoxContainer);
@@ -5398,7 +5413,9 @@ EditorNode::EditorNode() {
 	}
 
 	PanelContainer *vu_cont = memnew(PanelContainer);
-	vu_cont->add_style_override("panel", gui_base->get_stylebox("hover", "Button"));
+	vu_cont->add_style_override("panel", memnew(StyleBoxEmpty));
+
+	// CenterContainer *vu_cont = memnew( CenterContainer );
 	menu_hb->add_child(vu_cont);
 
 	audio_vu = memnew(TextureProgress);
@@ -5419,7 +5436,7 @@ EditorNode::EditorNode() {
 	}
 
 	top_region = memnew(PanelContainer);
-	top_region->add_style_override("panel", gui_base->get_stylebox("hover", "Button"));
+	top_region->add_style_override("panel", memnew(StyleBoxEmpty));
 	HBoxContainer *right_menu_hb = memnew(HBoxContainer);
 	top_region->add_child(right_menu_hb);
 	menu_hb->add_child(top_region);
@@ -5585,7 +5602,7 @@ EditorNode::EditorNode() {
 	search_button = memnew(ToolButton);
 	search_button->set_toggle_mode(true);
 	search_button->set_pressed(false);
-	search_button->set_icon(gui_base->get_icon("Zoom", "EditorIcons"));
+	search_button->set_icon(gui_base->get_icon("Search", "EditorIcons"));
 	prop_editor_hb->add_child(search_button);
 	search_button->connect("toggled", this, "_toggle_search_bar");
 
@@ -5674,7 +5691,7 @@ EditorNode::EditorNode() {
 	_update_layouts_menu();
 
 	bottom_panel = memnew(PanelContainer);
-	bottom_panel->add_style_override("panel", gui_base->get_stylebox("panelf", "Panel"));
+	bottom_panel->add_style_override("panel", gui_base->get_stylebox("EditorPanel", "EditorStyles"));
 	center_split->add_child(bottom_panel);
 	center_split->set_dragger_visibility(SplitContainer::DRAGGER_HIDDEN);
 
@@ -6051,7 +6068,10 @@ EditorNode::EditorNode() {
 	{
 
 		_initializing_addons = true;
-		Vector<String> addons = GlobalConfig::get_singleton()->get("editor_plugins/enabled");
+		Vector<String> addons;
+		if (GlobalConfig::get_singleton()->has("editor_plugins/enabled")) {
+			addons = GlobalConfig::get_singleton()->get("editor_plugins/enabled");
+		}
 
 		for (int i = 0; i < addons.size(); i++) {
 			set_addon_plugin_enabled(addons[i], true);

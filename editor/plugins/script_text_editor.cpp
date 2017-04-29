@@ -69,26 +69,6 @@ Ref<Script> ScriptTextEditor::get_edited_script() const {
 	return script;
 }
 
-bool ScriptTextEditor::goto_method(const String &p_method) {
-
-	Vector<String> functions = get_functions();
-
-	String method_search = p_method + ":";
-
-	for (int i = 0; i < functions.size(); i++) {
-		String function = functions[i];
-
-		if (function.begins_with(method_search)) {
-
-			int line = function.get_slice(":", 1).to_int();
-			goto_line(line - 1);
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void ScriptTextEditor::_load_theme_settings() {
 
 	TextEdit *text_edit = code_editor->get_text_edit();
@@ -260,6 +240,48 @@ Variant ScriptTextEditor::get_edit_state() {
 	return state;
 }
 
+void ScriptTextEditor::_convert_case(CaseStyle p_case) {
+	TextEdit *te = code_editor->get_text_edit();
+	Ref<Script> scr = get_edited_script();
+	if (scr.is_null()) {
+		return;
+	}
+
+	if (te->is_selection_active()) {
+		te->begin_complex_operation();
+
+		int begin = te->get_selection_from_line();
+		int end = te->get_selection_to_line();
+		int begin_col = te->get_selection_from_column();
+		int end_col = te->get_selection_to_column();
+
+		for (int i = begin; i <= end; i++) {
+			String new_line = te->get_line(i);
+
+			switch (p_case) {
+				case UPPER: {
+					new_line = new_line.to_upper();
+				} break;
+				case LOWER: {
+					new_line = new_line.to_lower();
+				} break;
+				case CAPITALIZE: {
+					new_line = new_line.capitalize();
+				} break;
+			}
+
+			if (i == begin) {
+				new_line = te->get_line(i).left(begin_col) + new_line.right(begin_col);
+			}
+			if (i == end) {
+				new_line = new_line.left(end_col) + te->get_line(i).right(end_col);
+			}
+			te->set_line(i, new_line);
+		}
+		te->end_complex_operation();
+	}
+}
+
 void ScriptTextEditor::trim_trailing_whitespace() {
 
 	TextEdit *tx = code_editor->get_text_edit();
@@ -305,6 +327,9 @@ void ScriptTextEditor::convert_indent_to_spaces() {
 		indent += " ";
 	}
 
+	int cursor_line = tx->cursor_get_line();
+	int cursor_column = tx->cursor_get_column();
+
 	bool changed_indentation = false;
 	for (int i = 0; i < tx->get_line_count(); i++) {
 		String line = tx->get_line(i);
@@ -320,6 +345,9 @@ void ScriptTextEditor::convert_indent_to_spaces() {
 					tx->begin_complex_operation();
 					changed_indentation = true;
 				}
+				if (cursor_line == i && cursor_column > j) {
+					cursor_column += indent_size - 1;
+				}
 				line = line.left(j) + indent + line.right(j + 1);
 			}
 			j++;
@@ -327,6 +355,7 @@ void ScriptTextEditor::convert_indent_to_spaces() {
 		tx->set_line(i, line);
 	}
 	if (changed_indentation) {
+		tx->cursor_set_column(cursor_column);
 		tx->end_complex_operation();
 		tx->update();
 	}
@@ -342,6 +371,9 @@ void ScriptTextEditor::convert_indent_to_tabs() {
 
 	int indent_size = EditorSettings::get_singleton()->get("text_editor/indent/size");
 	indent_size -= 1;
+
+	int cursor_line = tx->cursor_get_line();
+	int cursor_column = tx->cursor_get_column();
 
 	bool changed_indentation = false;
 	for (int i = 0; i < tx->get_line_count(); i++) {
@@ -362,7 +394,9 @@ void ScriptTextEditor::convert_indent_to_tabs() {
 						tx->begin_complex_operation();
 						changed_indentation = true;
 					}
-
+					if (cursor_line == i && cursor_column > j) {
+						cursor_column -= indent_size;
+					}
 					line = line.left(j - indent_size) + "\t" + line.right(j + 1);
 					j = 0;
 					space_count = -1;
@@ -375,6 +409,7 @@ void ScriptTextEditor::convert_indent_to_tabs() {
 		tx->set_line(i, line);
 	}
 	if (changed_indentation) {
+		tx->cursor_set_column(cursor_column);
 		tx->end_complex_operation();
 		tx->update();
 	}
@@ -386,7 +421,7 @@ void ScriptTextEditor::tag_saved_version() {
 }
 
 void ScriptTextEditor::goto_line(int p_line, bool p_with_error) {
-	code_editor->get_text_edit()->cursor_set_line(p_line);
+	code_editor->get_text_edit()->call_deferred("cursor_set_line", p_line);
 }
 
 void ScriptTextEditor::ensure_focus() {
@@ -926,7 +961,15 @@ void ScriptTextEditor::_edit_option(int p_op) {
 		case EDIT_PICK_COLOR: {
 			color_panel->popup();
 		} break;
-
+		case EDIT_TO_UPPERCASE: {
+			_convert_case(UPPER);
+		} break;
+		case EDIT_TO_LOWERCASE: {
+			_convert_case(LOWER);
+		} break;
+		case EDIT_CAPITALIZE: {
+			_convert_case(CAPITALIZE);
+		} break;
 		case SEARCH_FIND: {
 
 			code_editor->get_find_replace_bar()->popup_search();
@@ -1279,6 +1322,7 @@ ScriptTextEditor::ScriptTextEditor() {
 
 	code_editor = memnew(CodeTextEditor);
 	add_child(code_editor);
+	code_editor->add_constant_override("separation", 0);
 	code_editor->set_area_as_parent_rect();
 	code_editor->connect("validate_script", this, "_validate_script");
 	code_editor->connect("load_theme_settings", this, "_load_theme_settings");
@@ -1342,6 +1386,15 @@ ScriptTextEditor::ScriptTextEditor() {
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/remove_all_breakpoints"), DEBUG_REMOVE_ALL_BREAKPOINTS);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/goto_next_breakpoint"), DEBUG_GOTO_NEXT_BREAKPOINT);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/goto_previous_breakpoint"), DEBUG_GOTO_PREV_BREAKPOINT);
+	edit_menu->get_popup()->add_separator();
+	PopupMenu *convert_case = memnew(PopupMenu);
+	convert_case->set_name("convert_case");
+	edit_menu->get_popup()->add_child(convert_case);
+	edit_menu->get_popup()->add_submenu_item(TTR("Convert Case"), "convert_case");
+	convert_case->add_shortcut(ED_SHORTCUT("script_text_editor/convert_to_uppercase", TTR("Uppercase")), EDIT_TO_UPPERCASE);
+	convert_case->add_shortcut(ED_SHORTCUT("script_text_editor/convert_to_lowercase", TTR("Lowercase")), EDIT_TO_LOWERCASE);
+	convert_case->add_shortcut(ED_SHORTCUT("script_text_editor/capitalize", TTR("Capitalize")), EDIT_CAPITALIZE);
+	convert_case->connect("id_pressed", this, "_edit_option");
 
 	search_menu = memnew(MenuButton);
 	edit_hb->add_child(search_menu);
@@ -1411,6 +1464,10 @@ void ScriptTextEditor::register_editor() {
 	ED_SHORTCUT("script_text_editor/remove_all_breakpoints", TTR("Remove All Breakpoints"), KEY_MASK_CTRL | KEY_MASK_SHIFT | KEY_F9);
 	ED_SHORTCUT("script_text_editor/goto_next_breakpoint", TTR("Goto Next Breakpoint"), KEY_MASK_CTRL | KEY_PERIOD);
 	ED_SHORTCUT("script_text_editor/goto_previous_breakpoint", TTR("Goto Previous Breakpoint"), KEY_MASK_CTRL | KEY_COMMA);
+
+	ED_SHORTCUT("script_text_editor/convert_to_uppercase", TTR("Convert To Uppercase"), KEY_MASK_SHIFT | KEY_F4);
+	ED_SHORTCUT("script_text_editor/convert_to_lowercase", TTR("Convert To Lowercase"), KEY_MASK_SHIFT | KEY_F3);
+	ED_SHORTCUT("script_text_editor/capitalize", TTR("Capitalize"), KEY_MASK_SHIFT | KEY_F2);
 
 	ED_SHORTCUT("script_text_editor/find", TTR("Find.."), KEY_MASK_CMD | KEY_F);
 	ED_SHORTCUT("script_text_editor/find_next", TTR("Find Next"), KEY_F3);
