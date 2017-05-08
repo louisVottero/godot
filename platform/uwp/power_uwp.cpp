@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_stream_ogg_vorbis.h                                            */
+/*  power_uwp.cpp                                                        */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -27,83 +27,49 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#ifndef AUDIO_STREAM_STB_VORBIS_H
-#define AUDIO_STREAM_STB_VORBIS_H
 
-#include "io/resource_loader.h"
-#include "servers/audio/audio_stream.h"
+#include "power_uwp.h"
 
-#define STB_VORBIS_HEADER_ONLY
-#include "thirdparty/misc/stb_vorbis.c"
-#undef STB_VORBIS_HEADER_ONLY
+PowerUWP::PowerUWP()
+	: nsecs_left(-1), percent_left(-1), power_state(POWERSTATE_UNKNOWN) {
+}
 
-class AudioStreamOGGVorbis;
+PowerUWP::~PowerUWP() {
+}
 
-class AudioStreamPlaybackOGGVorbis : public AudioStreamPlaybackResampled {
+bool PowerUWP::UpdatePowerInfo() {
+	// TODO, WinRT: Battery info is available on at least one WinRT platform (Windows Phone 8).  Implement UpdatePowerInfo as appropriate. */
+	/* Notes from SDL:
+	         - the Win32 function, GetSystemPowerStatus, is not available for use on WinRT
+	         - Windows Phone 8 has a 'Battery' class, which is documented as available for C++
+	             - More info on WP8's Battery class can be found at http://msdn.microsoft.com/library/windowsphone/develop/jj207231
+	    */
+	return false;
+}
 
-	GDCLASS(AudioStreamPlaybackOGGVorbis, AudioStreamPlaybackResampled)
+PowerState PowerUWP::get_power_state() {
+	if (UpdatePowerInfo()) {
+		return power_state;
+	} else {
+		WARN_PRINT("Power management is not implemented on this platform, defaulting to POWERSTATE_UNKNOWN");
+		return POWERSTATE_UNKNOWN;
+	}
+}
 
-	stb_vorbis *ogg_stream;
-	stb_vorbis_alloc ogg_alloc;
-	uint32_t frames_mixed;
-	bool active;
-	int loops;
+int PowerUWP::get_power_seconds_left() {
+	if (UpdatePowerInfo()) {
+		return nsecs_left;
+	} else {
+		WARN_PRINT("Power management is not implemented on this platform, defaulting to -1");
+		return -1;
+	}
+}
 
-	friend class AudioStreamOGGVorbis;
-
-	Ref<AudioStreamOGGVorbis> vorbis_stream;
-
-protected:
-	virtual void _mix_internal(AudioFrame *p_buffer, int p_frames);
-	virtual float get_stream_sampling_rate();
-
-public:
-	virtual void start(float p_from_pos = 0.0);
-	virtual void stop();
-	virtual bool is_playing() const;
-
-	virtual int get_loop_count() const; //times it looped
-
-	virtual float get_pos() const;
-	virtual void seek_pos(float p_time);
-
-	virtual float get_length() const; //if supported, otherwise return 0
-
-	AudioStreamPlaybackOGGVorbis() {}
-	~AudioStreamPlaybackOGGVorbis();
-};
-
-class AudioStreamOGGVorbis : public AudioStream {
-
-	GDCLASS(AudioStreamOGGVorbis, AudioStream)
-	OBJ_SAVE_TYPE(AudioStream) //children are all saved as AudioStream, so they can be exchanged
-	RES_BASE_EXTENSION("asogg");
-
-	friend class AudioStreamPlaybackOGGVorbis;
-
-	void *data;
-	uint32_t data_len;
-
-	int decode_mem_size;
-	float sample_rate;
-	int channels;
-	float length;
-	bool loop;
-
-protected:
-	static void _bind_methods();
-
-public:
-	void set_loop(bool p_enable);
-	bool has_loop() const;
-
-	virtual Ref<AudioStreamPlayback> instance_playback();
-	virtual String get_stream_name() const;
-
-	void set_data(const PoolVector<uint8_t> &p_data);
-	PoolVector<uint8_t> get_data() const;
-
-	AudioStreamOGGVorbis();
-};
-
-#endif
+int PowerUWP::get_power_percent_left() {
+	if (UpdatePowerInfo()) {
+		return percent_left;
+	} else {
+		WARN_PRINT("Power management is not implemented on this platform, defaulting to -1");
+		return -1;
+	}
+}

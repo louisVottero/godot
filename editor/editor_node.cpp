@@ -360,6 +360,7 @@ void EditorNode::_notification(int p_what) {
 
 	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 		scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
+		property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
 	}
 }
 
@@ -1650,7 +1651,7 @@ void EditorNode::_run(bool p_current, const String &p_custom) {
 
 			current_option = -1;
 			//accept->get_cancel()->hide();
-			pick_main_scene->set_text(TTR("No main scene has ever been defined, select one?\nYou can change it later in later in \"Project Settings\" under the 'application' category."));
+			pick_main_scene->set_text(TTR("No main scene has ever been defined, select one?\nYou can change it later in \"Project Settings\" under the 'application' category."));
 			pick_main_scene->popup_centered_minsize();
 			return;
 		}
@@ -2688,6 +2689,14 @@ void EditorNode::_editor_select(int p_which) {
 	editor_plugin_screen = new_editor;
 	editor_plugin_screen->make_visible(true);
 	editor_plugin_screen->selected_notify();
+
+	if (EditorSettings::get_singleton()->get("interface/separate_distraction_mode")) {
+		if (p_which == EDITOR_SCRIPT) {
+			set_distraction_free_mode(script_distraction);
+		} else {
+			set_distraction_free_mode(scene_distraction);
+		}
+	}
 }
 
 void EditorNode::add_editor_plugin(EditorPlugin *p_editor) {
@@ -4381,7 +4390,25 @@ bool EditorNode::get_docks_visible() const {
 
 void EditorNode::_toggle_distraction_free_mode() {
 
-	set_distraction_free_mode(distraction_free->is_pressed());
+	if (EditorSettings::get_singleton()->get("interface/separate_distraction_mode")) {
+		int screen = -1;
+		for (int i = 0; i < editor_table.size(); i++) {
+			if (editor_plugin_screen == editor_table[i]) {
+				screen = i;
+				break;
+			}
+		}
+
+		if (screen == EDITOR_SCRIPT) {
+			script_distraction = !script_distraction;
+			set_distraction_free_mode(script_distraction);
+		} else {
+			scene_distraction = !scene_distraction;
+			set_distraction_free_mode(scene_distraction);
+		}
+	} else {
+		set_distraction_free_mode(distraction_free->is_pressed());
+	}
 }
 
 void EditorNode::set_distraction_free_mode(bool p_enter) {
@@ -4805,6 +4832,9 @@ EditorNode::EditorNode() {
 	_initializing_addons = false;
 	docks_visible = true;
 
+	scene_distraction = false;
+	script_distraction = false;
+
 	FileAccess::set_backup_save(true);
 
 	TranslationServer::get_singleton()->set_enabled(false);
@@ -4942,13 +4972,11 @@ EditorNode::EditorNode() {
 	//top_dark_vb->add_child(scene_tabs);
 	//left
 	left_l_hsplit = memnew(HSplitContainer);
-	left_l_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	main_vbox->add_child(left_l_hsplit);
 
 	left_l_hsplit->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 
 	left_l_vsplit = memnew(VSplitContainer);
-	left_l_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_l_hsplit->add_child(left_l_vsplit);
 	dock_slot[DOCK_SLOT_LEFT_UL] = memnew(TabContainer);
 	left_l_vsplit->add_child(dock_slot[DOCK_SLOT_LEFT_UL]);
@@ -4959,10 +4987,8 @@ EditorNode::EditorNode() {
 	dock_slot[DOCK_SLOT_LEFT_BL]->hide();
 
 	left_r_hsplit = memnew(HSplitContainer);
-	left_r_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_l_hsplit->add_child(left_r_hsplit);
 	left_r_vsplit = memnew(VSplitContainer);
-	left_r_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_r_hsplit->add_child(left_r_vsplit);
 	dock_slot[DOCK_SLOT_LEFT_UR] = memnew(TabContainer);
 	left_r_vsplit->add_child(dock_slot[DOCK_SLOT_LEFT_UR]);
@@ -4973,7 +4999,6 @@ EditorNode::EditorNode() {
 	//dock_slot[DOCK_SLOT_LEFT_BR]->hide();
 
 	main_hsplit = memnew(HSplitContainer);
-	main_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	left_r_hsplit->add_child(main_hsplit);
 	//main_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	VBoxContainer *center_vb = memnew(VBoxContainer);
@@ -4981,18 +5006,15 @@ EditorNode::EditorNode() {
 	center_vb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 
 	center_split = memnew(VSplitContainer);
-	center_split->add_constant_override("separation", 8 * EDSCALE);
 	//main_hsplit->add_child(center_split);
 	center_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	center_split->set_collapsed(false);
 	center_vb->add_child(center_split);
 
 	right_hsplit = memnew(HSplitContainer);
-	right_hsplit->add_constant_override("separation", 8 * EDSCALE);
 	main_hsplit->add_child(right_hsplit);
 
 	right_l_vsplit = memnew(VSplitContainer);
-	right_l_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	right_hsplit->add_child(right_l_vsplit);
 	dock_slot[DOCK_SLOT_RIGHT_UL] = memnew(TabContainer);
 	right_l_vsplit->add_child(dock_slot[DOCK_SLOT_RIGHT_UL]);
@@ -5003,7 +5025,6 @@ EditorNode::EditorNode() {
 	//dock_slot[DOCK_SLOT_RIGHT_BL]->hide();
 
 	right_r_vsplit = memnew(VSplitContainer);
-	right_r_vsplit->add_constant_override("separation", 8 * EDSCALE);
 	right_hsplit->add_child(right_r_vsplit);
 	dock_slot[DOCK_SLOT_RIGHT_UR] = memnew(TabContainer);
 	right_r_vsplit->add_child(dock_slot[DOCK_SLOT_RIGHT_UR]);
@@ -5062,7 +5083,6 @@ EditorNode::EditorNode() {
 		dock_slot[i]->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 		dock_slot[i]->set_popup(dock_select_popoup);
 		dock_slot[i]->connect("pre_popup_pressed", this, "_dock_pre_popup", varray(i));
-		dock_slot[i]->add_constant_override("side_margin", 0);
 		//dock_slot[i]->set_tab_align(TabContainer::ALIGN_LEFT);
 	}
 
@@ -5073,7 +5093,6 @@ EditorNode::EditorNode() {
 	dock_drag_timer->connect("timeout", this, "_save_docks");
 
 	top_split = memnew(VSplitContainer);
-	top_split->add_constant_override("separation", 8 * EDSCALE);
 	center_split->add_child(top_split);
 	top_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	top_split->set_collapsed(true);
@@ -5638,6 +5657,7 @@ EditorNode::EditorNode() {
 	property_editor->set_show_categories(true);
 	property_editor->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	property_editor->set_use_doc_hints(true);
+	property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
 
 	property_editor->hide_top_label();
 	property_editor->register_text_enter(search_box);
