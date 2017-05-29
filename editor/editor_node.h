@@ -186,11 +186,18 @@ private:
 		SETTINGS_PICK_MAIN_SCENE,
 		SETTINGS_TOGGLE_FULLSCREN,
 		SETTINGS_HELP,
-		SETTINGS_ABOUT,
 		SOURCES_REIMPORT,
 		DEPENDENCY_LOAD_CHANGED_IMAGES,
 		DEPENDENCY_UPDATE_IMPORTED,
 		SCENE_TAB_CLOSE,
+
+		HELP_CLASSES,
+		HELP_SEARCH,
+		HELP_DOCS,
+		HELP_QA,
+		HELP_ISSUES,
+		HELP_COMMUNITY,
+		HELP_ABOUT,
 
 		IMPORT_PLUGIN_BASE = 100,
 
@@ -244,7 +251,9 @@ private:
 	HBoxContainer *menu_hb;
 	Control *viewport;
 	MenuButton *file_menu;
-	MenuButton *tool_menu;
+	MenuButton *project_menu;
+	MenuButton *debug_menu;
+	PopupMenu *tool_menu;
 	ToolButton *export_button;
 	ToolButton *prev_scene;
 	MenuButton *object_menu;
@@ -256,7 +265,6 @@ private:
 	ToolButton *run_settings_button;
 	ToolButton *play_scene_button;
 	ToolButton *play_custom_scene_button;
-	MenuButton *debug_button;
 	ToolButton *search_button;
 	TextureProgress *audio_vu;
 	//MenuButton *fileserver_menu;
@@ -312,7 +320,7 @@ private:
 	LineEdit *file_export_password;
 	String current_path;
 	MenuButton *update_menu;
-	ToolButton *sources_button;
+
 	//TabContainer *prop_pallete;
 	//TabContainer *top_pallete;
 	String defer_load_scene;
@@ -482,7 +490,7 @@ private:
 
 	bool convert_old;
 
-	void _unhandled_input(const InputEvent &p_event);
+	void _unhandled_input(const Ref<InputEvent> &p_event);
 
 	static void _load_error_notify(void *p_ud, const String &p_text);
 
@@ -539,7 +547,7 @@ private:
 
 	bool _find_scene_in_use(Node *p_node, const String &p_path) const;
 
-	void _dock_select_input(const InputEvent &p_input);
+	void _dock_select_input(const Ref<InputEvent> &p_input);
 	void _dock_move_left();
 	void _dock_move_right();
 	void _dock_select_draw();
@@ -585,6 +593,7 @@ private:
 
 	static int plugin_init_callback_count;
 	static EditorPluginInitializeCallback plugin_init_callbacks[MAX_INIT_CALLBACKS];
+	void _save_default_environment();
 
 	void _call_build();
 	static int build_callback_count;
@@ -807,8 +816,8 @@ public:
 
 	void make_visible(bool p_visible);
 	void edit(Object *p_object);
-	bool forward_gui_input(const Transform2D &p_canvas_xform, const InputEvent &p_event);
-	bool forward_spatial_gui_input(Camera *p_camera, const InputEvent &p_event);
+	bool forward_gui_input(const Transform2D &p_canvas_xform, const Ref<InputEvent> &p_event);
+	bool forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event);
 	void forward_draw_over_canvas(const Transform2D &p_canvas_xform, Control *p_canvas);
 	void clear();
 	bool empty();

@@ -65,7 +65,7 @@ bool EditorSettings::_set(const StringName &p_name, const Variant &p_value) {
 		for (int i = 0; i < arr.size(); i += 2) {
 
 			String name = arr[i];
-			InputEvent shortcut = arr[i + 1];
+			Ref<InputEvent> shortcut = arr[i + 1];
 
 			Ref<ShortCut> sc;
 			sc.instance();
@@ -109,8 +109,8 @@ bool EditorSettings::_get(const StringName &p_name, Variant &r_ret) const {
 					continue; //this came from settings but is not any longer used
 				}
 
-				InputEvent original = sc->get_meta("original");
-				if (sc->is_shortcut(original) || (original.type == InputEvent::NONE && sc->get_shortcut().type == InputEvent::NONE))
+				Ref<InputEvent> original = sc->get_meta("original");
+				if (sc->is_shortcut(original) || (original.is_null() && sc->get_shortcut().is_null()))
 					continue; //not changed from default, don't save
 			}
 
@@ -503,8 +503,6 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/source_font_size"] = PropertyInfo(Variant::INT, "interface/source_font_size", PROPERTY_HINT_RANGE, "8,96,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/custom_font", "");
 	hints["interface/custom_font"] = PropertyInfo(Variant::STRING, "interface/custom_font", PROPERTY_HINT_GLOBAL_FILE, "*.fnt", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
-	set("interface/custom_theme", "");
-	hints["interface/custom_theme"] = PropertyInfo(Variant::STRING, "interface/custom_theme", PROPERTY_HINT_GLOBAL_FILE, "*.res,*.tres,*.theme", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/dim_editor_on_dialog_popup", true);
 	set("interface/dim_amount", 0.6f);
 	hints["interface/dim_amount"] = PropertyInfo(Variant::REAL, "interface/dim_amount", PROPERTY_HINT_RANGE, "0,1,0.01", PROPERTY_USAGE_DEFAULT);
@@ -512,6 +510,17 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/dim_transition_time"] = PropertyInfo(Variant::REAL, "interface/dim_transition_time", PROPERTY_HINT_RANGE, "0,1,0.001", PROPERTY_USAGE_DEFAULT);
 
 	set("interface/separate_distraction_mode", false);
+
+	set("interface/theme/preset", 0);
+	hints["interface/theme/preset"] = PropertyInfo(Variant::INT, "interface/theme/preset", PROPERTY_HINT_ENUM, "Default,Grey,Godot 2,Arc,Custom", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+	set("interface/theme/base_color", Color::html("#273241"));
+	hints["interface/theme/highlight_color"] = PropertyInfo(Variant::COLOR, "interface/theme/highlight_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+	set("interface/theme/highlight_color", Color::html("#b79047"));
+	hints["interface/theme/base_color"] = PropertyInfo(Variant::COLOR, "interface/theme/base_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+	set("interface/theme/contrast", 0.2);
+	hints["interface/theme/contrast"] = PropertyInfo(Variant::REAL, "interface/theme/contrast", PROPERTY_HINT_RANGE, "0.01, 1, 0.01");
+	set("interface/theme/custom_theme", "");
+	hints["interface/theme/custom_theme"] = PropertyInfo(Variant::STRING, "interface/theme/custom_theme", PROPERTY_HINT_GLOBAL_FILE, "*.res,*.tres,*.theme", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
 	set("filesystem/directories/autoscan_project_path", "");
 	hints["filesystem/directories/autoscan_project_path"] = PropertyInfo(Variant::STRING, "filesystem/directories/autoscan_project_path", PROPERTY_HINT_GLOBAL_DIR);
@@ -605,11 +614,6 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("editors/2d/warped_mouse_panning", true);
 
 	set("editors/poly_editor/point_grab_radius", 8);
-
-	set("editors/theme/base_color", Color(0.3, 0.3, 0.3, 1));
-	hints["editors/theme/base_color"] = PropertyInfo(Variant::COLOR, "editors/theme/base_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
-	set("editors/theme/contrast", 0.2);
-	hints["editors/theme/contrast"] = PropertyInfo(Variant::REAL, "editors/theme/contrast", PROPERTY_HINT_RANGE, "0.01, 1, 0.01");
 
 	set("run/window_placement/rect", 0);
 	hints["run/window_placement/rect"] = PropertyInfo(Variant::INT, "run/window_placement/rect", PROPERTY_HINT_ENUM, "Default,Centered,Custom Position,Force Maximized,Force Full Screen");
@@ -984,7 +988,7 @@ void EditorSettings::add_shortcut(const String &p_name, Ref<ShortCut> &p_shortcu
 	shortcuts[p_name] = p_shortcut;
 }
 
-bool EditorSettings::is_shortcut(const String &p_name, const InputEvent &p_event) const {
+bool EditorSettings::is_shortcut(const String &p_name, const Ref<InputEvent> &p_event) const {
 
 	const Map<String, Ref<ShortCut> >::Element *E = shortcuts.find(p_name);
 	if (!E) {
@@ -1101,15 +1105,16 @@ Ref<ShortCut> ED_GET_SHORTCUT(const String &p_path) {
 
 Ref<ShortCut> ED_SHORTCUT(const String &p_path, const String &p_name, uint32_t p_keycode) {
 
-	InputEvent ie;
+	Ref<InputEventKey> ie;
 	if (p_keycode) {
-		ie.type = InputEvent::KEY;
-		ie.key.unicode = p_keycode & KEY_CODE_MASK;
-		ie.key.scancode = p_keycode & KEY_CODE_MASK;
-		ie.key.mod.shift = bool(p_keycode & KEY_MASK_SHIFT);
-		ie.key.mod.alt = bool(p_keycode & KEY_MASK_ALT);
-		ie.key.mod.control = bool(p_keycode & KEY_MASK_CTRL);
-		ie.key.mod.meta = bool(p_keycode & KEY_MASK_META);
+		ie.instance();
+
+		ie->set_unicode(p_keycode & KEY_CODE_MASK);
+		ie->set_scancode(p_keycode & KEY_CODE_MASK);
+		ie->set_shift(bool(p_keycode & KEY_MASK_SHIFT));
+		ie->set_alt(bool(p_keycode & KEY_MASK_ALT));
+		ie->set_control(bool(p_keycode & KEY_MASK_CTRL));
+		ie->set_metakey(bool(p_keycode & KEY_MASK_META));
 	}
 
 	Ref<ShortCut> sc = EditorSettings::get_singleton()->get_shortcut(p_path);

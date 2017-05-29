@@ -69,6 +69,7 @@ public:
 
 		bool s3tc_supported;
 		bool latc_supported;
+		bool rgtc_supported;
 		bool bptc_supported;
 		bool etc_supported;
 		bool etc2_supported;
@@ -308,19 +309,19 @@ public:
 	virtual void texture_set_detect_3d_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata);
 	virtual void texture_set_detect_srgb_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata);
 
-	/* SKYBOX API */
+	/* SKY API */
 
-	struct SkyBox : public RID_Data {
+	struct Sky : public RID_Data {
 
-		RID cubemap;
+		RID panorama;
 		GLuint radiance;
 		int radiance_size;
 	};
 
-	mutable RID_Owner<SkyBox> skybox_owner;
+	mutable RID_Owner<Sky> sky_owner;
 
-	virtual RID skybox_create();
-	virtual void skybox_set_texture(RID p_skybox, RID p_cube_map, int p_radiance_size);
+	virtual RID sky_create();
+	virtual void sky_set_texture(RID p_sky, RID p_panorama, int p_radiance_size);
 
 	/* SHADER API */
 
