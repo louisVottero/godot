@@ -30,7 +30,7 @@
 #include "editor_node.h"
 
 #include "animation_editor.h"
-#include "authors.h"
+#include "authors.gen.h"
 #include "bind/core_bind.h"
 #include "class_db.h"
 #include "core/io/resource_loader.h"
@@ -73,11 +73,10 @@
 #include "plugins/collision_polygon_2d_editor_plugin.h"
 #include "plugins/collision_polygon_editor_plugin.h"
 #include "plugins/collision_shape_2d_editor_plugin.h"
-#include "plugins/color_ramp_editor_plugin.h"
 #include "plugins/cube_grid_theme_editor_plugin.h"
 #include "plugins/curve_editor_plugin.h"
 #include "plugins/gi_probe_editor_plugin.h"
-#include "plugins/gradient_texture_editor_plugin.h"
+#include "plugins/gradient_editor_plugin.h"
 #include "plugins/item_list_editor_plugin.h"
 #include "plugins/light_occluder_2d_editor_plugin.h"
 #include "plugins/line_2d_editor_plugin.h"
@@ -272,6 +271,8 @@ void EditorNode::_notification(int p_what) {
 		}
 		editor_selection->update();
 
+		scene_root->set_size_override(true, Size2(GlobalConfig::get_singleton()->get("display/window/width"), GlobalConfig::get_singleton()->get("display/window/height")));
+
 		ResourceImporterTexture::get_singleton()->update_imports();
 	}
 	if (p_what == NOTIFICATION_ENTER_TREE) {
@@ -340,6 +341,14 @@ void EditorNode::_notification(int p_what) {
 		play_button_panel->add_style_override("panel", gui_base->get_stylebox("PlayButtonPanel", "EditorStyles"));
 		scene_root_parent->add_style_override("panel", gui_base->get_stylebox("Content", "EditorStyles"));
 		bottom_panel->add_style_override("panel", gui_base->get_stylebox("Content", "EditorStyles"));
+		scene_tabs->add_style_override("tab_fg", gui_base->get_stylebox("SceneTabFG", "EditorStyles"));
+		scene_tabs->add_style_override("tab_bg", gui_base->get_stylebox("SceneTabBG", "EditorStyles"));
+		if (bool(EDITOR_DEF("interface/scene_tabs/resize_if_many_tabs", true))) {
+			scene_tabs->set_min_width(int(EDITOR_DEF("interface/scene_tabs/minimum_width", 50)) * EDSCALE);
+		} else {
+			scene_tabs->set_min_width(0);
+		}
+		_update_scene_tabs();
 	}
 }
 
@@ -1975,9 +1984,10 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 		} break;
 		case FILE_SAVE_BEFORE_RUN: {
 			if (!p_confirmed) {
-				accept->get_ok()->set_text(TTR("Yes"));
-				accept->set_text(TTR("This scene has never been saved. Save before running?"));
-				accept->popup_centered_minsize();
+				confirmation->get_cancel()->set_text(TTR("No"));
+				confirmation->get_ok()->set_text(TTR("Yes"));
+				confirmation->set_text(TTR("This scene has never been saved. Save before running?"));
+				confirmation->popup_centered_minsize();
 				break;
 			}
 
@@ -4267,7 +4277,47 @@ void EditorNode::_scene_tab_closed(int p_tab) {
 	}
 }
 
+void EditorNode::_scene_tab_hover(int p_tab) {
+	if (bool(EDITOR_DEF("interface/scene_tabs/show_thumbnail_on_hover", true)) == false) {
+		return;
+	}
+	int current_tab = scene_tabs->get_current_tab();
+
+	if (p_tab == current_tab || p_tab < 0) {
+		tab_preview_panel->hide();
+	} else {
+		String path = editor_data.get_scene_path(p_tab);
+		EditorResourcePreview::get_singleton()->queue_resource_preview(path, this, "_thumbnail_done", p_tab);
+	}
+}
+
+void EditorNode::_scene_tab_exit() {
+	tab_preview_panel->hide();
+}
+
+void EditorNode::_scene_tab_input(const Ref<InputEvent> &p_input) {
+	Ref<InputEventMouseButton> mb = p_input;
+
+	if (mb.is_valid()) {
+		if (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed() && scene_tabs->get_hovered_tab() >= 0) {
+			_scene_tab_closed(scene_tabs->get_hovered_tab());
+		}
+	}
+}
+
+void EditorNode::_thumbnail_done(const String &p_path, const Ref<Texture> &p_preview, const Variant &p_udata) {
+	int p_tab = p_udata.operator signed int();
+	if (p_preview.is_valid()) {
+		Rect2 rect = scene_tabs->get_tab_rect(p_tab);
+		rect.position += scene_tabs->get_global_position();
+		tab_preview->set_texture(p_preview);
+		tab_preview_panel->set_position(rect.position + Vector2(0, rect.size.height));
+		tab_preview_panel->show();
+	}
+}
+
 void EditorNode::_scene_tab_changed(int p_tab) {
+	tab_preview_panel->hide();
 
 	//print_line("set current 1 ");
 	bool unsaved = (saved_version != editor_data.get_undo_redo().get_version());
@@ -4758,7 +4808,6 @@ void EditorNode::_dim_timeout() {
 }
 
 void EditorNode::_check_gui_base_size() {
-	print_line(itos(int(gui_base->get_size().width)));
 	if (gui_base->get_size().width > 1200 * EDSCALE) {
 		for (int i = 0; i < singleton->main_editor_button_vb->get_child_count(); i++) {
 			ToolButton *btn = singleton->main_editor_button_vb->get_child(i)->cast_to<ToolButton>();
@@ -4835,6 +4884,10 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method("set_current_version", &EditorNode::set_current_version);
 	ClassDB::bind_method("_scene_tab_changed", &EditorNode::_scene_tab_changed);
 	ClassDB::bind_method("_scene_tab_closed", &EditorNode::_scene_tab_closed);
+	ClassDB::bind_method("_scene_tab_hover", &EditorNode::_scene_tab_hover);
+	ClassDB::bind_method("_scene_tab_exit", &EditorNode::_scene_tab_exit);
+	ClassDB::bind_method("_scene_tab_input", &EditorNode::_scene_tab_input);
+	ClassDB::bind_method("_thumbnail_done", &EditorNode::_thumbnail_done);
 	ClassDB::bind_method("_scene_tab_script_edited", &EditorNode::_scene_tab_script_edited);
 	ClassDB::bind_method("_set_main_scene_state", &EditorNode::_set_main_scene_state);
 	ClassDB::bind_method("_update_scene_tabs", &EditorNode::_update_scene_tabs);
@@ -4878,6 +4931,7 @@ EditorNode::EditorNode() {
 	Resource::_get_local_scene_func = _resource_get_edited_scene;
 
 	VisualServer::get_singleton()->textures_keep_original(true);
+	VisualServer::get_singleton()->set_debug_generate_wireframes(true);
 
 	EditorHelp::generate_doc(); //before any editor classes are crated
 	SceneState::set_disable_placeholders(true);
@@ -5178,13 +5232,31 @@ EditorNode::EditorNode() {
 	main_editor_tabs->connect("tab_changed",this,"_editor_select");
 	main_editor_tabs->set_tab_close_display_policy(Tabs::SHOW_NEVER);
 */
+	tab_preview_panel = memnew(Panel);
+	tab_preview_panel->set_size(Size2(100, 100) * EDSCALE);
+	tab_preview_panel->hide();
+	tab_preview_panel->set_self_modulate(Color(1, 1, 1, 0.7));
+	gui_base->add_child(tab_preview_panel);
+
+	tab_preview = memnew(TextureRect);
+	tab_preview->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+	tab_preview->set_size(Size2(96, 96) * EDSCALE);
+	tab_preview->set_position(Point2(2, 2) * EDSCALE);
+	tab_preview_panel->add_child(tab_preview);
+
 	scene_tabs = memnew(Tabs);
+	scene_tabs->add_style_override("tab_fg", gui_base->get_stylebox("SceneTabFG", "EditorStyles"));
+	scene_tabs->add_style_override("tab_bg", gui_base->get_stylebox("SceneTabBG", "EditorStyles"));
 	scene_tabs->add_tab("unsaved");
 	scene_tabs->set_tab_align(Tabs::ALIGN_LEFT);
 	scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
+	scene_tabs->set_min_width(int(EDITOR_DEF("interface/scene_tabs/minimum_width", 50)) * EDSCALE);
 	scene_tabs->connect("tab_changed", this, "_scene_tab_changed");
 	scene_tabs->connect("right_button_pressed", this, "_scene_tab_script_edited");
 	scene_tabs->connect("tab_close", this, "_scene_tab_closed");
+	scene_tabs->connect("tab_hover", this, "_scene_tab_hover");
+	scene_tabs->connect("mouse_exited", this, "_scene_tab_exit");
+	scene_tabs->connect("gui_input", this, "_scene_tab_input");
 
 	HBoxContainer *tabbar_container = memnew(HBoxContainer);
 	scene_tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -5238,36 +5310,6 @@ EditorNode::EditorNode() {
 	top_region->add_child(left_menu_hb);
 	menu_hb->add_child(top_region);
 
-	PopupMenu *p;
-
-	project_menu = memnew(MenuButton);
-	project_menu->set_tooltip(TTR("Miscellaneous project or scene-wide tools."));
-	project_menu->set_text(TTR("Project"));
-	project_menu->add_style_override("hover", gui_base->get_stylebox("MenuHover", "EditorStyles"));
-	left_menu_hb->add_child(project_menu);
-
-	p = project_menu->get_popup();
-	p->connect("id_pressed", this, "_menu_option");
-	p->add_item(TTR("Run Script"), FILE_RUN_SCRIPT, KEY_MASK_SHIFT + KEY_MASK_CMD + KEY_R);
-	p->add_item(TTR("Export"), FILE_EXPORT_PROJECT);
-
-	PopupMenu *tool_menu = memnew(PopupMenu);
-	tool_menu->set_name("Tools");
-	tool_menu->connect("id_pressed", this, "_menu_option");
-	p->add_child(tool_menu);
-	p->add_submenu_item(TTR("Tools"), "Tools");
-	tool_menu->add_item(TTR("Orphan Resource Explorer"), TOOLS_ORPHAN_RESOURCES);
-	p->add_separator();
-	p->add_item(TTR("Project Settings"), RUN_SETTINGS);
-	p->add_separator();
-
-#ifdef OSX_ENABLED
-	p->add_item(TTR("Quit to Project List"), RUN_PROJECT_MANAGER, KEY_MASK_SHIFT + KEY_MASK_ALT + KEY_Q);
-#else
-	p->add_item(TTR("Quit to Project List"), RUN_PROJECT_MANAGER, KEY_MASK_SHIFT + KEY_MASK_CTRL + KEY_Q);
-#endif
-	p->add_item(TTR("Quit"), FILE_QUIT, KEY_MASK_CMD + KEY_Q);
-
 	file_menu = memnew(MenuButton);
 	file_menu->set_text(TTR("Scene"));
 	//file_menu->set_icon(gui_base->get_icon("Save","EditorIcons"));
@@ -5287,6 +5329,7 @@ EditorNode::EditorNode() {
 	ED_SHORTCUT("editor/next_tab", TTR("Next tab"), KEY_MASK_CMD + KEY_TAB);
 	ED_SHORTCUT("editor/prev_tab", TTR("Previous tab"), KEY_MASK_CMD + KEY_MASK_SHIFT + KEY_TAB);
 	ED_SHORTCUT("editor/filter_files", TTR("Filter Files.."), KEY_MASK_ALT + KEY_MASK_CMD + KEY_P);
+	PopupMenu *p;
 
 	file_menu->set_tooltip(TTR("Operations with scene files."));
 	p = file_menu->get_popup();
@@ -5306,7 +5349,6 @@ EditorNode::EditorNode() {
 	p->add_shortcut(ED_SHORTCUT("editor/quick_open_scene", TTR("Quick Open Scene.."), KEY_MASK_SHIFT + KEY_MASK_CMD + KEY_O), FILE_QUICK_OPEN_SCENE);
 	p->add_shortcut(ED_SHORTCUT("editor/quick_open_script", TTR("Quick Open Script.."), KEY_MASK_ALT + KEY_MASK_CMD + KEY_O), FILE_QUICK_OPEN_SCRIPT);
 	p->add_separator();
-
 	PopupMenu *pm_export = memnew(PopupMenu);
 	pm_export->set_name("Export");
 	p->add_child(pm_export);
@@ -5332,6 +5374,35 @@ EditorNode::EditorNode() {
 		sp->set_custom_minimum_size(Size2(30, 0) * EDSCALE);
 		menu_hb->add_child(sp);
 	}
+	p->add_separator();
+	p->add_item(TTR("Quit"), FILE_QUIT, KEY_MASK_CMD + KEY_Q);
+
+	project_menu = memnew(MenuButton);
+	project_menu->set_tooltip(TTR("Miscellaneous project or scene-wide tools."));
+	project_menu->set_text(TTR("Project"));
+	project_menu->add_style_override("hover", gui_base->get_stylebox("MenuHover", "EditorStyles"));
+	left_menu_hb->add_child(project_menu);
+
+	p = project_menu->get_popup();
+	p->add_item(TTR("Project Settings"), RUN_SETTINGS);
+	p->add_separator();
+	p->connect("id_pressed", this, "_menu_option");
+	p->add_item(TTR("Run Script"), FILE_RUN_SCRIPT, KEY_MASK_SHIFT + KEY_MASK_CMD + KEY_R);
+	p->add_item(TTR("Export"), FILE_EXPORT_PROJECT);
+
+	PopupMenu *tool_menu = memnew(PopupMenu);
+	tool_menu->set_name("Tools");
+	tool_menu->connect("id_pressed", this, "_menu_option");
+	p->add_child(tool_menu);
+	p->add_submenu_item(TTR("Tools"), "Tools");
+	tool_menu->add_item(TTR("Orphan Resource Explorer"), TOOLS_ORPHAN_RESOURCES);
+	p->add_separator();
+
+#ifdef OSX_ENABLED
+	p->add_item(TTR("Quit to Project List"), RUN_PROJECT_MANAGER, KEY_MASK_SHIFT + KEY_MASK_ALT + KEY_Q);
+#else
+	p->add_item(TTR("Quit to Project List"), RUN_PROJECT_MANAGER, KEY_MASK_SHIFT + KEY_MASK_CTRL + KEY_Q);
+#endif
 
 	PanelContainer *editor_region = memnew(PanelContainer);
 	main_editor_button_vb = memnew(HBoxContainer);
@@ -5713,6 +5784,7 @@ EditorNode::EditorNode() {
 	property_editor = memnew(PropertyEditor);
 	property_editor->set_autoclear(true);
 	property_editor->set_show_categories(true);
+	property_editor->set_use_folding(true);
 	property_editor->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	property_editor->set_use_doc_hints(true);
 	property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
@@ -6039,10 +6111,9 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(Polygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(LightOccluder2DEditorPlugin(this)));
 	add_editor_plugin(memnew(NavigationPolygonEditorPlugin(this)));
-	add_editor_plugin(memnew(ColorRampEditorPlugin(this)));
-	add_editor_plugin(memnew(GradientTextureEditorPlugin(this)));
+	add_editor_plugin(memnew(GradientEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionShape2DEditorPlugin(this)));
-	add_editor_plugin(memnew(CurveTextureEditorPlugin(this)));
+	add_editor_plugin(memnew(CurveEditorPlugin(this)));
 	add_editor_plugin(memnew(TextureEditorPlugin(this)));
 	add_editor_plugin(memnew(AudioBusesEditorPlugin(audio_bus_editor)));
 	//add_editor_plugin( memnew( MaterialEditorPlugin(this) ) );
@@ -6069,6 +6140,7 @@ EditorNode::EditorNode() {
 
 	editor_plugin_screen = NULL;
 	editor_plugins_over = memnew(EditorPluginList);
+	editor_plugins_force_input_forwarding = memnew(EditorPluginList);
 
 	//force_top_viewport(true);
 	_edit_current();
@@ -6217,6 +6289,7 @@ EditorNode::~EditorNode() {
 	memdelete(EditorHelp::get_doc_data());
 	memdelete(editor_selection);
 	memdelete(editor_plugins_over);
+	memdelete(editor_plugins_force_input_forwarding);
 	memdelete(file_server);
 	EditorSettings::destroy();
 }
@@ -6252,10 +6325,14 @@ bool EditorPluginList::forward_gui_input(const Transform2D &p_canvas_xform, cons
 	return discard;
 }
 
-bool EditorPluginList::forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event) {
+bool EditorPluginList::forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event, bool serve_when_force_input_enabled) {
 	bool discard = false;
 
 	for (int i = 0; i < plugins_list.size(); i++) {
+		if ((!serve_when_force_input_enabled) && plugins_list[i]->is_input_event_forwarding_always_enabled()) {
+			continue;
+		}
+
 		if (plugins_list[i]->forward_spatial_gui_input(p_camera, p_event)) {
 			discard = true;
 		}
@@ -6269,6 +6346,10 @@ void EditorPluginList::forward_draw_over_canvas(const Transform2D &p_canvas_xfor
 	for (int i = 0; i < plugins_list.size(); i++) {
 		plugins_list[i]->forward_draw_over_canvas(p_canvas_xform, p_canvas);
 	}
+}
+
+void EditorPluginList::add_plugin(EditorPlugin *p_plugin) {
+	plugins_list.push_back(p_plugin);
 }
 
 bool EditorPluginList::empty() {

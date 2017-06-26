@@ -427,13 +427,14 @@ Ref<Texture> EditorScriptPreviewPlugin::generate(const RES &p_from) {
 	Color text_color = EditorSettings::get_singleton()->get("text_editor/highlighting/text_color");
 	Color symbol_color = EditorSettings::get_singleton()->get("text_editor/highlighting/symbol_color");
 
+	img->lock();
+
 	for (int i = 0; i < thumbnail_size; i++) {
 		for (int j = 0; j < thumbnail_size; j++) {
 			img->put_pixel(i, j, bg_color);
 		}
 	}
 
-	img->lock();
 	bool prev_is_text = false;
 	bool in_keyword = false;
 	for (int i = 0; i < code.length(); i++) {
@@ -795,8 +796,8 @@ Ref<Texture> EditorMeshPreviewPlugin::generate(const RES &p_from) {
 
 	Rect3 aabb = mesh->get_aabb();
 	print_line("mesh aabb: " + aabb);
-	Vector3 ofs = aabb.pos + aabb.size * 0.5;
-	aabb.pos -= ofs;
+	Vector3 ofs = aabb.position + aabb.size * 0.5;
+	aabb.position -= ofs;
 	Transform xform;
 	xform.basis = Basis().rotated(Vector3(0, 1, 0), -Math_PI * 0.125);
 	xform.basis = Basis().rotated(Vector3(1, 0, 0), Math_PI * 0.125) * xform.basis;

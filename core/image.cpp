@@ -1483,23 +1483,23 @@ Error Image::decompress() {
 		_image_decompress_bc(this);
 	else if (format >= FORMAT_PVRTC2 && format <= FORMAT_PVRTC4A && _image_decompress_pvrtc)
 		_image_decompress_pvrtc(this);
-	else if (format == FORMAT_ETC && _image_decompress_etc)
-		_image_decompress_etc(this);
-	else if (format >= FORMAT_ETC2_R11 && format <= FORMAT_ETC2_RGB8A1 && _image_decompress_etc)
+	else if (format == FORMAT_ETC && _image_decompress_etc1)
+		_image_decompress_etc1(this);
+	else if (format >= FORMAT_ETC2_R11 && format <= FORMAT_ETC2_RGB8A1 && _image_decompress_etc1)
 		_image_decompress_etc2(this);
 	else
 		return ERR_UNAVAILABLE;
 	return OK;
 }
 
-Error Image::compress(CompressMode p_mode, bool p_for_srgb) {
+Error Image::compress(CompressMode p_mode, CompressSource p_source, float p_lossy_quality) {
 
 	switch (p_mode) {
 
 		case COMPRESS_S3TC: {
 
 			ERR_FAIL_COND_V(!_image_compress_bc_func, ERR_UNAVAILABLE);
-			_image_compress_bc_func(this, p_for_srgb);
+			_image_compress_bc_func(this, p_source);
 		} break;
 		case COMPRESS_PVRTC2: {
 
@@ -1513,13 +1513,13 @@ Error Image::compress(CompressMode p_mode, bool p_for_srgb) {
 		} break;
 		case COMPRESS_ETC: {
 
-			ERR_FAIL_COND_V(!_image_compress_etc_func, ERR_UNAVAILABLE);
-			_image_compress_etc_func(this);
+			ERR_FAIL_COND_V(!_image_compress_etc1_func, ERR_UNAVAILABLE);
+			_image_compress_etc1_func(this, p_lossy_quality);
 		} break;
 		case COMPRESS_ETC2: {
 
-			ERR_FAIL_COND_V(!_image_compress_etc_func, ERR_UNAVAILABLE);
-			_image_compress_etc_func(this);
+			ERR_FAIL_COND_V(!_image_compress_etc2_func, ERR_UNAVAILABLE);
+			_image_compress_etc2_func(this, p_lossy_quality, p_source);
 		} break;
 	}
 
@@ -1612,11 +1612,11 @@ void Image::blit_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Po
 	ERR_FAIL_COND(srcdsize == 0);
 	ERR_FAIL_COND(format != p_src->format);
 
-	Rect2i local_src_rect = Rect2i(0, 0, width, height).clip(Rect2i(p_dest + p_src_rect.position, p_src_rect.size));
-
-	if (local_src_rect.size.x <= 0 || local_src_rect.size.y <= 0)
+	Rect2i clipped_src_rect = Rect2i(0, 0, p_src->width, p_src->height).clip(p_src_rect);
+	if (clipped_src_rect.size.x <= 0 || clipped_src_rect.size.y <= 0)
 		return;
-	Rect2i src_rect(p_src_rect.position + (local_src_rect.position - p_dest), local_src_rect.size);
+
+	Rect2i dest_rect = Rect2i(0, 0, width, height).clip(Rect2i(p_dest, clipped_src_rect.size));
 
 	PoolVector<uint8_t>::Write wp = data.write();
 	uint8_t *dst_data_ptr = wp.ptr();
@@ -1626,15 +1626,15 @@ void Image::blit_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Po
 
 	int pixel_size = get_format_pixel_size(format);
 
-	for (int i = 0; i < src_rect.size.y; i++) {
+	for (int i = 0; i < dest_rect.size.y; i++) {
 
-		for (int j = 0; j < src_rect.size.x; j++) {
+		for (int j = 0; j < dest_rect.size.x; j++) {
 
-			int src_x = src_rect.position.x + j;
-			int src_y = src_rect.position.y + i;
+			int src_x = clipped_src_rect.position.x + j;
+			int src_y = clipped_src_rect.position.y + i;
 
-			int dst_x = local_src_rect.position.x + j;
-			int dst_y = local_src_rect.position.y + i;
+			int dst_x = dest_rect.position.x + j;
+			int dst_y = dest_rect.position.y + i;
 
 			const uint8_t *src = &src_data_ptr[(src_y * p_src->width + src_x) * pixel_size];
 			uint8_t *dst = &dst_data_ptr[(dst_y * width + dst_x) * pixel_size];
@@ -1646,17 +1646,200 @@ void Image::blit_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Po
 	}
 }
 
+void Image::blit_rect_mask(const Ref<Image> &p_src, const Ref<Image> &p_mask, const Rect2 &p_src_rect, const Point2 &p_dest) {
+
+	ERR_FAIL_COND(p_src.is_null());
+	ERR_FAIL_COND(p_mask.is_null());
+	int dsize = data.size();
+	int srcdsize = p_src->data.size();
+	int maskdsize = p_mask->data.size();
+	ERR_FAIL_COND(dsize == 0);
+	ERR_FAIL_COND(srcdsize == 0);
+	ERR_FAIL_COND(maskdsize == 0);
+	ERR_FAIL_COND(p_src->width != p_mask->width);
+	ERR_FAIL_COND(p_src->height != p_mask->height);
+	ERR_FAIL_COND(format != p_src->format);
+
+	Rect2i clipped_src_rect = Rect2i(0, 0, p_src->width, p_src->height).clip(p_src_rect);
+	if (clipped_src_rect.size.x <= 0 || clipped_src_rect.size.y <= 0)
+		return;
+
+	Rect2i dest_rect = Rect2i(0, 0, width, height).clip(Rect2i(p_dest, clipped_src_rect.size));
+
+	PoolVector<uint8_t>::Write wp = data.write();
+	uint8_t *dst_data_ptr = wp.ptr();
+
+	PoolVector<uint8_t>::Read rp = p_src->data.read();
+	const uint8_t *src_data_ptr = rp.ptr();
+
+	int pixel_size = get_format_pixel_size(format);
+	
+	Ref<Image> msk = p_mask;
+	msk->lock();
+
+	for (int i = 0; i < dest_rect.size.y; i++) {
+
+		for (int j = 0; j < dest_rect.size.x; j++) {
+
+			int src_x = clipped_src_rect.position.x + j;
+			int src_y = clipped_src_rect.position.y + i;
+			
+			if (msk->get_pixel(src_x, src_y).a != 0) {
+
+				int dst_x = dest_rect.position.x + j;
+				int dst_y = dest_rect.position.y + i;
+
+				const uint8_t *src = &src_data_ptr[(src_y * p_src->width + src_x) * pixel_size];
+				uint8_t *dst = &dst_data_ptr[(dst_y * width + dst_x) * pixel_size];
+
+				for (int k = 0; k < pixel_size; k++) {
+					dst[k] = src[k];
+				}
+			}
+		}
+	}
+
+	msk->unlock();
+}
+
+void Image::blend_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Point2 &p_dest) {
+
+	ERR_FAIL_COND(p_src.is_null());
+	int dsize = data.size();
+	int srcdsize = p_src->data.size();
+	ERR_FAIL_COND(dsize == 0);
+	ERR_FAIL_COND(srcdsize == 0);
+	ERR_FAIL_COND(format != p_src->format);
+
+	Rect2i clipped_src_rect = Rect2i(0, 0, p_src->width, p_src->height).clip(p_src_rect);
+	if (clipped_src_rect.size.x <= 0 || clipped_src_rect.size.y <= 0)
+		return;
+
+	Rect2i dest_rect = Rect2i(0, 0, width, height).clip(Rect2i(p_dest, clipped_src_rect.size));
+
+	lock();
+	Ref<Image> img = p_src;
+	img->lock();
+
+	for (int i = 0; i < dest_rect.size.y; i++) {
+
+		for (int j = 0; j < dest_rect.size.x; j++) {
+
+			int src_x = clipped_src_rect.position.x + j;
+			int src_y = clipped_src_rect.position.y + i;
+
+			int dst_x = dest_rect.position.x + j;
+			int dst_y = dest_rect.position.y + i;
+
+			Color sc = img->get_pixel(src_x, src_y);
+			Color dc = get_pixel(dst_x, dst_y);
+			dc.r = (double)(sc.a * sc.r + dc.a * (1.0 - sc.a) * dc.r);
+			dc.g = (double)(sc.a * sc.g + dc.a * (1.0 - sc.a) * dc.g);
+			dc.b = (double)(sc.a * sc.b + dc.a * (1.0 - sc.a) * dc.b);
+			dc.a = (double)(sc.a + dc.a * (1.0 - sc.a));
+			put_pixel(dst_x, dst_y, dc);
+		}
+	}
+
+	img->unlock();
+	unlock();
+}
+
+void Image::blend_rect_mask(const Ref<Image> &p_src, const Ref<Image> &p_mask, const Rect2 &p_src_rect, const Point2 &p_dest) {
+
+	ERR_FAIL_COND(p_src.is_null());
+	ERR_FAIL_COND(p_mask.is_null());
+	int dsize = data.size();
+	int srcdsize = p_src->data.size();
+	int maskdsize = p_mask->data.size();
+	ERR_FAIL_COND(dsize == 0);
+	ERR_FAIL_COND(srcdsize == 0);
+	ERR_FAIL_COND(maskdsize == 0);
+	ERR_FAIL_COND(p_src->width != p_mask->width);
+	ERR_FAIL_COND(p_src->height != p_mask->height);
+	ERR_FAIL_COND(format != p_src->format);
+
+	Rect2i clipped_src_rect = Rect2i(0, 0, p_src->width, p_src->height).clip(p_src_rect);
+	if (clipped_src_rect.size.x <= 0 || clipped_src_rect.size.y <= 0)
+		return;
+
+	Rect2i dest_rect = Rect2i(0, 0, width, height).clip(Rect2i(p_dest, clipped_src_rect.size));
+
+	lock();
+	Ref<Image> img = p_src;
+	Ref<Image> msk = p_mask;
+	img->lock();
+	msk->lock();
+
+	for (int i = 0; i < dest_rect.size.y; i++) {
+
+		for (int j = 0; j < dest_rect.size.x; j++) {
+
+			int src_x = clipped_src_rect.position.x + j;
+			int src_y = clipped_src_rect.position.y + i;
+
+			// If the mask's pixel is transparent then we skip it
+			//Color c = msk->get_pixel(src_x, src_y);
+			//if (c.a == 0) continue;
+			if (msk->get_pixel(src_x, src_y).a != 0) {
+
+				int dst_x = dest_rect.position.x + j;
+				int dst_y = dest_rect.position.y + i;
+
+				Color sc = img->get_pixel(src_x, src_y);
+				Color dc = get_pixel(dst_x, dst_y);
+				dc.r = (double)(sc.a * sc.r + dc.a * (1.0 - sc.a) * dc.r);
+				dc.g = (double)(sc.a * sc.g + dc.a * (1.0 - sc.a) * dc.g);
+				dc.b = (double)(sc.a * sc.b + dc.a * (1.0 - sc.a) * dc.b);
+				dc.a = (double)(sc.a + dc.a * (1.0 - sc.a));
+				put_pixel(dst_x, dst_y, dc);
+			}
+		}
+	}
+
+	msk->unlock();
+	img->unlock();
+	unlock();
+}
+
+void Image::fill(const Color &c) {
+
+	lock();
+
+	PoolVector<uint8_t>::Write wp = data.write();
+	uint8_t *dst_data_ptr = wp.ptr();
+
+	int pixel_size = get_format_pixel_size(format);
+
+	// put first pixel with the format-aware API
+	put_pixel(0, 0, c);
+
+	for (int y = 0; y < height; y++) {
+
+		for (int x = 0; x < width; x++) {
+
+			uint8_t *dst = &dst_data_ptr[(y * width + x) * pixel_size];
+
+			for (int k = 0; k < pixel_size; k++) {
+				dst[k] = dst_data_ptr[k];
+			}
+		}
+	}
+
+	unlock();
+}
+
 Ref<Image> (*Image::_png_mem_loader_func)(const uint8_t *, int) = NULL;
 Ref<Image> (*Image::_jpg_mem_loader_func)(const uint8_t *, int) = NULL;
 
-void (*Image::_image_compress_bc_func)(Image *, bool) = NULL;
+void (*Image::_image_compress_bc_func)(Image *, Image::CompressSource) = NULL;
 void (*Image::_image_compress_pvrtc2_func)(Image *) = NULL;
 void (*Image::_image_compress_pvrtc4_func)(Image *) = NULL;
-void (*Image::_image_compress_etc_func)(Image *) = NULL;
-void (*Image::_image_compress_etc2_func)(Image *) = NULL;
+void (*Image::_image_compress_etc1_func)(Image *, float) = NULL;
+void (*Image::_image_compress_etc2_func)(Image *, float, Image::CompressSource) = NULL;
 void (*Image::_image_decompress_pvrtc)(Image *) = NULL;
 void (*Image::_image_decompress_bc)(Image *) = NULL;
-void (*Image::_image_decompress_etc)(Image *) = NULL;
+void (*Image::_image_decompress_etc1)(Image *) = NULL;
 void (*Image::_image_decompress_etc2)(Image *) = NULL;
 
 PoolVector<uint8_t> (*Image::lossy_packer)(const Ref<Image> &, float) = NULL;
@@ -1712,7 +1895,7 @@ void Image::unlock() {
 	write_lock = PoolVector<uint8_t>::Write();
 }
 
-Color Image::get_pixel(int p_x, int p_y) {
+Color Image::get_pixel(int p_x, int p_y) const {
 
 	uint8_t *ptr = write_lock.ptr();
 #ifdef DEBUG_ENABLED
@@ -2040,7 +2223,7 @@ void Image::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_mipmap_offset", "mipmap"), &Image::get_mipmap_offset);
 
-	ClassDB::bind_method(D_METHOD("resize_to_po2", "square"), &Image::resize_to_po2, DEFVAL("false"));
+	ClassDB::bind_method(D_METHOD("resize_to_po2", "square"), &Image::resize_to_po2, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("resize", "width", "height", "interpolation"), &Image::resize, DEFVAL(INTERPOLATE_BILINEAR));
 	ClassDB::bind_method(D_METHOD("shrink_x2"), &Image::shrink_x2);
 	ClassDB::bind_method(D_METHOD("expand_x2_hq2x"), &Image::expand_x2_hq2x);
@@ -2072,6 +2255,10 @@ void Image::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("normalmap_to_xy"), &Image::normalmap_to_xy);
 
 	ClassDB::bind_method(D_METHOD("blit_rect", "src:Image", "src_rect", "dst"), &Image::blit_rect);
+	ClassDB::bind_method(D_METHOD("blit_rect_mask", "src:Image", "mask:Image", "src_rect", "dst"), &Image::blit_rect_mask);
+	ClassDB::bind_method(D_METHOD("blend_rect", "src:Image", "src_rect", "dst"), &Image::blend_rect);
+	ClassDB::bind_method(D_METHOD("blend_rect_mask", "src:Image", "mask:Image", "src_rect", "dst"), &Image::blend_rect_mask);
+	ClassDB::bind_method(D_METHOD("fill", "color"), &Image::fill);
 
 	ClassDB::bind_method(D_METHOD("get_used_rect"), &Image::get_used_rect);
 	ClassDB::bind_method(D_METHOD("get_rect:Image", "rect"), &Image::get_rect);
@@ -2140,9 +2327,13 @@ void Image::_bind_methods() {
 	BIND_CONSTANT(COMPRESS_PVRTC4);
 	BIND_CONSTANT(COMPRESS_ETC);
 	BIND_CONSTANT(COMPRESS_ETC2);
+
+	BIND_CONSTANT(COMPRESS_SOURCE_GENERIC);
+	BIND_CONSTANT(COMPRESS_SOURCE_SRGB);
+	BIND_CONSTANT(COMPRESS_SOURCE_NORMAL);
 }
 
-void Image::set_compress_bc_func(void (*p_compress_func)(Image *, bool)) {
+void Image::set_compress_bc_func(void (*p_compress_func)(Image *, CompressSource)) {
 
 	_image_compress_bc_func = p_compress_func;
 }

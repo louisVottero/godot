@@ -1439,20 +1439,6 @@ VehicleWheelSpatialGizmo::VehicleWheelSpatialGizmo(VehicleWheel *p_car_wheel) {
 	car_wheel = p_car_wheel;
 }
 
-///
-
-void TestCubeSpatialGizmo::redraw() {
-
-	clear();
-	add_collision_triangles(SpatialEditorGizmos::singleton->test_cube_tm);
-}
-
-TestCubeSpatialGizmo::TestCubeSpatialGizmo(TestCube *p_tc) {
-
-	tc = p_tc;
-	set_spatial_node(p_tc);
-}
-
 ///////////
 
 String CollisionShapeSpatialGizmo::get_handle_name(int p_idx) const {
@@ -1722,8 +1708,8 @@ void CollisionShapeSpatialGizmo::redraw() {
 		Ref<BoxShape> bs = s;
 		Vector<Vector3> lines;
 		Rect3 aabb;
-		aabb.pos = -bs->get_extents();
-		aabb.size = aabb.pos * -2;
+		aabb.position = -bs->get_extents();
+		aabb.size = aabb.position * -2;
 
 		for (int i = 0; i < 12; i++) {
 			Vector3 a, b;
@@ -1953,7 +1939,7 @@ void VisibilityNotifierGizmo::set_handle(int p_idx, Camera *p_camera, const Poin
 	Vector3 ray_dir = p_camera->project_ray_normal(p_point);
 
 	Vector3 sg[2] = { gi.xform(ray_from), gi.xform(ray_from + ray_dir * 4096) };
-	Vector3 ofs = aabb.pos + aabb.size * 0.5;
+	Vector3 ofs = aabb.position + aabb.size * 0.5;
 
 	Vector3 axis;
 	axis[p_idx] = 1.0;
@@ -1964,7 +1950,7 @@ void VisibilityNotifierGizmo::set_handle(int p_idx, Camera *p_camera, const Poin
 	if (d < 0.001)
 		d = 0.001;
 
-	aabb.pos[p_idx] = (aabb.pos[p_idx] + aabb.size[p_idx] * 0.5) - d;
+	aabb.position[p_idx] = (aabb.position[p_idx] + aabb.size[p_idx] * 0.5) - d;
 	aabb.size[p_idx] = d * 2;
 	notifier->set_aabb(aabb);
 }
@@ -2002,7 +1988,7 @@ void VisibilityNotifierGizmo::redraw() {
 	for (int i = 0; i < 3; i++) {
 
 		Vector3 ax;
-		ax[i] = aabb.pos[i] + aabb.size[i];
+		ax[i] = aabb.position[i] + aabb.size[i];
 		handles.push_back(ax);
 	}
 
@@ -2053,7 +2039,7 @@ void ParticlesGizmo::set_handle(int p_idx, Camera *p_camera, const Point2 &p_poi
 
 	Vector3 sg[2] = { gi.xform(ray_from), gi.xform(ray_from + ray_dir * 4096) };
 
-	Vector3 ofs = aabb.pos + aabb.size * 0.5;
+	Vector3 ofs = aabb.position + aabb.size * 0.5;
 
 	Vector3 axis;
 	axis[p_idx] = 1.0;
@@ -2065,7 +2051,7 @@ void ParticlesGizmo::set_handle(int p_idx, Camera *p_camera, const Point2 &p_poi
 
 		float d = ra[p_idx];
 
-		aabb.pos[p_idx] = d - 1.0 - aabb.size[p_idx] * 0.5;
+		aabb.position[p_idx] = d - 1.0 - aabb.size[p_idx] * 0.5;
 		particles->set_visibility_aabb(aabb);
 
 	} else {
@@ -2076,7 +2062,7 @@ void ParticlesGizmo::set_handle(int p_idx, Camera *p_camera, const Point2 &p_poi
 		if (d < 0.001)
 			d = 0.001;
 		//resize
-		aabb.pos[p_idx] = (aabb.pos[p_idx] + aabb.size[p_idx] * 0.5) - d;
+		aabb.position[p_idx] = (aabb.position[p_idx] + aabb.size[p_idx] * 0.5) - d;
 		aabb.size[p_idx] = d * 2;
 		particles->set_visibility_aabb(aabb);
 	}
@@ -2115,13 +2101,13 @@ void ParticlesGizmo::redraw() {
 	for (int i = 0; i < 3; i++) {
 
 		Vector3 ax;
-		ax[i] = aabb.pos[i] + aabb.size[i];
-		ax[(i + 1) % 3] = aabb.pos[(i + 1) % 3] + aabb.size[(i + 1) % 3] * 0.5;
-		ax[(i + 2) % 3] = aabb.pos[(i + 2) % 3] + aabb.size[(i + 2) % 3] * 0.5;
+		ax[i] = aabb.position[i] + aabb.size[i];
+		ax[(i + 1) % 3] = aabb.position[(i + 1) % 3] + aabb.size[(i + 1) % 3] * 0.5;
+		ax[(i + 2) % 3] = aabb.position[(i + 2) % 3] + aabb.size[(i + 2) % 3] * 0.5;
 		handles.push_back(ax);
 	}
 
-	Vector3 center = aabb.pos + aabb.size * 0.5;
+	Vector3 center = aabb.position + aabb.size * 0.5;
 	for (int i = 0; i < 3; i++) {
 
 		Vector3 ax;
@@ -2218,7 +2204,7 @@ void ReflectionProbeGizmo::commit_handle(int p_idx, const Variant &p_restore, bo
 	Rect3 restore = p_restore;
 
 	if (p_cancel) {
-		probe->set_extents(restore.pos);
+		probe->set_extents(restore.position);
 		probe->set_origin_offset(restore.size);
 		return;
 	}
@@ -2227,7 +2213,7 @@ void ReflectionProbeGizmo::commit_handle(int p_idx, const Variant &p_restore, bo
 	ur->create_action(TTR("Change Probe Extents"));
 	ur->add_do_method(probe, "set_extents", probe->get_extents());
 	ur->add_do_method(probe, "set_origin_offset", probe->get_origin_offset());
-	ur->add_undo_method(probe, "set_extents", restore.pos);
+	ur->add_undo_method(probe, "set_extents", restore.position);
 	ur->add_undo_method(probe, "set_origin_offset", restore.size);
 	ur->commit_action();
 }
@@ -2241,7 +2227,7 @@ void ReflectionProbeGizmo::redraw() {
 	Vector3 extents = probe->get_extents();
 
 	Rect3 aabb;
-	aabb.pos = -extents;
+	aabb.position = -extents;
 	aabb.size = extents * 2;
 
 	for (int i = 0; i < 12; i++) {
@@ -2262,7 +2248,7 @@ void ReflectionProbeGizmo::redraw() {
 	for (int i = 0; i < 3; i++) {
 
 		Vector3 ax;
-		ax[i] = aabb.pos[i] + aabb.size[i];
+		ax[i] = aabb.position[i] + aabb.size[i];
 		handles.push_back(ax);
 	}
 
@@ -2392,7 +2378,7 @@ void GIProbeGizmo::redraw() {
 
 			for (int k = 0; k < 4; k++) {
 
-				Vector3 from = aabb.pos, to = aabb.pos;
+				Vector3 from = aabb.position, to = aabb.position;
 				from[j] += cell_size * i;
 				to[j] += cell_size * i;
 
@@ -2421,7 +2407,7 @@ void GIProbeGizmo::redraw() {
 	for (int i = 0; i < 3; i++) {
 
 		Vector3 ax;
-		ax[i] = aabb.pos[i] + aabb.size[i];
+		ax[i] = aabb.position[i] + aabb.size[i];
 		handles.push_back(ax);
 	}
 
@@ -3042,12 +3028,6 @@ Ref<SpatialEditorGizmo> SpatialEditorGizmos::get_gizmo(Spatial *p_spatial) {
 	if (p_spatial->cast_to<Portal>()) {
 
 		Ref<PortalSpatialGizmo> misg = memnew(PortalSpatialGizmo(p_spatial->cast_to<Portal>()));
-		return misg;
-	}
-
-	if (p_spatial->cast_to<TestCube>()) {
-
-		Ref<TestCubeSpatialGizmo> misg = memnew(TestCubeSpatialGizmo(p_spatial->cast_to<TestCube>()));
 		return misg;
 	}
 

@@ -409,14 +409,14 @@ static int button_mask = 0;
 	if ((int)[event buttonNumber] != 2)
 		return;
 
-	button_mask |= BUTTON_MASK_MIDDLE;
+	button_mask &= ~BUTTON_MASK_MIDDLE;
 
 	Ref<InputEventMouseButton> mb;
 	mb.instance();
 
 	get_key_modifier_state([event modifierFlags], mb);
 	mb->set_button_index(BUTTON_MIDDLE);
-	mb->set_pressed(true);
+	mb->set_pressed(false);
 	mb->set_position(Vector2(mouse_x, mouse_y));
 	mb->set_global_position(Vector2(mouse_x, mouse_y));
 	mb->set_button_mask(button_mask);
@@ -816,7 +816,7 @@ void OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	unsigned int styleMask = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | (p_desired.resizable ? NSResizableWindowMask : 0);
 
 	window_object = [[GodotWindow alloc]
-			initWithContentRect:NSMakeRect(0, 0, p_desired.width / display_scale, p_desired.height / display_scale)
+			initWithContentRect:NSMakeRect(0, 0, p_desired.width, p_desired.height)
 					  styleMask:styleMask
 						backing:NSBackingStoreBuffered
 						  defer:NO];
@@ -825,8 +825,8 @@ void OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 
 	window_view = [[GodotContentView alloc] init];
 
-	window_size.width = p_desired.width;
-	window_size.height = p_desired.height;
+	window_size.width = p_desired.width * display_scale;
+	window_size.height = p_desired.height * display_scale;
 
 	if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_6 && display_scale > 1) {
 		[window_view setWantsBestResolutionOpenGLSurface:YES];
@@ -932,12 +932,10 @@ void OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	//visual_server = memnew( VisualServerRaster(rasterizer) );
 
 	visual_server = memnew(VisualServerRaster);
-	// FIXME: Reimplement threaded rendering? Or remove?
-	/*
-	if (get_render_thread_mode()!=RENDER_THREAD_UNSAFE) {
-		visual_server =memnew(VisualServerWrapMT(visual_server,get_render_thread_mode()==RENDER_SEPARATE_THREAD));
+	if (get_render_thread_mode() != RENDER_THREAD_UNSAFE) {
+
+		visual_server = memnew(VisualServerWrapMT(visual_server, get_render_thread_mode() == RENDER_SEPARATE_THREAD));
 	}
-*/
 	visual_server->init();
 	visual_server->cursor_set_visible(false, 0);
 

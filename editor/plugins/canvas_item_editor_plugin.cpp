@@ -1010,8 +1010,7 @@ void CanvasItemEditor::_list_select(const Ref<InputEventMouseButton> &b) {
 			selection_menu->add_item(item->get_name());
 			selection_menu->set_item_icon(i, icon);
 			selection_menu->set_item_metadata(i, node_path);
-			selection_menu->set_item_tooltip(i, String(item->get_name()) +
-														"\nType: " + item->get_class() + "\nPath: " + node_path);
+			selection_menu->set_item_tooltip(i, String(item->get_name()) + "\nType: " + item->get_class() + "\nPath: " + node_path);
 		}
 
 		additive_selection = b->get_shift();
@@ -1047,17 +1046,25 @@ void CanvasItemEditor::_viewport_gui_input(const Ref<InputEvent> &p_event) {
 
 		if (b->get_button_index() == BUTTON_WHEEL_DOWN) {
 
-			if (zoom < MIN_ZOOM)
-				return;
+			if (bool(EditorSettings::get_singleton()->get("editors/2d/scroll_to_pan"))) {
 
-			float prev_zoom = zoom;
-			zoom = zoom * (1 - (0.05 * b->get_factor()));
-			{
-				Point2 ofs = b->get_position();
-				ofs = ofs / prev_zoom - ofs / zoom;
-				h_scroll->set_value(h_scroll->get_value() + ofs.x);
-				v_scroll->set_value(v_scroll->get_value() + ofs.y);
+				v_scroll->set_value(v_scroll->get_value() + int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor());
+
+			} else {
+
+				if (zoom < MIN_ZOOM)
+					return;
+
+				float prev_zoom = zoom;
+				zoom = zoom * (1 - (0.05 * b->get_factor()));
+				{
+					Point2 ofs = b->get_position();
+					ofs = ofs / prev_zoom - ofs / zoom;
+					h_scroll->set_value(h_scroll->get_value() + ofs.x);
+					v_scroll->set_value(v_scroll->get_value() + ofs.y);
+				}
 			}
+
 			_update_scroll(0);
 			viewport->update();
 			return;
@@ -1065,21 +1072,42 @@ void CanvasItemEditor::_viewport_gui_input(const Ref<InputEvent> &p_event) {
 
 		if (b->get_button_index() == BUTTON_WHEEL_UP) {
 
-			if (zoom > MAX_ZOOM)
-				return;
+			if (bool(EditorSettings::get_singleton()->get("editors/2d/scroll_to_pan"))) {
 
-			float prev_zoom = zoom;
-			zoom = zoom * ((0.95 + (0.05 * b->get_factor())) / 0.95);
-			{
-				Point2 ofs = b->get_position();
-				ofs = ofs / prev_zoom - ofs / zoom;
-				h_scroll->set_value(h_scroll->get_value() + ofs.x);
-				v_scroll->set_value(v_scroll->get_value() + ofs.y);
+				v_scroll->set_value(v_scroll->get_value() - int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor());
+
+			} else {
+				if (zoom > MAX_ZOOM) return;
+
+				float prev_zoom = zoom;
+				zoom = zoom * ((0.95 + (0.05 * b->get_factor())) / 0.95);
+				{
+					Point2 ofs = b->get_position();
+					ofs = ofs / prev_zoom - ofs / zoom;
+					h_scroll->set_value(h_scroll->get_value() + ofs.x);
+					v_scroll->set_value(v_scroll->get_value() + ofs.y);
+				}
 			}
 
 			_update_scroll(0);
 			viewport->update();
 			return;
+		}
+
+		if (b->get_button_index() == BUTTON_WHEEL_LEFT) {
+
+			if (bool(EditorSettings::get_singleton()->get("editors/2d/scroll_to_pan"))) {
+
+				h_scroll->set_value(h_scroll->get_value() - int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor());
+			}
+		}
+
+		if (b->get_button_index() == BUTTON_WHEEL_RIGHT) {
+
+			if (bool(EditorSettings::get_singleton()->get("editors/2d/scroll_to_pan"))) {
+
+				h_scroll->set_value(h_scroll->get_value() + int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor());
+			}
 		}
 
 		if (b->get_button_index() == BUTTON_RIGHT) {
@@ -2659,11 +2687,11 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 					Node2D *n2d = canvas_item->cast_to<Node2D>();
 
 					if (key_pos)
-						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "transform/pos", n2d->get_position(), existing);
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "position", n2d->get_position(), existing);
 					if (key_rot)
-						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "transform/rot", Math::rad2deg(n2d->get_rotation()), existing);
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "rotation_deg", Math::rad2deg(n2d->get_rotation()), existing);
 					if (key_scale)
-						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "transform/scale", n2d->get_scale(), existing);
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(n2d, "scale", n2d->get_scale(), existing);
 
 					if (n2d->has_meta("_edit_bone_") && n2d->get_parent_item()) {
 						//look for an IK chain
@@ -2690,11 +2718,11 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 							for (List<Node2D *>::Element *F = ik_chain.front(); F; F = F->next()) {
 
 								if (key_pos)
-									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "transform/pos", F->get()->get_position(), existing);
+									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "position", F->get()->get_position(), existing);
 								if (key_rot)
-									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "transform/rot", Math::rad2deg(F->get()->get_rotation()), existing);
+									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "rotation_deg", Math::rad2deg(F->get()->get_rotation()), existing);
 								if (key_scale)
-									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "transform/scale", F->get()->get_scale(), existing);
+									AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(F->get(), "scale", F->get()->get_scale(), existing);
 							}
 						}
 					}
@@ -2704,9 +2732,11 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 					Control *ctrl = canvas_item->cast_to<Control>();
 
 					if (key_pos)
-						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(ctrl, "rect/pos", ctrl->get_position(), existing);
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(ctrl, "rect_position", ctrl->get_position(), existing);
+					if (key_rot)
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(ctrl, "rect_rotation", ctrl->get_rotation_deg(), existing);
 					if (key_scale)
-						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(ctrl, "rect/size", ctrl->get_size(), existing);
+						AnimationPlayerEditor::singleton->get_key_editor()->insert_node_value_key(ctrl, "rect_size", ctrl->get_size(), existing);
 				}
 			}
 
@@ -2791,10 +2821,10 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 				if (!n2d)
 					continue;
 				undo_redo->add_do_method(n2d, "set_position", E->get().pos);
-				undo_redo->add_do_method(n2d, "set_rot", E->get().rot);
+				undo_redo->add_do_method(n2d, "set_rotation", E->get().rot);
 				undo_redo->add_do_method(n2d, "set_scale", E->get().scale);
 				undo_redo->add_undo_method(n2d, "set_position", n2d->get_position());
-				undo_redo->add_undo_method(n2d, "set_rot", n2d->get_rotation());
+				undo_redo->add_undo_method(n2d, "set_rotation", n2d->get_rotation());
 				undo_redo->add_undo_method(n2d, "set_scale", n2d->get_scale());
 			}
 			undo_redo->commit_action();
@@ -3242,6 +3272,7 @@ CanvasItemEditor::CanvasItemEditor(EditorNode *p_editor) {
 
 	PopupMenu *p;
 	p = edit_menu->get_popup();
+	p->set_hide_on_checkable_item_selection(false);
 	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/use_snap", TTR("Use Snap")), SNAP_USE);
 	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_grid", TTR("Show Grid")), SNAP_SHOW_GRID);
 	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/use_rotation_snap", TTR("Use Rotation Snap")), SNAP_USE_ROTATION);
@@ -3263,6 +3294,7 @@ CanvasItemEditor::CanvasItemEditor(EditorNode *p_editor) {
 	skeleton_menu->add_separator();
 	skeleton_menu->add_shortcut(ED_SHORTCUT("canvas_item_editor/skeleton_set_ik_chain", TTR("Make IK Chain")), SKELETON_SET_IK_CHAIN);
 	skeleton_menu->add_shortcut(ED_SHORTCUT("canvas_item_editor/skeleton_clear_ik_chain", TTR("Clear IK Chain")), SKELETON_CLEAR_IK_CHAIN);
+	skeleton_menu->set_hide_on_checkable_item_selection(false);
 	skeleton_menu->connect("id_pressed", this, "_popup_callback");
 
 	/*

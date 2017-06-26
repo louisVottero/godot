@@ -28,7 +28,7 @@ uniform float prev_system_phase;
 uniform int total_particles;
 uniform float explosiveness;
 uniform float randomness;
-uniform vec4 time;
+uniform float time;
 uniform float delta;
 
 uniform int attractor_count;
@@ -37,6 +37,7 @@ uniform bool clear;
 uniform uint cycle;
 uniform float lifetime;
 uniform mat4 emission_transform;
+uniform uint random_seed;
 
 
 out highp vec4 out_color; //tfb:
@@ -104,7 +105,9 @@ void main() {
 	bool shader_active = velocity_active.a > 0.5;
 
 	if (system_phase > prev_system_phase) {
-		if (prev_system_phase < restart_phase && system_phase >= restart_phase) {
+		// restart_phase >= prev_system_phase is used so particles emit in the first frame they are processed
+
+		if (restart_phase >= prev_system_phase && restart_phase < system_phase ) {
 			restart=true;
 #ifdef USE_FRACTIONAL_DELTA
 			local_delta = (system_phase - restart_phase) * lifetime;
@@ -112,12 +115,12 @@ void main() {
 		}
 
 	} else {
-		if (prev_system_phase < restart_phase) {
+		if (restart_phase >= prev_system_phase) {
 			restart=true;
 #ifdef USE_FRACTIONAL_DELTA
 			local_delta = (1.0 - restart_phase + system_phase) * lifetime;
 #endif
-		} else if (system_phase >= restart_phase) {
+		} else if (restart_phase < system_phase ) {
 			restart=true;
 #ifdef USE_FRACTIONAL_DELTA
 			local_delta = (system_phase - restart_phase) * lifetime;
@@ -132,6 +135,7 @@ void main() {
 	}
 
 	uint particle_number = current_cycle * uint(total_particles) + uint(gl_VertexID);
+	int index = int(gl_VertexID);
 
 	if (restart) {
 		shader_active=emitting;

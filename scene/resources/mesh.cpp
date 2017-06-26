@@ -668,7 +668,11 @@ void ArrayMesh::_get_property_list(List<PropertyInfo> *p_list) const {
 
 		p_list->push_back(PropertyInfo(Variant::DICTIONARY, "surfaces/" + itos(i), PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR));
 		p_list->push_back(PropertyInfo(Variant::STRING, "surface_" + itos(i + 1) + "/name", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR));
-		p_list->push_back(PropertyInfo(Variant::OBJECT, "surface_" + itos(i + 1) + "/material", PROPERTY_HINT_RESOURCE_TYPE, "Material", PROPERTY_USAGE_EDITOR));
+		if (surfaces[i].is_2d) {
+			p_list->push_back(PropertyInfo(Variant::OBJECT, "surface_" + itos(i + 1) + "/material", PROPERTY_HINT_RESOURCE_TYPE, "ShaderMaterial,CanvasItemMaterial", PROPERTY_USAGE_EDITOR));
+		} else {
+			p_list->push_back(PropertyInfo(Variant::OBJECT, "surface_" + itos(i + 1) + "/material", PROPERTY_HINT_RESOURCE_TYPE, "ShaderMaterial,SpatialMaterial", PROPERTY_USAGE_EDITOR));
+		}
 	}
 
 	p_list->push_back(PropertyInfo(Variant::RECT3, "custom_aabb/custom_aabb"));
@@ -692,6 +696,7 @@ void ArrayMesh::add_surface(uint32_t p_format, PrimitiveType p_primitive, const 
 
 	Surface s;
 	s.aabb = p_aabb;
+	s.is_2d = p_format & ARRAY_FLAG_USE_2D_VERTICES;
 	surfaces.push_back(s);
 	_recompute_aabb();
 
@@ -709,7 +714,8 @@ void ArrayMesh::add_surface_from_arrays(PrimitiveType p_primitive, const Array &
 
 	/* make aABB? */ {
 
-		PoolVector<Vector3> vertices = p_arrays[ARRAY_VERTEX];
+		Variant arr = p_arrays[ARRAY_VERTEX];
+		PoolVector<Vector3> vertices = arr;
 		int len = vertices.size();
 		ERR_FAIL_COND(len == 0);
 		PoolVector<Vector3>::Read r = vertices.read();
@@ -720,12 +726,13 @@ void ArrayMesh::add_surface_from_arrays(PrimitiveType p_primitive, const Array &
 		for (int i = 0; i < len; i++) {
 
 			if (i == 0)
-				aabb.pos = vtx[i];
+				aabb.position = vtx[i];
 			else
 				aabb.expand_to(vtx[i]);
 		}
 
 		surfaces[surfaces.size() - 1].aabb = aabb;
+		surfaces[surfaces.size() - 1].is_2d = arr.get_type() == Variant::POOL_VECTOR2_ARRAY;
 
 		_recompute_aabb();
 	}
@@ -883,7 +890,7 @@ void ArrayMesh::add_surface_from_mesh_data(const Geometry::MeshData &p_mesh_data
 	for (int i = 0; i < p_mesh_data.vertices.size(); i++) {
 
 		if (i == 0)
-			aabb.pos = p_mesh_data.vertices[i];
+			aabb.position = p_mesh_data.vertices[i];
 		else
 			aabb.expand_to(p_mesh_data.vertices[i]);
 	}
@@ -1047,72 +1054,3 @@ ArrayMesh::~ArrayMesh() {
 
 	VisualServer::get_singleton()->free(mesh);
 }
-
-////////////////////////
-#if 0
-void QuadMesh::_bind_methods() {
-
-	ClassDB::bind_method(D_METHOD("set_material", "material:Material"), &QuadMesh::set_material);
-	ClassDB::bind_method(D_METHOD("get_material:Material"), &QuadMesh::get_material);
-
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "material", PROPERTY_HINT_RESOURCE_TYPE, "Material"), "set_material", "get_material");
-}
-
-void QuadMesh::set_material(const Ref<Material> &p_material) {
-
-	surface_set_material(0, p_material);
-}
-
-Ref<Material> QuadMesh::get_material() const {
-
-	return surface_get_material(0);
-}
-
-QuadMesh::QuadMesh() {
-
-	PoolVector<Vector3> faces;
-	PoolVector<Vector3> normals;
-	PoolVector<float> tangents;
-	PoolVector<Vector2> uvs;
-
-	faces.resize(4);
-	normals.resize(4);
-	tangents.resize(4 * 4);
-	uvs.resize(4);
-
-	for (int i = 0; i < 4; i++) {
-
-		static const Vector3 quad_faces[4] = {
-			Vector3(-1, -1, 0),
-			Vector3(-1, 1, 0),
-			Vector3(1, 1, 0),
-			Vector3(1, -1, 0),
-		};
-
-		faces.set(i, quad_faces[i]);
-		normals.set(i, Vector3(0, 0, 1));
-		tangents.set(i * 4 + 0, 1.0);
-		tangents.set(i * 4 + 1, 0.0);
-		tangents.set(i * 4 + 2, 0.0);
-		tangents.set(i * 4 + 3, 1.0);
-
-		static const Vector2 quad_uv[4] = {
-			Vector2(0, 1),
-			Vector2(0, 0),
-			Vector2(1, 0),
-			Vector2(1, 1),
-		};
-
-		uvs.set(i, quad_uv[i]);
-	}
-
-	Array arr;
-	arr.resize(ARRAY_MAX);
-	arr[ARRAY_VERTEX] = faces;
-	arr[ARRAY_NORMAL] = normals;
-	arr[ARRAY_TANGENT] = tangents;
-	arr[ARRAY_TEX_UV] = uvs;
-
-	add_surface_from_arrays(PRIMITIVE_TRIANGLE_FAN, arr);
-}
-#endif

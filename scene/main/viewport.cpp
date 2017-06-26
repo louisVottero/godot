@@ -49,6 +49,7 @@
 #include "scene/scene_string_names.h"
 
 #include "global_config.h"
+#include "scene/3d/scenario_fx.h"
 
 void ViewportTexture::setup_local_to_scene() {
 
@@ -1017,10 +1018,9 @@ void Viewport::_propagate_enter_world(Node *p_node) {
 		if (!p_node->is_inside_tree()) //may not have entered scene yet
 			return;
 
-		Spatial *s = p_node->cast_to<Spatial>();
-		if (s) {
+		if (p_node->cast_to<Spatial>() || p_node->cast_to<WorldEnvironment>()) {
 
-			s->notification(Spatial::NOTIFICATION_ENTER_WORLD);
+			p_node->notification(Spatial::NOTIFICATION_ENTER_WORLD);
 		} else {
 			Viewport *v = p_node->cast_to<Viewport>();
 			if (v) {
@@ -1055,10 +1055,9 @@ void Viewport::_propagate_exit_world(Node *p_node) {
 		if (!p_node->is_inside_tree()) //may have exited scene already
 			return;
 
-		Spatial *s = p_node->cast_to<Spatial>();
-		if (s) {
+		if (p_node->cast_to<Spatial>() || p_node->cast_to<WorldEnvironment>()) {
 
-			s->notification(Spatial::NOTIFICATION_EXIT_WORLD, true);
+			p_node->notification(Spatial::NOTIFICATION_EXIT_WORLD);
 		} else {
 			Viewport *v = p_node->cast_to<Viewport>();
 			if (v) {
@@ -1156,6 +1155,7 @@ void Viewport::set_size_override(bool p_enable, const Size2 &p_size, const Vecto
 	size_override_margin = p_margin;
 	_update_rect();
 	_update_stretch_transform();
+	emit_signal("size_changed");
 }
 
 Size2 Viewport::get_size_override() const {
@@ -1231,16 +1231,6 @@ Viewport::UpdateMode Viewport::get_update_mode() const {
 	return update_mode;
 }
 //RID get_texture() const;
-
-void Viewport::queue_screen_capture() {
-
-	//VS::get_singleton()->viewport_queue_screen_capture(viewport);
-}
-Ref<Image> Viewport::get_screen_capture() const {
-
-	//return VS::get_singleton()->viewport_get_screen_capture(viewport);
-	return Ref<Image>();
-}
 
 Ref<ViewportTexture> Viewport::get_texture() const {
 
@@ -2530,6 +2520,22 @@ Viewport::Usage Viewport::get_usage() const {
 	return usage;
 }
 
+void Viewport::set_debug_draw(DebugDraw p_debug_draw) {
+
+	debug_draw = p_debug_draw;
+	VS::get_singleton()->viewport_set_debug_draw(viewport, VS::ViewportDebugDraw(p_debug_draw));
+}
+
+Viewport::DebugDraw Viewport::get_debug_draw() const {
+
+	return debug_draw;
+}
+
+int Viewport::get_render_info(RenderInfo p_info) {
+
+	return VS::get_singleton()->viewport_get_render_info(viewport, VS::ViewportRenderInfo(p_info));
+}
+
 void Viewport::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_size", "size"), &Viewport::set_size);
@@ -2564,8 +2570,6 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_size_override_enabled"), &Viewport::is_size_override_enabled);
 	ClassDB::bind_method(D_METHOD("set_size_override_stretch", "enabled"), &Viewport::set_size_override_stretch);
 	ClassDB::bind_method(D_METHOD("is_size_override_stretch_enabled"), &Viewport::is_size_override_stretch_enabled);
-	ClassDB::bind_method(D_METHOD("queue_screen_capture"), &Viewport::queue_screen_capture);
-	ClassDB::bind_method(D_METHOD("get_screen_capture"), &Viewport::get_screen_capture);
 
 	ClassDB::bind_method(D_METHOD("set_vflip", "enable"), &Viewport::set_vflip);
 	ClassDB::bind_method(D_METHOD("get_vflip"), &Viewport::get_vflip);
@@ -2585,6 +2589,11 @@ void Viewport::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_usage", "usage"), &Viewport::set_usage);
 	ClassDB::bind_method(D_METHOD("get_usage"), &Viewport::get_usage);
+
+	ClassDB::bind_method(D_METHOD("set_debug_draw", "debug_draw"), &Viewport::set_debug_draw);
+	ClassDB::bind_method(D_METHOD("get_debug_draw"), &Viewport::get_debug_draw);
+
+	ClassDB::bind_method(D_METHOD("get_render_info", "info"), &Viewport::get_render_info);
 
 	ClassDB::bind_method(D_METHOD("get_texture:ViewportTexture"), &Viewport::get_texture);
 
@@ -2640,6 +2649,7 @@ void Viewport::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hdr"), "set_hdr", "get_hdr");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "disable_3d"), "set_disable_3d", "is_3d_disabled");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "usage", PROPERTY_HINT_ENUM, "2D,2D No-Sampling,3D,3D No-Effects"), "set_usage", "get_usage");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "debug_draw", PROPERTY_HINT_ENUM, "Disabled,Unshaded,Overdraw,Wireframe"), "set_debug_draw", "get_debug_draw");
 	ADD_GROUP("Render Target", "render_target_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "render_target_v_flip"), "set_vflip", "get_vflip");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "render_target_clear_on_new_frame"), "set_clear_on_new_frame", "get_clear_on_new_frame");
@@ -2673,6 +2683,19 @@ void Viewport::_bind_methods() {
 	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_256);
 	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_1024);
 	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_MAX);
+
+	BIND_CONSTANT(RENDER_INFO_OBJECTS_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_VERTICES_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_MATERIAL_CHANGES_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_SHADER_CHANGES_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_SURFACE_CHANGES_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_DRAW_CALLS_IN_FRAME);
+	BIND_CONSTANT(RENDER_INFO_MAX);
+
+	BIND_CONSTANT(DEBUG_DRAW_DISABLED);
+	BIND_CONSTANT(DEBUG_DRAW_UNSHADED);
+	BIND_CONSTANT(DEBUG_DRAW_OVERDRAW);
+	BIND_CONSTANT(DEBUG_DRAW_WIREFRAME);
 
 	BIND_CONSTANT(MSAA_DISABLED);
 	BIND_CONSTANT(MSAA_2X);
@@ -2750,6 +2773,7 @@ Viewport::Viewport() {
 	hdr = false;
 
 	usage = USAGE_3D;
+	debug_draw = DEBUG_DRAW_DISABLED;
 }
 
 Viewport::~Viewport() {

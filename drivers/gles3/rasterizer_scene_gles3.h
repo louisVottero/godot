@@ -33,17 +33,17 @@
 /* Must come before shaders or the Windows build fails... */
 #include "rasterizer_storage_gles3.h"
 
-#include "drivers/gles3/shaders/cube_to_dp.glsl.h"
-#include "drivers/gles3/shaders/effect_blur.glsl.h"
-#include "drivers/gles3/shaders/exposure.glsl.h"
-#include "drivers/gles3/shaders/resolve.glsl.h"
-#include "drivers/gles3/shaders/scene.glsl.h"
-#include "drivers/gles3/shaders/screen_space_reflection.glsl.h"
-#include "drivers/gles3/shaders/ssao.glsl.h"
-#include "drivers/gles3/shaders/ssao_blur.glsl.h"
-#include "drivers/gles3/shaders/ssao_minify.glsl.h"
-#include "drivers/gles3/shaders/subsurf_scattering.glsl.h"
-#include "drivers/gles3/shaders/tonemap.glsl.h"
+#include "drivers/gles3/shaders/cube_to_dp.glsl.gen.h"
+#include "drivers/gles3/shaders/effect_blur.glsl.gen.h"
+#include "drivers/gles3/shaders/exposure.glsl.gen.h"
+#include "drivers/gles3/shaders/resolve.glsl.gen.h"
+#include "drivers/gles3/shaders/scene.glsl.gen.h"
+#include "drivers/gles3/shaders/screen_space_reflection.glsl.gen.h"
+#include "drivers/gles3/shaders/ssao.glsl.gen.h"
+#include "drivers/gles3/shaders/ssao_blur.glsl.gen.h"
+#include "drivers/gles3/shaders/ssao_minify.glsl.gen.h"
+#include "drivers/gles3/shaders/subsurf_scattering.glsl.gen.h"
+#include "drivers/gles3/shaders/tonemap.glsl.gen.h"
 
 class RasterizerSceneGLES3 : public RasterizerScene {
 public:
@@ -77,6 +77,9 @@ public:
 	RID default_shader;
 	RID default_shader_twosided;
 
+	RID default_overdraw_material;
+	RID default_overdraw_shader;
+
 	RasterizerStorageGLES3 *storage;
 
 	Vector<RasterizerStorageGLES3::RenderTarget::Exposure> exposure_shrink;
@@ -108,7 +111,6 @@ public:
 			float projection_matrix[16];
 			float camera_inverse_matrix[16];
 			float camera_matrix[16];
-			float time[4];
 			float ambient_light_color[4];
 			float bg_color[4];
 			float fog_color_enabled[4];
@@ -116,14 +118,15 @@ public:
 
 			float ambient_energy;
 			float bg_energy;
-			float shadow_z_offset;
-			float shadow_slope_scale;
+			float z_offset;
+			float z_slope_scale;
 			float shadow_dual_paraboloid_render_zfar;
 			float shadow_dual_paraboloid_render_side;
 			float screen_pixel_size[2];
 			float shadow_atlas_pixel_size[2];
 			float shadow_directional_pixel_size[2];
 
+			float time;
 			float z_far;
 			float reflection_multiplier;
 			float subsurface_scatter_width;
@@ -151,8 +154,6 @@ public:
 		} env_radiance_data;
 
 		GLuint env_radiance_ubo;
-
-		GLuint brdf_texture;
 
 		GLuint sky_verts;
 		GLuint sky_array;
@@ -187,6 +188,7 @@ public:
 		bool used_sss;
 		bool used_screen_texture;
 
+		VS::ViewportDebugDraw debug_draw;
 	} state;
 
 	/* SHADOW ATLAS API */
@@ -358,10 +360,9 @@ public:
 
 		bool ssr_enabled;
 		int ssr_max_steps;
-		float ssr_accel;
-		float ssr_fade;
+		float ssr_fade_in;
+		float ssr_fade_out;
 		float ssr_depth_tolerance;
-		bool ssr_smooth;
 		bool ssr_roughness;
 
 		bool ssao_enabled;
@@ -437,10 +438,9 @@ public:
 
 			ssr_enabled = false;
 			ssr_max_steps = 64;
-			ssr_accel = 0.04;
-			ssr_fade = 2.0;
+			ssr_fade_in = 0.15;
+			ssr_fade_out = 2.0;
 			ssr_depth_tolerance = 0.2;
-			ssr_smooth = true;
 			ssr_roughness = true;
 
 			ssao_enabled = false;
@@ -525,7 +525,7 @@ public:
 	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_treshold, VS::EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_treshold, float p_hdr_bleed_scale, bool p_bicubic_upscale);
 	virtual void environment_set_fog(RID p_env, bool p_enable, float p_begin, float p_end, RID p_gradient_texture);
 
-	virtual void environment_set_ssr(RID p_env, bool p_enable, int p_max_steps, float p_accel, float p_fade, float p_depth_tolerance, bool p_smooth, bool p_roughness);
+	virtual void environment_set_ssr(RID p_env, bool p_enable, int p_max_steps, float p_fade_in, float p_fade_out, float p_depth_tolerance, bool p_roughness);
 	virtual void environment_set_ssao(RID p_env, bool p_enable, float p_radius, float p_radius2, float p_intensity2, float p_intensity, float p_bias, float p_light_affect, const Color &p_color, bool p_blur);
 
 	virtual void environment_set_tonemap(RID p_env, VS::EnvironmentToneMapper p_tone_mapper, float p_exposure, float p_white, bool p_auto_exposure, float p_min_luminance, float p_max_luminance, float p_auto_exp_speed, float p_auto_exp_scale);
@@ -535,6 +535,11 @@ public:
 	virtual void environment_set_fog(RID p_env, bool p_enable, const Color &p_color, const Color &p_sun_color, float p_sun_amount);
 	virtual void environment_set_fog_depth(RID p_env, bool p_enable, float p_depth_begin, float p_depth_curve, bool p_transmit, float p_transmit_curve);
 	virtual void environment_set_fog_height(RID p_env, bool p_enable, float p_min_height, float p_max_height, float p_height_curve);
+
+	virtual bool is_environment(RID p_env);
+
+	virtual VS::EnvironmentBG environment_get_background(RID p_env);
+	virtual int environment_get_canvas_max_layer(RID p_env);
 
 	/* LIGHT INSTANCE */
 
@@ -561,6 +566,7 @@ public:
 			Transform transform;
 			float farplane;
 			float split;
+			float bias_scale;
 		};
 
 		ShadowTransform shadow_transform[4];
@@ -596,7 +602,7 @@ public:
 
 	virtual RID light_instance_create(RID p_light);
 	virtual void light_instance_set_transform(RID p_light_instance, const Transform &p_transform);
-	virtual void light_instance_set_shadow_transform(RID p_light_instance, const CameraMatrix &p_projection, const Transform &p_transform, float p_far, float p_split, int p_pass);
+	virtual void light_instance_set_shadow_transform(RID p_light_instance, const CameraMatrix &p_projection, const Transform &p_transform, float p_far, float p_split, int p_pass, float p_bias_scale = 1.0);
 	virtual void light_instance_mark_visible(RID p_light_instance);
 
 	/* REFLECTION INSTANCE */
@@ -635,9 +641,10 @@ public:
 			MAX_REFLECTIONS = 1024,
 
 			SORT_KEY_DEPTH_LAYER_SHIFT = 60,
-			SORT_KEY_UNSHADED_FLAG = uint64_t(1) << 59,
-			SORT_KEY_NO_DIRECTIONAL_FLAG = uint64_t(1) << 58,
-			SORT_KEY_GI_PROBES_FLAG = uint64_t(1) << 57,
+//64 bits unsupported in MSVC
+#define SORT_KEY_UNSHADED_FLAG (uint64_t(1) << 59)
+#define SORT_KEY_NO_DIRECTIONAL_FLAG (uint64_t(1) << 58)
+#define SORT_KEY_GI_PROBES_FLAG (uint64_t(1) << 57)
 			SORT_KEY_SHADING_SHIFT = 57,
 			SORT_KEY_SHADING_MASK = 7,
 			SORT_KEY_MATERIAL_INDEX_SHIFT = 40,
@@ -783,9 +790,8 @@ public:
 	virtual void render_shadow(RID p_light, RID p_shadow_atlas, int p_pass, InstanceBase **p_cull_result, int p_cull_count);
 	virtual bool free(RID p_rid);
 
-	void _generate_brdf();
-
 	virtual void set_scene_pass(uint64_t p_pass);
+	virtual void set_debug_draw_mode(VS::ViewportDebugDraw p_debug_draw);
 
 	void iteration();
 	void initialize();

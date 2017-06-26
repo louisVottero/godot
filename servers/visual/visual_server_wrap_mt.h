@@ -92,6 +92,7 @@ public:
 
 	FUNC3(texture_set_detect_3d_callback, RID, TextureDetectCallback, void *)
 	FUNC3(texture_set_detect_srgb_callback, RID, TextureDetectCallback, void *)
+	FUNC3(texture_set_detect_normal_callback, RID, TextureDetectCallback, void *)
 
 	FUNC2(texture_set_path, RID, const String &)
 	FUNC1RC(String, texture_get_path, RID)
@@ -112,7 +113,7 @@ public:
 	FUNC2(shader_set_code, RID, const String &)
 	FUNC1RC(String, shader_get_code, RID)
 
-	FUNC2C(shader_get_param_list, RID, List<PropertyInfo> *)
+	FUNC2SC(shader_get_param_list, RID, List<PropertyInfo> *)
 
 	FUNC3(shader_set_default_texture_param, RID, const StringName &, RID)
 	FUNC2RC(RID, shader_get_default_texture_param, RID, const StringName &)
@@ -305,6 +306,7 @@ public:
 	FUNC2(particles_set_emitting, RID, bool)
 	FUNC2(particles_set_amount, RID, int)
 	FUNC2(particles_set_lifetime, RID, float)
+	FUNC2(particles_set_one_shot, RID, bool)
 	FUNC2(particles_set_pre_process_time, RID, float)
 	FUNC2(particles_set_explosiveness_ratio, RID, float)
 	FUNC2(particles_set_randomness_ratio, RID, float)
@@ -314,11 +316,13 @@ public:
 	FUNC2(particles_set_process_material, RID, RID)
 	FUNC2(particles_set_fixed_fps, RID, int)
 	FUNC2(particles_set_fractional_delta, RID, bool)
+	FUNC1(particles_restart, RID)
 
 	FUNC2(particles_set_draw_order, RID, VS::ParticlesDrawOrder)
 
 	FUNC2(particles_set_draw_passes, RID, int)
 	FUNC3(particles_set_draw_pass_mesh, RID, int, RID)
+	FUNC2(particles_set_emission_transform, RID, const Transform &)
 
 	FUNC1R(Rect3, particles_get_current_aabb, RID)
 
@@ -372,6 +376,13 @@ public:
 	FUNC2(viewport_set_hdr, RID, bool)
 	FUNC2(viewport_set_usage, RID, ViewportUsage)
 
+	//this passes directly to avoid stalling, but it's pretty dangerous, so dont call after freeing a viewport
+	virtual int viewport_get_render_info(RID p_viewport, ViewportRenderInfo p_info) {
+		return visual_server->viewport_get_render_info(p_viewport, p_info);
+	}
+
+	FUNC2(viewport_set_debug_draw, RID, ViewportDebugDraw)
+
 	/* ENVIRONMENT API */
 
 	FUNC0R(RID, environment_create)
@@ -383,7 +394,7 @@ public:
 	FUNC2(environment_set_bg_energy, RID, float)
 	FUNC2(environment_set_canvas_max_layer, RID, int)
 	FUNC4(environment_set_ambient_light, RID, const Color &, float, float)
-	FUNC8(environment_set_ssr, RID, bool, int, float, float, float, bool, bool)
+	FUNC7(environment_set_ssr, RID, bool, int, float, float, float, bool)
 	FUNC10(environment_set_ssao, RID, bool, float, float, float, float, float, float, const Color &, bool)
 
 	FUNC6(environment_set_dof_blur_near, RID, bool, float, float, float, EnvironmentDOFBlurQuality)
@@ -460,14 +471,15 @@ public:
 	FUNC6(canvas_item_add_line, RID, const Point2 &, const Point2 &, const Color &, float, bool)
 	FUNC3(canvas_item_add_rect, RID, const Rect2 &, const Color &)
 	FUNC4(canvas_item_add_circle, RID, const Point2 &, float, const Color &)
-	FUNC6(canvas_item_add_texture_rect, RID, const Rect2 &, RID, bool, const Color &, bool)
-	FUNC6(canvas_item_add_texture_rect_region, RID, const Rect2 &, RID, const Rect2 &, const Color &, bool)
-	FUNC10(canvas_item_add_nine_patch, RID, const Rect2 &, const Rect2 &, RID, const Vector2 &, const Vector2 &, NinePatchAxisMode, NinePatchAxisMode, bool, const Color &)
-	FUNC6(canvas_item_add_primitive, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, float)
-	FUNC5(canvas_item_add_polygon, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID)
-	FUNC7(canvas_item_add_triangle_array, RID, const Vector<int> &, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, int)
+	FUNC7(canvas_item_add_texture_rect, RID, const Rect2 &, RID, bool, const Color &, bool, RID)
+	FUNC8(canvas_item_add_texture_rect_region, RID, const Rect2 &, RID, const Rect2 &, const Color &, bool, RID, bool)
+	FUNC11(canvas_item_add_nine_patch, RID, const Rect2 &, const Rect2 &, RID, const Vector2 &, const Vector2 &, NinePatchAxisMode, NinePatchAxisMode, bool, const Color &, RID)
+	FUNC7(canvas_item_add_primitive, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, float, RID)
+	FUNC6(canvas_item_add_polygon, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, RID)
+	FUNC8(canvas_item_add_triangle_array, RID, const Vector<int> &, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, int, RID)
 	FUNC3(canvas_item_add_mesh, RID, const RID &, RID)
 	FUNC3(canvas_item_add_multimesh, RID, RID, RID)
+	FUNC6(canvas_item_add_particles, RID, RID, RID, RID, int, int)
 	FUNC2(canvas_item_add_set_transform, RID, const Transform2D &)
 	FUNC2(canvas_item_add_clip_ignore, RID, bool)
 	FUNC2(canvas_item_set_sort_children_by_y, RID, bool)
@@ -504,6 +516,7 @@ public:
 	FUNC2(canvas_light_set_shadow_gradient_length, RID, float)
 	FUNC2(canvas_light_set_shadow_filter, RID, CanvasLightShadowFilter)
 	FUNC2(canvas_light_set_shadow_color, RID, const Color &)
+	FUNC2(canvas_light_set_shadow_smooth, RID, float)
 
 	FUNC0R(RID, canvas_light_occluder_create)
 	FUNC2(canvas_light_occluder_attach_to_canvas, RID, RID)
@@ -545,12 +558,17 @@ public:
 
 	/* RENDER INFO */
 
-	FUNC1R(int, get_render_info, RenderInfo)
+	//this passes directly to avoid stalling
+	virtual int get_render_info(RenderInfo p_info) {
+		return visual_server->get_render_info(p_info);
+	}
 
 	FUNC3(set_boot_image, const Ref<Image> &, const Color &, bool)
 	FUNC1(set_default_clear_color, const Color &)
 
 	FUNC0R(RID, get_test_cube)
+
+	FUNC1(set_debug_generate_wireframes, bool)
 
 	virtual bool has_feature(Features p_feature) const { return visual_server->has_feature(p_feature); }
 	virtual bool has_os_feature(const String &p_feature) const { return visual_server->has_os_feature(p_feature); }

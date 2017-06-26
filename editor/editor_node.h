@@ -233,6 +233,8 @@ private:
 	//main tabs
 
 	Tabs *scene_tabs;
+	Panel *tab_preview_panel;
+	TextureRect *tab_preview;
 	int tab_closing;
 
 	bool exiting;
@@ -396,6 +398,7 @@ private:
 	Vector<EditorPlugin *> editor_plugins;
 	EditorPlugin *editor_plugin_screen;
 	EditorPluginList *editor_plugins_over;
+	EditorPluginList *editor_plugins_force_input_forwarding;
 
 	EditorHistory editor_history;
 	EditorData editor_data;
@@ -556,6 +559,10 @@ private:
 	void _dock_popup_exit();
 	void _scene_tab_changed(int p_tab);
 	void _scene_tab_closed(int p_tab);
+	void _scene_tab_hover(int p_tab);
+	void _scene_tab_exit();
+	void _scene_tab_input(const Ref<InputEvent> &p_input);
+	void _thumbnail_done(const String &p_path, const Ref<Texture> &p_preview, const Variant &p_udata);
 	void _scene_tab_script_edited(int p_tab);
 
 	Dictionary _get_main_scene_state();
@@ -641,6 +648,7 @@ public:
 
 	EditorPlugin *get_editor_plugin_screen() { return editor_plugin_screen; }
 	EditorPluginList *get_editor_plugins_over() { return editor_plugins_over; }
+	EditorPluginList *get_editor_plugins_force_input_forwarding() { return editor_plugins_force_input_forwarding; }
 	PropertyEditor *get_property_editor() { return property_editor; }
 	VBoxContainer *get_property_editor_vb() { return prop_editor_vb; }
 
@@ -817,8 +825,9 @@ public:
 	void make_visible(bool p_visible);
 	void edit(Object *p_object);
 	bool forward_gui_input(const Transform2D &p_canvas_xform, const Ref<InputEvent> &p_event);
-	bool forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event);
+	bool forward_spatial_gui_input(Camera *p_camera, const Ref<InputEvent> &p_event, bool serve_when_force_input_enabled);
 	void forward_draw_over_canvas(const Transform2D &p_canvas_xform, Control *p_canvas);
+	void add_plugin(EditorPlugin *p_plugin);
 	void clear();
 	bool empty();
 
