@@ -86,6 +86,8 @@ public:
 
 		bool generate_wireframes;
 
+		bool use_texture_array_environment;
+
 		Set<String> extensions;
 
 		bool keep_original_textures;
@@ -401,6 +403,8 @@ public:
 			};
 
 			int light_mode;
+			bool uses_screen_texture;
+			bool uses_screen_uv;
 
 		} canvas_item;
 

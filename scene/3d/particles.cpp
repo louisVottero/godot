@@ -627,7 +627,7 @@ void ParticlesMaterial::_update_shader() {
 
 	if (flags[FLAG_DISABLE_Z]) {
 
-		code += "    float angle1 = rand_from_seed(alt_seed)*spread*3.1416;\n";
+		code += "    float angle1 = (rand_from_seed(alt_seed)*2.0-1.0)*spread/180.0*3.1416;\n";
 		code += "    vec3 rot=vec3( cos(angle1), sin(angle1),0.0 );\n";
 		code += "    VELOCITY=(rot*initial_linear_velocity+rot*initial_linear_velocity_random*rand_from_seed(alt_seed));\n";
 
@@ -1052,16 +1052,11 @@ float ParticlesMaterial::get_param_randomness(Parameter p_param) const {
 
 static void _adjust_curve_range(const Ref<Texture> &p_texture, float p_min, float p_max) {
 
-	Ref<CurveTexture> curve = p_texture;
-	if (!curve.is_valid())
+	Ref<CurveTexture> curve_tex = p_texture;
+	if (!curve_tex.is_valid())
 		return;
 
-	if (curve->get_max() == 1.0) {
-		curve->set_max(p_max);
-	}
-	if (curve->get_min() == 0.0) {
-		curve->set_min(p_min);
-	}
+	curve_tex->ensure_default_setup(p_min, p_max);
 }
 
 void ParticlesMaterial::set_param_texture(Parameter p_param, const Ref<Texture> &p_texture) {

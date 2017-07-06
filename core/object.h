@@ -443,6 +443,7 @@ private:
 	Variant _emit_signal(const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	Array _get_signal_list() const;
 	Array _get_signal_connection_list(const String &p_signal) const;
+	Array _get_incoming_connections() const;
 	void _set_bind(const String &p_set, const Variant &p_value);
 	Variant _get_bind(const String &p_name) const;
 
@@ -532,6 +533,12 @@ public:
 	void add_change_receptor(Object *p_receptor);
 	void remove_change_receptor(Object *p_receptor);
 
+// TODO: ensure 'this' is never NULL since it's UB, but by now, avoid warning flood
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
+#endif
+
 	template <class T>
 	T *cast_to() {
 
@@ -561,6 +568,10 @@ public:
 			return NULL;
 #endif
 	}
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	enum {
 

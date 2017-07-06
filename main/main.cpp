@@ -43,7 +43,7 @@
 
 #include "input_map.h"
 #include "io/resource_loader.h"
-#include "scene/main/scene_main_loop.h"
+#include "scene/main/scene_tree.h"
 #include "servers/audio_server.h"
 
 #include "io/resource_loader.h"
@@ -1013,6 +1013,7 @@ Error Main::setup2() {
 		translation_server->set_locale(locale);
 	}
 	translation_server->load_translations();
+	ResourceLoader::load_translation_remaps(); //load remaps for resources
 
 	audio_server->load_default_bus_layout();
 

@@ -140,6 +140,8 @@ private:
 		FILE_RUN_SCRIPT,
 		FILE_OPEN_PREV,
 		FILE_CLOSE,
+		FILE_CLOSE_ALL_AND_QUIT,
+		FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER,
 		FILE_QUIT,
 		FILE_EXTERNAL_OPEN_SCENE,
 		EDIT_UNDO,
@@ -296,6 +298,7 @@ private:
 
 	//CallDialog *call_dialog;
 	ConfirmationDialog *confirmation;
+	ConfirmationDialog *save_confirmation;
 	ConfirmationDialog *import_confirmation;
 	ConfirmationDialog *open_recent_confirmation;
 	ConfirmationDialog *pick_main_scene;
@@ -465,6 +468,9 @@ private:
 	void _vp_resized();
 
 	void _save_scene(String p_file, int idx = -1);
+	void _save_all_scenes();
+	int _next_unsaved_scene();
+	void _discard_changes(const String &p_str = String());
 
 	void _instance_request(const Vector<String> &p_files);
 
@@ -523,6 +529,7 @@ private:
 	bool _find_and_save_resource(RES p_res, Map<RES, bool> &processed, int32_t flags);
 	bool _find_and_save_edited_subresources(Object *obj, Map<RES, bool> &processed, int32_t flags);
 	void _save_edited_subresources(Node *scene, Map<RES, bool> &processed, int32_t flags);
+	void _mark_unsaved_scenes();
 
 	void _find_node_types(Node *p_node, int &count_2d, int &count_3d);
 	void _save_scene_with_preview(String p_file);

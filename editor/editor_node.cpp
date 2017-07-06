@@ -43,6 +43,7 @@
 #include "io/config_file.h"
 #include "io/stream_peer_ssl.h"
 #include "io/zip_io.h"
+#include "license.gen.h"
 #include "main/input_default.h"
 #include "message_queue.h"
 #include "os/file_access.h"
@@ -416,6 +417,8 @@ void EditorNode::_fs_changed() {
 			}
 		}
 	}
+
+	_mark_unsaved_scenes();
 }
 
 void EditorNode::_sources_changed(bool p_exist) {
@@ -961,6 +964,46 @@ void EditorNode::_save_scene(String p_file, int idx) {
 	}
 }
 
+void EditorNode::_save_all_scenes() {
+
+	for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
+		Node *scene = editor_data.get_edited_scene_root(i);
+		if (scene && scene->get_filename() != "") {
+			// save in background if in the script editor
+			if (i != editor_data.get_edited_scene() || _get_current_main_editor() == EDITOR_SCRIPT) {
+				_save_scene(scene->get_filename(), i);
+			} else {
+				_save_scene_with_preview(scene->get_filename());
+			}
+		} // else: ignore new scenes
+	}
+
+	_save_default_environment();
+}
+
+void EditorNode::_mark_unsaved_scenes() {
+
+	for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
+
+		Node *node = editor_data.get_edited_scene_root(i);
+		if (!node)
+			continue;
+
+		String path = node->get_filename();
+		if (!(path == String() || FileAccess::exists(path))) {
+
+			node->set_filename("");
+			if (i == editor_data.get_edited_scene())
+				set_current_version(-1);
+			else
+				editor_data.set_edited_scene_version(-1, i);
+		}
+	}
+
+	_update_title();
+	_update_scene_tabs();
+}
+
 void EditorNode::_import_action(const String &p_action) {
 #if 0
 	import_confirmation->hide();
@@ -1117,14 +1160,26 @@ void EditorNode::_dialog_action(String p_file) {
 
 			get_undo_redo()->clear_history();
 		} break;
+		case FILE_CLOSE:
+		case FILE_CLOSE_ALL_AND_QUIT:
+		case FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER:
+		case SCENE_TAB_CLOSE:
 		case FILE_SAVE_SCENE:
 		case FILE_SAVE_AS_SCENE: {
+
+			int scene_idx = (current_option == FILE_SAVE_SCENE || current_option == FILE_SAVE_AS_SCENE) ? -1 : tab_closing;
 
 			if (file->get_mode() == EditorFileDialog::MODE_SAVE_FILE) {
 
 				//_save_scene(p_file);
 				_save_default_environment();
-				_save_scene_with_preview(p_file);
+				if (scene_idx != editor_data.get_edited_scene() || _get_current_main_editor() == EDITOR_SCRIPT)
+					_save_scene(p_file, scene_idx);
+				else
+					_save_scene_with_preview(p_file);
+
+				if (scene_idx != -1)
+					_discard_changes();
 			}
 
 		} break;
@@ -1468,7 +1523,7 @@ void EditorNode::_edit_current() {
 		property_editor->edit(current_res);
 		node_dock->set_node(NULL);
 		object_menu->set_disabled(false);
-
+		EditorNode::get_singleton()->get_import_dock()->set_edit_path(current_res->get_path());
 		//resources_dock->add_resource(Ref<Resource>(current_res));
 
 		//top_pallete->set_current_tab(1);
@@ -1886,42 +1941,45 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			open_request(previous_scenes.back()->get());
 
 		} break;
+		case FILE_CLOSE_ALL_AND_QUIT:
+		case FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER:
 		case FILE_CLOSE: {
 
-			if (!p_confirmed && unsaved_cache) {
-				confirmation->get_ok()->set_text(TTR("Yes"));
-				//confirmation->get_cancel()->show();
-				confirmation->set_text(TTR("Close scene? (Unsaved changes will be lost)"));
-				confirmation->popup_centered_minsize();
+			if (!p_confirmed && (unsaved_cache || p_option == FILE_CLOSE_ALL_AND_QUIT || p_option == FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER)) {
+				tab_closing = p_option == FILE_CLOSE ? editor_data.get_edited_scene() : _next_unsaved_scene();
+				String scene_filename = editor_data.get_edited_scene_root(tab_closing)->get_filename();
+				save_confirmation->get_ok()->set_text(TTR("Save & Close"));
+				save_confirmation->set_text(vformat(TTR("Save changes to '%s' before closing?"), scene_filename != "" ? scene_filename : "unsaved scene"));
+				save_confirmation->popup_centered_minsize();
 				break;
 			}
-
-			_remove_edited_scene();
-
-		} break;
-		case SCENE_TAB_CLOSE: {
-			_remove_scene(tab_closing);
-			_update_scene_tabs();
-			current_option = -1;
-		} break;
+		} // fallthrough
+		case SCENE_TAB_CLOSE:
 		case FILE_SAVE_SCENE: {
 
-			Node *scene = editor_data.get_edited_scene_root();
+			int scene_idx = (p_option == FILE_SAVE_SCENE) ? -1 : tab_closing;
+
+			Node *scene = editor_data.get_edited_scene_root(scene_idx);
 			if (scene && scene->get_filename() != "") {
 
 				// save in background if in the script editor
-				if (_get_current_main_editor() == EDITOR_SCRIPT) {
-					_save_scene(scene->get_filename());
+				if (scene_idx != editor_data.get_edited_scene() || _get_current_main_editor() == EDITOR_SCRIPT) {
+					_save_scene(scene->get_filename(), scene_idx);
 				} else {
 					_save_scene_with_preview(scene->get_filename());
 				}
-				return;
-			};
+
+				if (scene_idx != -1)
+					_discard_changes();
+
+				break;
+			}
 			// fallthrough to save_as
 		};
 		case FILE_SAVE_AS_SCENE: {
+			int scene_idx = (p_option == FILE_SAVE_SCENE || p_option == FILE_SAVE_AS_SCENE) ? -1 : tab_closing;
 
-			Node *scene = editor_data.get_edited_scene_root();
+			Node *scene = editor_data.get_edited_scene_root(scene_idx);
 
 			if (!scene) {
 
@@ -1957,7 +2015,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 				String existing;
 				if (extensions.size()) {
-					String root_name(get_edited_scene()->get_name());
+					String root_name(scene->get_name());
 					existing = root_name + "." + extensions.front()->get().to_lower();
 				}
 				file->set_current_path(existing);
@@ -1968,19 +2026,8 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 		} break;
 
 		case FILE_SAVE_ALL_SCENES: {
-			for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
-				Node *scene = editor_data.get_edited_scene_root(i);
-				if (scene && scene->get_filename() != "") {
-					// save in background if in the script editor
-					if (i != editor_data.get_edited_scene() || _get_current_main_editor() == EDITOR_SCRIPT) {
-						_save_scene(scene->get_filename(), i);
-					} else {
-						_save_scene_with_preview(scene->get_filename());
-					}
-				} // else: ignore new scenes
-			}
 
-			_save_default_environment();
+			_save_all_scenes();
 		} break;
 		case FILE_SAVE_BEFORE_RUN: {
 			if (!p_confirmed) {
@@ -2099,22 +2146,6 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 		} break;
 
-		case FILE_QUIT: {
-
-			if (!p_confirmed) {
-
-				confirmation->get_ok()->set_text(TTR("Quit"));
-				//confirmation->get_cancel()->show();
-				confirmation->set_text(TTR("Exit the editor?"));
-				confirmation->popup_centered(Size2(180, 70) * EDSCALE);
-				break;
-			}
-
-			_menu_option_confirm(RUN_STOP, true);
-			exiting = true;
-			get_tree()->quit();
-
-		} break;
 		case FILE_EXTERNAL_OPEN_SCENE: {
 
 			if (unsaved_cache && !p_confirmed) {
@@ -2443,28 +2474,56 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 			project_settings->popup_project_settings();
 		} break;
+		case FILE_QUIT:
 		case RUN_PROJECT_MANAGER: {
 
 			if (!p_confirmed) {
-				confirmation->get_ok()->set_text(TTR("Yes"));
-				confirmation->set_text(TTR("Open Project Manager? \n(Unsaved changes will be lost)"));
-				confirmation->popup_centered_minsize();
+				if (_next_unsaved_scene() == -1) {
+
+					bool confirm = EDITOR_DEF("interface/quit_confirmation", true);
+					if (confirm) {
+
+						confirmation->get_ok()->set_text(p_option == FILE_QUIT ? TTR("Quit") : TTR("Yes"));
+						confirmation->set_text(p_option == FILE_QUIT ? TTR("Exit the editor?") : TTR("Open Project Manager?"));
+						confirmation->popup_centered_minsize();
+					} else {
+						_discard_changes();
+						break;
+					}
+				} else {
+
+					bool save_each = EDITOR_DEF("interface/save_each_scene_on_quit", true);
+					if (save_each) {
+
+						_menu_option_confirm(p_option == FILE_QUIT ? FILE_CLOSE_ALL_AND_QUIT : FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER, false);
+					} else {
+
+						String unsaved_scenes;
+						for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
+							int current = editor_data.get_edited_scene();
+							bool unsaved = (i == current) ? saved_version != editor_data.get_undo_redo().get_version() : editor_data.get_scene_version(i) != 0;
+							if (unsaved) {
+
+								String scene_filename = editor_data.get_edited_scene_root(i)->get_filename();
+								unsaved_scenes += "\n            " + scene_filename;
+							}
+						}
+
+						save_confirmation->get_ok()->set_text(TTR("Save & Quit"));
+						save_confirmation->set_text((p_option == FILE_QUIT ? TTR("Save changes to the following scene(s) before quitting?") : TTR("Save changes the following scene(s) before opening Project Manager?")) + unsaved_scenes);
+						save_confirmation->popup_centered_minsize();
+					}
+				}
+
+				if (OS::get_singleton()->is_window_minimized())
+					OS::get_singleton()->request_attention();
 				break;
 			}
 
-			_menu_option_confirm(RUN_STOP, true);
-			exiting = true;
-			get_tree()->quit();
-			String exec = OS::get_singleton()->get_executable_path();
-
-			List<String> args;
-			args.push_back("-path");
-			args.push_back(exec.get_base_dir());
-			args.push_back("-pm");
-
-			OS::ProcessID pid = 0;
-			Error err = OS::get_singleton()->execute(exec, args, false, &pid);
-			ERR_FAIL_COND(err);
+			if (_next_unsaved_scene() != -1) {
+				_save_all_scenes();
+			}
+			_discard_changes();
 		} break;
 		case RUN_FILE_SERVER: {
 
@@ -2613,7 +2672,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			OS::get_singleton()->shell_open("https://godotengine.org/community");
 		} break;
 		case HELP_ABOUT: {
-			about->popup_centered_minsize(Size2(500, 130) * EDSCALE);
+			about->popup_centered_minsize(Size2(780, 500) * EDSCALE);
 		} break;
 		case SOURCES_REIMPORT: {
 
@@ -2687,6 +2746,68 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			} else if (p_option >= IMPORT_PLUGIN_BASE) {
 			}
 		}
+	}
+}
+
+int EditorNode::_next_unsaved_scene() {
+
+	for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
+
+		int current = editor_data.get_edited_scene();
+		bool unsaved = (i == current) ? saved_version != editor_data.get_undo_redo().get_version() : editor_data.get_scene_version(i) != 0;
+		if (unsaved) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void EditorNode::_discard_changes(const String &p_str) {
+
+	switch (current_option) {
+
+		case FILE_CLOSE_ALL_AND_QUIT:
+		case FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER:
+		case FILE_CLOSE:
+		case SCENE_TAB_CLOSE: {
+
+			_remove_scene(tab_closing);
+			_update_scene_tabs();
+
+			if (current_option == FILE_CLOSE_ALL_AND_QUIT || current_option == FILE_CLOSE_ALL_AND_RUN_PROJECT_MANAGER) {
+				if (_next_unsaved_scene() == -1) {
+					current_option = current_option == FILE_CLOSE_ALL_AND_QUIT ? FILE_QUIT : RUN_PROJECT_MANAGER;
+					_discard_changes();
+				} else {
+					_menu_option_confirm(current_option, false);
+				}
+			} else {
+				current_option = -1;
+				save_confirmation->hide();
+			}
+		} break;
+		case FILE_QUIT: {
+
+			_menu_option_confirm(RUN_STOP, true);
+			exiting = true;
+			get_tree()->quit();
+		} break;
+		case RUN_PROJECT_MANAGER: {
+
+			_menu_option_confirm(RUN_STOP, true);
+			exiting = true;
+			get_tree()->quit();
+			String exec = OS::get_singleton()->get_executable_path();
+
+			List<String> args;
+			args.push_back("-path");
+			args.push_back(exec.get_base_dir());
+			args.push_back("-pm");
+
+			OS::ProcessID pid = 0;
+			Error err = OS::get_singleton()->execute(exec, args, false, &pid);
+			ERR_FAIL_COND(err);
+		} break;
 	}
 }
 
@@ -4261,19 +4382,17 @@ void EditorNode::_scene_tab_script_edited(int p_tab) {
 void EditorNode::_scene_tab_closed(int p_tab) {
 	current_option = SCENE_TAB_CLOSE;
 	tab_closing = p_tab;
+	Node *scene = editor_data.get_edited_scene_root(p_tab);
 
 	bool unsaved = (p_tab == editor_data.get_edited_scene()) ?
 						   saved_version != editor_data.get_undo_redo().get_version() :
 						   editor_data.get_scene_version(p_tab) != 0;
 	if (unsaved) {
-		confirmation->get_ok()->set_text(TTR("Yes"));
-
-		//confirmation->get_cancel()->show();
-		confirmation->set_text(TTR("Close scene? (Unsaved changes will be lost)"));
-		confirmation->popup_centered_minsize();
+		save_confirmation->get_ok()->set_text(TTR("Save & Close"));
+		save_confirmation->set_text(vformat(TTR("Save changes to '%s' before closing?"), scene->get_filename() != "" ? scene->get_filename() : "unsaved scene"));
+		save_confirmation->popup_centered_minsize();
 	} else {
-		_remove_scene(p_tab);
-		_update_scene_tabs();
+		_discard_changes();
 	}
 }
 
@@ -4299,8 +4418,14 @@ void EditorNode::_scene_tab_input(const Ref<InputEvent> &p_input) {
 	Ref<InputEventMouseButton> mb = p_input;
 
 	if (mb.is_valid()) {
-		if (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed() && scene_tabs->get_hovered_tab() >= 0) {
-			_scene_tab_closed(scene_tabs->get_hovered_tab());
+		if (scene_tabs->get_hovered_tab() >= 0) {
+			if (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed()) {
+				_scene_tab_closed(scene_tabs->get_hovered_tab());
+			}
+		} else {
+			if ((mb->get_button_index() == BUTTON_LEFT && mb->is_doubleclick()) || (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed())) {
+				_menu_option_confirm(FILE_NEW_SCENE, true);
+			}
 		}
 	}
 }
@@ -4891,6 +5016,7 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method("_scene_tab_script_edited", &EditorNode::_scene_tab_script_edited);
 	ClassDB::bind_method("_set_main_scene_state", &EditorNode::_set_main_scene_state);
 	ClassDB::bind_method("_update_scene_tabs", &EditorNode::_update_scene_tabs);
+	ClassDB::bind_method("_discard_changes", &EditorNode::_discard_changes);
 
 	ClassDB::bind_method("_prepare_history", &EditorNode::_prepare_history);
 	ClassDB::bind_method("_select_history", &EditorNode::_select_history);
@@ -4935,6 +5061,7 @@ EditorNode::EditorNode() {
 
 	EditorHelp::generate_doc(); //before any editor classes are crated
 	SceneState::set_disable_placeholders(true);
+	ResourceLoader::clear_translation_remaps(); //no remaps using during editor
 	editor_initialize_certificates(); //for asset sharing
 
 	InputDefault *id = Input::get_singleton()->cast_to<InputDefault>();
@@ -5890,6 +6017,12 @@ EditorNode::EditorNode() {
 	gui_base->add_child(confirmation);
 	confirmation->connect("confirmed", this, "_menu_confirm_current");
 
+	save_confirmation = memnew(ConfirmationDialog);
+	save_confirmation->add_button(TTR("Don't Save"), OS::get_singleton()->get_swap_ok_cancel(), "discard");
+	gui_base->add_child(save_confirmation);
+	save_confirmation->connect("confirmed", this, "_menu_confirm_current");
+	save_confirmation->connect("custom_action", this, "_discard_changes");
+
 	accept = memnew(AcceptDialog);
 	gui_base->add_child(accept);
 	accept->connect("confirmed", this, "_menu_confirm_current");
@@ -5941,52 +6074,82 @@ EditorNode::EditorNode() {
 	export_template_manager = memnew(ExportTemplateManager);
 	gui_base->add_child(export_template_manager);
 
-	about = memnew(AcceptDialog);
-	about->set_title(TTR("Thanks from the Godot community!"));
-	about->get_ok()->set_text(TTR("Thanks!"));
-	about->set_hide_on_ok(true);
-	gui_base->add_child(about);
-	VBoxContainer *vbc = memnew(VBoxContainer);
-	HBoxContainer *hbc = memnew(HBoxContainer);
-	hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	hbc->set_alignment(BoxContainer::ALIGN_CENTER);
-	about->add_child(vbc);
-	vbc->add_child(hbc);
-	Label *about_text = memnew(Label);
-	about_text->set_text(VERSION_FULL_NAME + String::utf8("\n\u00A9 2007-2017 Juan Linietsky, Ariel Manzur.\n\u00A9 2014-2017 ") + TTR("Godot Engine contributors") + "\n");
-	TextureRect *logo = memnew(TextureRect);
-	logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
-	hbc->add_child(logo);
-	hbc->add_child(about_text);
-	TabContainer *tc = memnew(TabContainer);
-	tc->set_custom_minimum_size(Vector2(740, 300));
-	vbc->add_child(tc);
-	ScrollContainer *dev_base = memnew(ScrollContainer);
-	dev_base->set_name(TTR("Developers"));
-	tc->add_child(dev_base);
-	HBoxContainer *dev_hbc = memnew(HBoxContainer);
-	dev_hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	dev_base->add_child(dev_hbc);
-	for (int i = 0; i < 3; i++) {
-		Label *dev_label = memnew(Label);
-		dev_label->set_h_size_flags(Control::SIZE_EXPAND);
-		dev_label->set_v_size_flags(Control::SIZE_FILL);
-		dev_hbc->add_child(dev_label);
-	}
-	int dev_name_index = 0;
-	int dev_name_column = 0;
-	const int dev_index_max = AUTHORS_COUNT / 3 + (AUTHORS_COUNT % 3 == 0 ? 0 : 1);
-	String dev_name = "";
-	const char **dev_names_ptr = dev_names;
-	while (*dev_names_ptr) {
-		dev_name += String::utf8(*dev_names_ptr++);
-		if (++dev_name_index == dev_index_max || !*dev_names_ptr) {
-			dev_hbc->get_child(dev_name_column)->cast_to<Label>()->set_text(dev_name);
-			dev_name_column++;
-			dev_name = "";
-			dev_name_index = 0;
-		} else {
-			dev_name += "\n";
+	{
+
+		about = memnew(AcceptDialog);
+		about->set_title(TTR("Thanks from the Godot community!"));
+		about->get_ok()->set_text(TTR("Thanks!"));
+		about->set_hide_on_ok(true);
+		about->set_resizable(true);
+		gui_base->add_child(about);
+
+		VBoxContainer *vbc = memnew(VBoxContainer);
+		HBoxContainer *hbc = memnew(HBoxContainer);
+		hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		hbc->set_alignment(BoxContainer::ALIGN_CENTER);
+		hbc->add_constant_override("separation", 30 * EDSCALE);
+		about->add_child(vbc);
+		vbc->add_child(hbc);
+
+		TextureRect *logo = memnew(TextureRect);
+		logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
+		hbc->add_child(logo);
+
+		Label *about_text = memnew(Label);
+		about_text->set_text(VERSION_FULL_NAME + String::utf8("\n\u00A9 2007-2017 Juan Linietsky, Ariel Manzur.\n\u00A9 2014-2017 ") +
+							 TTR("Godot Engine contributors") + "\n");
+		hbc->add_child(about_text);
+
+		TabContainer *tc = memnew(TabContainer);
+		tc->set_custom_minimum_size(Size2(600, 240) * EDSCALE);
+		tc->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		vbc->add_child(tc);
+
+		ScrollContainer *dev_base = memnew(ScrollContainer);
+		dev_base->set_name(TTR("Authors"));
+		dev_base->set_v_size_flags(Control::SIZE_EXPAND);
+		tc->add_child(dev_base);
+
+		TextEdit *license = memnew(TextEdit);
+		license->set_name(TTR("License"));
+		license->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		license->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		license->set_wrap(true);
+		license->set_readonly(true);
+		license->set_text(String::utf8(about_license));
+		tc->add_child(license);
+
+		VBoxContainer *dev_vbc = memnew(VBoxContainer);
+		dev_vbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		dev_base->add_child(dev_vbc);
+
+		List<String> dev_sections;
+		dev_sections.push_back(TTR("Project Founders"));
+		dev_sections.push_back(TTR("Lead Developer"));
+		dev_sections.push_back(TTR("Project Manager"));
+		dev_sections.push_back(TTR("Developers"));
+
+		const char **dev_src[] = { dev_founders, dev_lead, dev_manager, dev_names };
+
+		for (int i = 0; i < dev_sections.size(); i++) {
+
+			Label *lbl = memnew(Label);
+			lbl->set_text(dev_sections[i]);
+			dev_vbc->add_child(lbl);
+
+			ItemList *il = memnew(ItemList);
+			il->set_max_columns(32);
+			il->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			il->set_custom_minimum_size(Size2(0, i == 3 ? DEV_NAMES_COUNT * 7.6 : 30) * EDSCALE);
+			const char **dev_names_ptr = dev_src[i];
+			while (*dev_names_ptr)
+				il->add_item(String::utf8(*dev_names_ptr++), NULL, false);
+			dev_vbc->add_child(il);
+			il->set_fixed_column_width(240 * EDSCALE);
+
+			HSeparator *hs = memnew(HSeparator);
+			hs->set_modulate(Color(0, 0, 0, 0));
+			dev_vbc->add_child(hs);
 		}
 	}
 
