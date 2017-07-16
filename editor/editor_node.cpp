@@ -4436,6 +4436,11 @@ void EditorNode::_scene_tab_input(const Ref<InputEvent> &p_input) {
 	}
 }
 
+void EditorNode::_reposition_active_tab(int idx_to) {
+	editor_data.move_edited_scene_to_index(idx_to);
+	_update_scene_tabs();
+}
+
 void EditorNode::_thumbnail_done(const String &p_path, const Ref<Texture> &p_preview, const Variant &p_udata) {
 	int p_tab = p_udata.operator signed int();
 	if (p_preview.is_valid()) {
@@ -5025,6 +5030,7 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method("_scene_tab_hover", &EditorNode::_scene_tab_hover);
 	ClassDB::bind_method("_scene_tab_exit", &EditorNode::_scene_tab_exit);
 	ClassDB::bind_method("_scene_tab_input", &EditorNode::_scene_tab_input);
+	ClassDB::bind_method("_reposition_active_tab", &EditorNode::_reposition_active_tab);
 	ClassDB::bind_method("_thumbnail_done", &EditorNode::_thumbnail_done);
 	ClassDB::bind_method("_scene_tab_script_edited", &EditorNode::_scene_tab_script_edited);
 	ClassDB::bind_method("_set_main_scene_state", &EditorNode::_set_main_scene_state);
@@ -5399,6 +5405,7 @@ EditorNode::EditorNode() {
 	scene_tabs->connect("tab_hover", this, "_scene_tab_hover");
 	scene_tabs->connect("mouse_exited", this, "_scene_tab_exit");
 	scene_tabs->connect("gui_input", this, "_scene_tab_input");
+	scene_tabs->connect("reposition_active_tab_request", this, "_reposition_active_tab");
 
 	HBoxContainer *tabbar_container = memnew(HBoxContainer);
 	scene_tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -5892,7 +5899,7 @@ EditorNode::EditorNode() {
 	search_button = memnew(ToolButton);
 	search_button->set_toggle_mode(true);
 	search_button->set_pressed(false);
-	search_button->set_icon(gui_base->get_icon("Zoom", "EditorIcons"));
+	search_button->set_icon(gui_base->get_icon("Search", "EditorIcons"));
 	prop_editor_hb->add_child(search_button);
 	search_button->connect("toggled", this, "_toggle_search_bar");
 
@@ -6336,21 +6343,17 @@ EditorNode::EditorNode() {
 
 	add_editor_plugin( memnew( ShaderEditorPlugin(this,false) ) );*/
 	add_editor_plugin(memnew(CameraEditorPlugin(this)));
-	//	add_editor_plugin( memnew( SampleEditorPlugin(this) ) );
-	//	add_editor_plugin( memnew( SampleLibraryEditorPlugin(this) ) );
 	add_editor_plugin(memnew(ThemeEditorPlugin(this)));
 	add_editor_plugin(memnew(MultiMeshEditorPlugin(this)));
 	add_editor_plugin(memnew(MeshInstanceEditorPlugin(this)));
 	add_editor_plugin(memnew(AnimationTreeEditorPlugin(this)));
-	//add_editor_plugin( memnew( SamplePlayerEditorPlugin(this) ) ); - this is kind of useless at this point
 	//add_editor_plugin( memnew( MeshLibraryEditorPlugin(this) ) );
-	//add_editor_plugin( memnew( StreamEditorPlugin(this) ) );
 	add_editor_plugin(memnew(StyleBoxEditorPlugin(this)));
 	add_editor_plugin(memnew(ParticlesEditorPlugin(this)));
 	add_editor_plugin(memnew(ResourcePreloaderEditorPlugin(this)));
 	add_editor_plugin(memnew(ItemListEditorPlugin(this)));
 	//add_editor_plugin( memnew( RichTextEditorPlugin(this) ) );
-	//add_editor_plugin( memnew( CollisionPolygonEditorPlugin(this) ) );
+	add_editor_plugin(memnew(CollisionPolygonEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionPolygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(TileSetEditorPlugin(this)));
 	add_editor_plugin(memnew(TileMapEditorPlugin(this)));
@@ -6360,7 +6363,6 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(GIProbeEditorPlugin(this)));
 	add_editor_plugin(memnew(Path2DEditorPlugin(this)));
 	add_editor_plugin(memnew(PathEditorPlugin(this)));
-	//add_editor_plugin( memnew( BakedLightEditorPlugin(this) ) );
 	add_editor_plugin(memnew(Line2DEditorPlugin(this)));
 	add_editor_plugin(memnew(Polygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(LightOccluder2DEditorPlugin(this)));
@@ -6529,10 +6531,10 @@ EditorNode::EditorNode() {
 	_dim_timer->connect("timeout", this, "_dim_timeout");
 	add_child(_dim_timer);
 
-	ED_SHORTCUT("editor/editor_2d", TTR("Open 2D Editor"), KEY_F2);
-	ED_SHORTCUT("editor/editor_3d", TTR("Open 3D Editor"), KEY_F3);
-	ED_SHORTCUT("editor/editor_script", TTR("Open Script Editor"), KEY_F4);
-	ED_SHORTCUT("editor/editor_help", TTR("Search Help"), KEY_F1);
+	ED_SHORTCUT("editor/editor_2d", TTR("Open 2D Editor"), KEY_F1);
+	ED_SHORTCUT("editor/editor_3d", TTR("Open 3D Editor"), KEY_F2);
+	ED_SHORTCUT("editor/editor_script", TTR("Open Script Editor"), KEY_F3); //hack neded for script editor F3 search to work :) Assign like this or don't use F3
+	ED_SHORTCUT("editor/editor_help", TTR("Search Help"), KEY_F4);
 	ED_SHORTCUT("editor/editor_assetlib", TTR("Open Asset Library"));
 	ED_SHORTCUT("editor/editor_next", TTR("Open the next Editor"));
 	ED_SHORTCUT("editor/editor_prev", TTR("Open the previous Editor"));

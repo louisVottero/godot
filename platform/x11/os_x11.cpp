@@ -508,22 +508,17 @@ void OS_X11::xim_destroy_callback(::XIM im, ::XPointer client_data,
 	os->xic = NULL;
 }
 
-void OS_X11::set_ime_position(short x, short y) {
+void OS_X11::set_ime_position(const Point2 &p_pos) {
 
-	if (!xic) {
+	if (!xic)
 		return;
-	}
+
 	::XPoint spot;
-	spot.x = x;
-	spot.y = y;
-	XVaNestedList preedit_attr = XVaCreateNestedList(0,
-			XNSpotLocation, &spot,
-			NULL);
-	XSetICValues(xic,
-			XNPreeditAttributes, preedit_attr,
-			NULL);
+	spot.x = short(p_pos.x);
+	spot.y = short(p_pos.y);
+	XVaNestedList preedit_attr = XVaCreateNestedList(0, XNSpotLocation, &spot, NULL);
+	XSetICValues(xic, XNPreeditAttributes, preedit_attr, NULL);
 	XFree(preedit_attr);
-	return;
 }
 
 void OS_X11::finalize() {
@@ -691,6 +686,16 @@ void OS_X11::get_fullscreen_mode_list(List<VideoMode> *p_list, int p_screen) con
 }
 
 void OS_X11::set_wm_fullscreen(bool p_enabled) {
+	if (p_enabled && !is_window_resizable()) {
+		// Set the window as resizable to prevent window managers to ignore the fullscreen state flag.
+		XSizeHints *xsh;
+
+		xsh = XAllocSizeHints();
+		xsh->flags = 0L;
+		XSetWMNormalHints(x11_display, x11_window, xsh);
+		XFree(xsh);
+	}
+
 	// Using EWMH -- Extened Window Manager Hints
 	XEvent xev;
 	Atom wm_state = XInternAtom(x11_display, "_NET_WM_STATE", False);
@@ -706,6 +711,23 @@ void OS_X11::set_wm_fullscreen(bool p_enabled) {
 	xev.xclient.data.l[2] = 0;
 
 	XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+	XFlush(x11_display);
+
+	if (!p_enabled && !is_window_resizable()) {
+		// Reset the non-resizable flags if we un-set these before.
+		Size2 size = get_window_size();
+		XSizeHints *xsh;
+
+		xsh = XAllocSizeHints();
+		xsh->flags = PMinSize | PMaxSize;
+		xsh->min_width = size.x;
+		xsh->max_width = size.x;
+		xsh->min_height = size.y;
+		xsh->max_height = size.y;
+
+		XSetWMNormalHints(x11_display, x11_window, xsh);
+		XFree(xsh);
+	}
 }
 
 int OS_X11::get_screen_count() const {
@@ -1489,7 +1511,7 @@ void OS_X11::process_xevents() {
 			case ConfigureNotify:
 				if (xic) {
 					//  Not portable.
-					set_ime_position(0, 1);
+					set_ime_position(Point2(0, 1));
 				}
 				/* call resizeGLScene only if our window-size changed */
 

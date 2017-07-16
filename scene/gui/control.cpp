@@ -1229,8 +1229,8 @@ void Control::_size_changed() {
 		}
 	}
 
-	Point2 new_pos_cache = Point2(margin_pos[0], margin_pos[1]).floor();
-	Size2 new_size_cache = Point2(margin_pos[2], margin_pos[3]).floor() - new_pos_cache;
+	Point2 new_pos_cache = Point2(margin_pos[0], margin_pos[1]);
+	Size2 new_size_cache = Point2(margin_pos[2], margin_pos[3]) - new_pos_cache;
 
 	Size2 minimum_size = get_combined_minimum_size();
 
@@ -2534,8 +2534,8 @@ void Control::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_filter", PROPERTY_HINT_ENUM, "Stop,Pass,Ignore"), "set_mouse_filter", "get_mouse_filter");
 
 	ADD_GROUP("Size Flags", "size_flags_");
-	ADD_PROPERTYNO(PropertyInfo(Variant::INT, "size_flags_horizontal", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_h_size_flags", "get_h_size_flags");
-	ADD_PROPERTYNO(PropertyInfo(Variant::INT, "size_flags_vertical", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_v_size_flags", "get_v_size_flags");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_horizontal", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_h_size_flags", "get_h_size_flags");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_vertical", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_v_size_flags", "get_v_size_flags");
 	ADD_PROPERTYNO(PropertyInfo(Variant::INT, "size_flags_stretch_ratio", PROPERTY_HINT_RANGE, "1,128,0.01"), "set_stretch_ratio", "get_stretch_ratio");
 	ADD_GROUP("Theme", "");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT, "theme", PROPERTY_HINT_RESOURCE_TYPE, "Theme"), "set_theme", "get_theme");
