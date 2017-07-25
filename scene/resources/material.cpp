@@ -334,6 +334,9 @@ void SpatialMaterial::_update_shader() {
 	if (flags[FLAG_ONTOP]) {
 		code += ",ontop";
 	}
+	if (flags[FLAG_USE_VERTEX_LIGHTING]) {
+		code += ",vertex_lighting";
+	}
 
 	if (flags[FLAG_UV1_USE_TRIPLANAR] || flags[FLAG_UV2_USE_TRIPLANAR]) {
 		code += ",world_vertex_coords";
@@ -442,6 +445,11 @@ void SpatialMaterial::_update_shader() {
 	if (flags[FLAG_USE_POINT_SIZE]) {
 
 		code += "\tPOINT_SIZE=point_size;\n";
+	}
+
+	if (flags[FLAG_USE_VERTEX_LIGHTING]) {
+
+		code += "\tROUGHNESS=roughness;\n";
 	}
 
 	if (!flags[FLAG_UV1_USE_TRIPLANAR]) {
@@ -1391,13 +1399,13 @@ void SpatialMaterial::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_specular_mode"), &SpatialMaterial::get_specular_mode);
 
 	ClassDB::bind_method(D_METHOD("set_flag", "flag", "enable"), &SpatialMaterial::set_flag);
-	ClassDB::bind_method(D_METHOD("get_flag"), &SpatialMaterial::get_flag);
+	ClassDB::bind_method(D_METHOD("get_flag", "flag"), &SpatialMaterial::get_flag);
 
 	ClassDB::bind_method(D_METHOD("set_feature", "feature", "enable"), &SpatialMaterial::set_feature);
 	ClassDB::bind_method(D_METHOD("get_feature", "feature"), &SpatialMaterial::get_feature);
 
-	ClassDB::bind_method(D_METHOD("set_texture", "param:Texture", "texture"), &SpatialMaterial::set_texture);
-	ClassDB::bind_method(D_METHOD("get_texture:Texture", "param:Texture"), &SpatialMaterial::get_texture);
+	ClassDB::bind_method(D_METHOD("set_texture", "param", "texture:Texture"), &SpatialMaterial::set_texture);
+	ClassDB::bind_method(D_METHOD("get_texture:Texture", "param"), &SpatialMaterial::get_texture);
 
 	ClassDB::bind_method(D_METHOD("set_detail_blend_mode", "detail_blend_mode"), &SpatialMaterial::set_detail_blend_mode);
 	ClassDB::bind_method(D_METHOD("get_detail_blend_mode"), &SpatialMaterial::get_detail_blend_mode);
@@ -1450,6 +1458,7 @@ void SpatialMaterial::_bind_methods() {
 	ADD_GROUP("Flags", "flags_");
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_transparent"), "set_feature", "get_feature", FEATURE_TRANSPARENT);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_unshaded"), "set_flag", "get_flag", FLAG_UNSHADED);
+	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_vertex_lighting"), "set_flag", "get_flag", FLAG_USE_VERTEX_LIGHTING);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_on_top"), "set_flag", "get_flag", FLAG_ONTOP);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_use_point_size"), "set_flag", "get_flag", FLAG_USE_POINT_SIZE);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_fixed_size"), "set_flag", "get_flag", FLAG_FIXED_SIZE);
@@ -1605,6 +1614,7 @@ void SpatialMaterial::_bind_methods() {
 	BIND_CONSTANT(CULL_DISABLED);
 
 	BIND_CONSTANT(FLAG_UNSHADED);
+	BIND_CONSTANT(FLAG_USE_VERTEX_LIGHTING);
 	BIND_CONSTANT(FLAG_ONTOP);
 	BIND_CONSTANT(FLAG_ALBEDO_FROM_VERTEX_COLOR);
 	BIND_CONSTANT(FLAG_SRGB_VERTEX_COLOR)

@@ -32,13 +32,13 @@
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
 #include "editor/script_editor_debugger.h"
-#include "project_settings.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "os/file_access.h"
 #include "os/input.h"
 #include "os/keyboard.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "scene/main/viewport.h"
 
 /*** SCRIPT EDITOR ****/
@@ -518,6 +518,9 @@ void ScriptEditor::_close_tab(int p_idx, bool p_save) {
 		_add_recent_script(help->get_class());
 	}
 
+	// roll back to previous tab
+	_history_back();
+
 	//remove from history
 	history.resize(history_pos + 1);
 
@@ -793,10 +796,10 @@ Ref<Script> ScriptEditor::_get_current_script() {
 	}
 }
 
-Array ScriptEditor::_get_opened_script_list() const {
+Array ScriptEditor::_get_open_scripts() const {
 
 	Array ret;
-	Vector<Ref<Script> > scripts = get_opened_scripts();
+	Vector<Ref<Script> > scripts = get_open_scripts();
 	int scrits_amount = scripts.size();
 	for (int idx_script = 0; idx_script < scrits_amount; idx_script++) {
 		ret.push_back(scripts[idx_script]);
@@ -1159,7 +1162,7 @@ void ScriptEditor::notify_script_close(const Ref<Script> &p_script) {
 }
 
 void ScriptEditor::notify_script_changed(const Ref<Script> &p_script) {
-	emit_signal("script_changed", p_script);
+	emit_signal("editor_script_changed", p_script);
 }
 
 static const Node *_find_node_with_script(const Node *p_node, const RefPtr &p_script) {
@@ -1316,7 +1319,8 @@ void ScriptEditor::ensure_focus_current() {
 
 	int cidx = tab_container->get_current_tab();
 	if (cidx < 0 || cidx >= tab_container->get_tab_count())
-		;
+		return;
+
 	Control *c = tab_container->get_child(cidx)->cast_to<Control>();
 	if (!c)
 		return;
@@ -1406,6 +1410,11 @@ struct _ScriptEditorItemData {
 };
 
 void ScriptEditor::_update_members_overview_visibility() {
+
+	int selected = tab_container->get_current_tab();
+	if (selected < 0 || selected >= tab_container->get_child_count())
+		return;
+
 	Node *current = tab_container->get_child(tab_container->get_current_tab());
 	ScriptEditorBase *se = current->cast_to<ScriptEditorBase>();
 	if (!se) {
@@ -1422,6 +1431,10 @@ void ScriptEditor::_update_members_overview_visibility() {
 
 void ScriptEditor::_update_members_overview() {
 	members_overview->clear();
+
+	int selected = tab_container->get_current_tab();
+	if (selected < 0 || selected >= tab_container->get_child_count())
+		return;
 
 	Node *current = tab_container->get_child(tab_container->get_current_tab());
 	ScriptEditorBase *se = current->cast_to<ScriptEditorBase>();
@@ -2104,7 +2117,7 @@ void ScriptEditor::_history_back() {
 	}
 }
 
-Vector<Ref<Script> > ScriptEditor::get_opened_scripts() const {
+Vector<Ref<Script> > ScriptEditor::get_open_scripts() const {
 
 	Vector<Ref<Script> > out_scripts = Vector<Ref<Script> >();
 
@@ -2213,9 +2226,9 @@ void ScriptEditor::_bind_methods() {
 	ClassDB::bind_method("_unhandled_input", &ScriptEditor::_unhandled_input);
 
 	ClassDB::bind_method(D_METHOD("get_current_script"), &ScriptEditor::_get_current_script);
-	ClassDB::bind_method(D_METHOD("get_opened_scripts_list"), &ScriptEditor::_get_opened_script_list);
+	ClassDB::bind_method(D_METHOD("get_open_scripts"), &ScriptEditor::_get_open_scripts);
 
-	ADD_SIGNAL(MethodInfo("script_changed", PropertyInfo(Variant::OBJECT, "script:Script")));
+	ADD_SIGNAL(MethodInfo("editor_script_changed", PropertyInfo(Variant::OBJECT, "script:Script")));
 	ADD_SIGNAL(MethodInfo("script_close", PropertyInfo(Variant::STRING, "script:String")));
 }
 

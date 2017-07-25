@@ -55,7 +55,7 @@ static _ALWAYS_INLINE_ T _atomic_decrement_impl(register T *pw) {
 }
 
 template <class T>
-static _ALWAYS_INLINE_T _atomic_increment_impl(register T *pw) {
+static _ALWAYS_INLINE_ T _atomic_increment_impl(register T *pw) {
 
 	(*pw)++;
 
@@ -71,7 +71,7 @@ static _ALWAYS_INLINE_ T _atomic_sub_impl(register T *pw, register T val) {
 }
 
 template <class T>
-static _ALWAYS_INLINE_T _atomic_add_impl(register T *pw, register T val) {
+static _ALWAYS_INLINE_ T _atomic_add_impl(register T *pw, register T val) {
 
 	(*pw) += val;
 
@@ -185,7 +185,7 @@ static _ALWAYS_INLINE_ uint64_t _atomic_increment_impl(register uint64_t *pw) {
 
 static _ALWAYS_INLINE_ uint64_t _atomic_sub_impl(register uint64_t *pw, register uint64_t val) {
 
-#if _WIN32_WINNT >= 0x0601 // Windows 7+
+#if _WIN32_WINNT >= 0x0601 && !defined(UWP_ENABLED) // Windows 7+ except UWP
 	return InterlockedExchangeSubtract64(pw, val) - val;
 #else
 	return InterlockedExchangeAdd64((LONGLONG volatile *)pw, -(int64_t)val) - val;
