@@ -245,7 +245,7 @@
 			<description>
 				Returns the floating-point remainder of x/y (rounded towards zero):
 				[codeblock]
-				fmod = x - tquot * y 
+				fmod = x - tquot * y
 				[/codeblock]
 				Where tquot is the truncated (i.e., rounded towards zero) result of: x/y.
 			</description>
@@ -746,13 +746,16 @@
 			[AudioServer] singleton
 		</member>
 		<member name="ClassDB" type="ClassDB" setter="" getter="" brief="">
+			[ClassDB] singleton
 		</member>
 		<member name="Engine" type="Engine" setter="" getter="" brief="">
+			[Engine] singleton
 		</member>
 		<member name="Geometry" type="Geometry" setter="" getter="" brief="">
 			[Geometry] singleton
 		</member>
 		<member name="ProjectSettings" type="ProjectSettings" setter="" getter="" brief="">
+			[ProjectSettings] singleton
 		</member>
 		<member name="IP" type="IP" setter="" getter="" brief="">
 			[IP] singleton
@@ -4632,7 +4635,7 @@
 			<argument index="0" name="from" type="PoolColorArray">
 			</argument>
 			<description>
-				Construct an array from a [PoolByteArray].
+				Construct an array from a [PoolColorArray].
 			</description>
 		</method>
 		<method name="Array">
@@ -4641,7 +4644,7 @@
 			<argument index="0" name="from" type="PoolVector3Array">
 			</argument>
 			<description>
-				Construct an array from a [PoolByteArray].
+				Construct an array from a [PoolVector3Array].
 			</description>
 		</method>
 		<method name="Array">
@@ -4650,7 +4653,7 @@
 			<argument index="0" name="from" type="PoolVector2Array">
 			</argument>
 			<description>
-				Construct an array from a [PoolByteArray].
+				Construct an array from a [PoolVector2Array].
 			</description>
 		</method>
 		<method name="Array">
@@ -4677,7 +4680,7 @@
 			<argument index="0" name="from" type="PoolIntArray">
 			</argument>
 			<description>
-				Construct an array from a [PoolByteArray].
+				Construct an array from a [PoolIntArray].
 			</description>
 		</method>
 		<method name="Array">
@@ -10169,10 +10172,71 @@
 			<description>
 			</description>
 		</method>
+		<method name="create_shape_owner">
+			<return type="int">
+			</return>
+			<argument index="0" name="owner" type="Object">
+			</argument>
+			<description>
+				Creates new holder for the shapes. Argument is a [CollisionShape] node. It will return owner_id which usually you will want to save for later use.
+			</description>
+		</method>
 		<method name="get_rid" qualifiers="const">
 			<return type="RID">
 			</return>
 			<description>
+			</description>
+		</method>
+		<method name="get_shape_owners">
+			<return type="Array">
+			</return>
+			<description>
+				Shape owner is a node which is holding concrete shape resources. This method will return an array which is holding an integer numbers that are representing unique ID of each owner. You can use those ids when you are using others shape_owner methods.
+			</description>
+		</method>
+		<method name="shape_owner_clear_shapes">
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Will remove all the shapes associated with given owner.
+			</description>
+		</method>
+		<method name="shape_owner_get_shape">
+			<return type="Shape">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<argument index="1" name="shape_id" type="int">
+			</argument>
+			<description>
+				Will return a [Shape]. First argument owner_id is an integer that can be obtained from [method get_shape_owners]. Shape_id is a position of the shape inside owner; it's a value in range from 0 to [method shape_owner_get_shape_count].
+			</description>
+		</method>
+		<method name="shape_owner_get_shape_count">
+			<return type="int">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Returns number of shapes to which given owner is associated to.
+			</description>
+		</method>
+		<method name="shape_owner_get_transform">
+			<return type="Transform">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Will return [Transform] of an owner node.
+			</description>
+		</method>
+		<method name="shape_owner_remove_shape">
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<argument index="1" name="shape_id" type="int">
+			</argument>
+			<description>
+				Removes related shape from the owner.
 			</description>
 		</method>
 		<method name="is_ray_pickable" qualifiers="const">
@@ -10245,11 +10309,72 @@
 			<description>
 			</description>
 		</method>
+		<method name="create_shape_owner">
+			<return type="int">
+			</return>
+			<argument index="0" name="owner" type="Object">
+			</argument>
+			<description>
+				Creates new holder for the shapes. Argument is a [CollisionShape2D] node. It will return owner_id which usually you will want to save for later use.
+			</description>
+		</method>
 		<method name="get_rid" qualifiers="const">
 			<return type="RID">
 			</return>
 			<description>
 				Return the RID of this object.
+			</description>
+		</method>
+		<method name="get_shape_owners">
+			<return type="Array">
+			</return>
+			<description>
+				Shape owner is a node which is holding concrete shape resources. This method will return an array which is holding an integer numbers that are representing unique ID of each owner. You can use those ids when you are using others shape_owner methods.
+			</description>
+		</method>
+		<method name="shape_owner_clear_shapes">
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Will remove all the shapes associated with given owner.
+			</description>
+		</method>
+		<method name="shape_owner_get_shape">
+			<return type="Shape2D">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<argument index="1" name="shape_id" type="int">
+			</argument>
+			<description>
+				Will return a [Shape2D]. First argument owner_id is an integer that can be obtained from [method get_shape_owners]. Shape_id is a position of the shape inside owner; it's a value in range from 0 to [method shape_owner_get_shape_count].
+			</description>
+		</method>
+		<method name="shape_owner_get_shape_count">
+			<return type="int">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Returns number of shapes to which given owner is associated to.
+			</description>
+		</method>
+		<method name="shape_owner_get_transform">
+			<return type="Transform2D">
+			</return>
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<description>
+				Will return [Transform2D] of an owner node.
+			</description>
+		</method>
+		<method name="shape_owner_remove_shape">
+			<argument index="0" name="owner_id" type="int">
+			</argument>
+			<argument index="1" name="shape_id" type="int">
+			</argument>
+			<description>
+				Removes related shape from the owner.
 			</description>
 		</method>
 		<method name="is_pickable" qualifiers="const">
@@ -11394,7 +11519,7 @@
 			<return type="Rect2">
 			</return>
 			<description>
-				Return position and size of the Control, relative to the top-left corner of the [i]window[/i] Control. This is a helper (see [method get_global_pos], [method get_size]).
+				Return position and size of the Control, relative to the top-left corner of the [i]window[/i] Control. This is a helper (see [method get_global_position], [method get_size]).
 			</description>
 		</method>
 		<method name="get_h_grow_direction" qualifiers="const">
@@ -11472,7 +11597,7 @@
 			<return type="Rect2">
 			</return>
 			<description>
-				Return position and size of the Control, relative to the top-left corner of the parent Control. This is a helper (see [method get_pos], [method get_size]).
+				Return position and size of the Control, relative to the top-left corner of the parent Control. This is a helper (see [method get_position], [method get_size]).
 			</description>
 		</method>
 		<method name="get_rotation" qualifiers="const">
@@ -17793,7 +17918,7 @@
 		Contains global variables accessible from everywhere.
 	</brief_description>
 	<description>
-		Contains global variables accessible from everywhere. Use the normal [Object] API, such as "Globals.get(variable)", "Globals.set(variable,value)" or "Globals.has(variable)" to access them. Variables stored in project.godot are also loaded into globals, making this object very useful for reading custom game configuration options.
+		Contains global variables accessible from everywhere. Use the normal [Object] API, such as "ProjectSettings.get(variable)", "ProjectSettings.set(variable,value)" or "ProjectSettings.has(variable)" to access them. Variables stored in project.godot are also loaded into ProjectSettings, making this object very useful for reading custom game configuration options.
 	</description>
 	<methods>
 		<method name="add_property_info">
@@ -17803,7 +17928,7 @@
 				Add a custom property info to a property. The dictionary must contain: name:[String](the name of the property) and type:[int](see TYPE_* in [@Global Scope]), and optionally hint:[int](see PROPERTY_HINT_* in [@Global Scope]), hint_string:[String].
 				Example:
 				[codeblock]
-				Globals.set("category/property_name", 0)
+				ProjectSettings.set("category/property_name", 0)
 
 				var property_info = {
 				    "name": "category/property_name",
@@ -17812,7 +17937,7 @@
 				    "hint_string": "one,two,three"
 				}
 
-				Globals.add_property_info(property_info)
+				ProjectSettings.add_property_info(property_info)
 				[/codeblock]
 			</description>
 		</method>
@@ -21520,7 +21645,7 @@
 		</method>
 		<method name="load_from_globals">
 			<description>
-				Clear the [InputMap] and load it anew from [Globals].
+				Clear the [InputMap] and load it anew from [ProjectSettings].
 			</description>
 		</method>
 	</methods>
@@ -22387,7 +22512,16 @@
 			<argument index="0" name="rel_vec" type="Vector3">
 			</argument>
 			<description>
-				Move the body in the given direction, stopping if there is an obstacle. The returned vector is how much movement was remaining before being stopped.
+				Move the body in the given direction, stopping if there is an obstacle. If as a result of a movement there will be any collision then informations about this collision will be in returned dictionary. Dictionary will contains those keys:
+				- "position" - collision position
+				- "normal" - collision normal
+				- "local_shape" - id of this kinematic body shape that took part in a collision
+				- "travel" -  traveled movement before being stopped
+				- "remainder" - remaining movement before being stopped
+				- "collider_id" - id of the collider, it can be used when dealing with [PhysicsServer]
+				- "collider" - colliding body
+				- "collider_shape_index" - index of the colliding shape, inside collider body "collider_metadata"
+				If the body did not intersect anything, then an empty dictionary (dir.empty()==true) is returned instead. Please note that this method is less user friendly than [method move_and_slide]. If you don't want to program each edge case manually, then it's recommended to use [method move_and_slide] instead.
 			</description>
 		</method>
 		<method name="move_and_slide">
@@ -22569,7 +22703,16 @@
 			<argument index="0" name="rel_vec" type="Vector2">
 			</argument>
 			<description>
-				Move the body in the given direction, stopping if there is an obstacle. The returned vector is how much movement was remaining before being stopped.
+				Move the body in the given direction, stopping if there is an obstacle. If as a result of a movement there will be any collision then informations about this collision will be in returned dictionary.	Dictionary will contains those keys:
+				- "position" - collision position
+				- "normal" - collision normal
+				- "local_shape" - id of this kinematic body shape that took part in a collision
+				- "travel" -  traveled movement before being stopped
+				- "remainder" - remaining movement before being stopped
+				- "collider_id" - id of the collider, it can be used when dealing with [Physics2DServer]
+				- "collider" - colliding body
+				- "collider_shape_index" - index of the colliding shape, inside collider body "collider_metadata"
+				If the body did not intersect anything, then an empty dictionary (dir.empty()==true) is returned instead. Please note that this method is less user friendly than [method move_and_slide]. If you don't want to program each edge case manually, then it's recommended to use [method move_and_slide] instead.
 			</description>
 		</method>
 		<method name="move_and_slide">
@@ -24949,7 +25092,7 @@
 		MultiMesh provides low level mesh instancing. If the amount of [Mesh] instances needed goes from hundreds to thousands (and most need to be visible at close proximity) creating such a large amount of [MeshInstance] nodes may affect performance by using too much CPU or video memory.
 		For this case a MultiMesh becomes very useful, as it can draw thousands of instances with little API overhead.
 		As a drawback, if the instances are too far away of each other, performance may be reduced as every single instance will always rendered (they are spatially indexed as one, for the whole object).
-		Since instances may have any behavior, the Rect3 used for visibility must be provided by the user, or generated with [method generate_aabb].
+		Since instances may have any behavior, the Rect3 used for visibility must be provided by the user.
 	</description>
 	<methods>
 		<method name="get_aabb" qualifiers="const">
@@ -27879,7 +28022,7 @@
 			<return type="Array">
 			</return>
 			<description>
-				Return the property list, array of dictionaries, dictionaries must contain: name:String, type:int (see TYPE_* enum in globals) and optionally: hint:int (see PROPERTY_HINT_* in globals), hint_string:String, usage:int (see PROPERTY_USAGE_* in globals).
+				Return the property list, array of dictionaries, dictionaries must contain: name:String, type:int (see TYPE_* enum in [@Global Scope]) and optionally: hint:int (see PROPERTY_HINT_* in [@Global Scope]), hint_string:String, usage:int (see PROPERTY_USAGE_* in [@Global Scope]).
 			</description>
 		</method>
 		<method name="_init" qualifiers="virtual">
@@ -28040,7 +28183,7 @@
 			<return type="Array">
 			</return>
 			<description>
-				Return the list of properties as an array of dictionaries, dictionaries contain: name:String, type:int (see TYPE_* enum in globals) and optionally: hint:int (see PROPERTY_HINT_* in globals), hint_string:String, usage:int (see PROPERTY_USAGE_* in globals).
+				Return the list of properties as an array of dictionaries, dictionaries contain: name:String, type:int (see TYPE_* enum in [@Global Scope]) and optionally: hint:int (see PROPERTY_HINT_* in [@Global Scope]), hint_string:String, usage:int (see PROPERTY_USAGE_* in [@Global Scope]).
 			</description>
 		</method>
 		<method name="get_script" qualifiers="const">
@@ -34483,7 +34626,7 @@
 			<argument index="1" name="to" type="int">
 			</argument>
 			<description>
-				Returns the slice of the [PoolByteArray] between indices (inclusive) as a new [RawArray].  Any negative index is considered to be from the end of the array.
+				Returns the slice of the [PoolByteArray] between indices (inclusive) as a new [PoolByteArray].  Any negative index is considered to be from the end of the array.
 			</description>
 		</method>
 	</methods>
@@ -37140,7 +37283,7 @@
 			<argument index="0" name="with" type="Rect3">
 			</argument>
 			<description>
-				Return the intersection between two [Rect3]. An empty AABB (size 0,0,0) is returned on failure.
+				Return the intersection between two [Rect3]. An empty Rect3 (size 0,0,0) is returned on failure.
 			</description>
 		</method>
 		<method name="intersects">

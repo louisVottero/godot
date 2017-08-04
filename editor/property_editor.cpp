@@ -1957,11 +1957,6 @@ CustomPropertyEditor::CustomPropertyEditor() {
 	add_child(error);
 	//error->get_cancel()->hide();
 
-	type_button = memnew(MenuButton);
-	add_child(type_button);
-	type_button->hide();
-	type_button->get_popup()->connect("id_pressed", this, "_type_create_selected");
-
 	scene_tree = memnew(SceneTreeDialog);
 	add_child(scene_tree);
 	scene_tree->connect("selected", this, "_node_path_selected");
@@ -1978,6 +1973,11 @@ CustomPropertyEditor::CustomPropertyEditor() {
 	easing_draw->connect("gui_input", this, "_drag_easing");
 	//easing_draw->emit_signal(SceneStringNames::get_singleton()->input_event,InputEvent());
 	easing_draw->set_default_cursor_shape(Control::CURSOR_MOVE);
+
+	type_button = memnew(MenuButton);
+	add_child(type_button);
+	type_button->hide();
+	type_button->get_popup()->connect("id_pressed", this, "_type_create_selected");
 
 	menu = memnew(PopupMenu);
 	add_child(menu);
@@ -2199,7 +2199,6 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 		case Variant::BOOL: {
 
 			p_item->set_checked(1, obj->get(p_name));
-			p_item->set_text(1, obj->get(p_name) ? TTR("On") : TTR("Off"));
 		} break;
 		case Variant::REAL:
 		case Variant::INT: {
@@ -3142,7 +3141,7 @@ void PropertyEditor::update_tree() {
 			case Variant::BOOL: {
 
 				item->set_cell_mode(1, TreeItem::CELL_MODE_CHECK);
-				item->set_text(1, obj->get(p.name) ? TTR("On") : TTR("Off"));
+				item->set_text(1, TTR("On"));
 				item->set_tooltip(1, obj->get(p.name) ? "True" : "False");
 				item->set_checked(1, obj->get(p.name));
 				if (show_type_icons)
@@ -3859,7 +3858,7 @@ void PropertyEditor::_item_edited() {
 				break;
 
 			if (type == Variant::INT)
-				_edit_set(name, int(item->get_range(1)), refresh_all);
+				_edit_set(name, round(item->get_range(1)), refresh_all);
 			else
 				_edit_set(name, item->get_range(1), refresh_all);
 		} break;

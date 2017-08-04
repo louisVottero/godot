@@ -35,7 +35,7 @@
 #include "os/thread_safe.h"
 #include "resource.h"
 
-#include "godot/gdnative.h"
+#include <godot/gdnative.h>
 
 class GDNativeLibrary : public Resource {
 	GDCLASS(GDNativeLibrary, Resource)
@@ -117,7 +117,6 @@ class GDNative : public Reference {
 	GDCLASS(GDNative, Reference)
 
 	Ref<GDNativeLibrary> library;
-	bool initialized;
 
 	// TODO(karroffel): different platforms? WASM????
 	void *native_handle;

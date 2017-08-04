@@ -155,7 +155,6 @@ String GDNativeLibrary::get_active_library_path() const {
 }
 
 GDNative::GDNative() {
-	initialized = false;
 	native_handle = NULL;
 }
 
@@ -185,6 +184,8 @@ void GDNative::_bind_methods() {
 }
 
 void GDNative::set_library(Ref<GDNativeLibrary> p_library) {
+	ERR_EXPLAIN("Tried to change library of GDNative when it is already set");
+	ERR_FAIL_COND(library.is_valid());
 	library = p_library;
 }
 
@@ -217,6 +218,9 @@ bool GDNative::initialize() {
 			library_init);
 
 	if (err || !library_init) {
+		OS::get_singleton()->close_dynamic_library(native_handle);
+		native_handle = NULL;
+		ERR_PRINT("Failed to obtain godot_gdnative_init symbol");
 		return false;
 	}
 
@@ -229,6 +233,7 @@ bool GDNative::initialize() {
 	options.core_api_hash = ClassDB::get_api_hash(ClassDB::API_CORE);
 	options.editor_api_hash = ClassDB::get_api_hash(ClassDB::API_EDITOR);
 	options.no_api_hash = ClassDB::get_api_hash(ClassDB::API_NONE);
+	options.gd_native_library = (godot_object *)(get_library().ptr());
 
 	library_init_fpointer(&options);
 
@@ -269,7 +274,11 @@ bool GDNative::terminate() {
 	OS::get_singleton()->close_dynamic_library(native_handle);
 	native_handle = NULL;
 
-	return false;
+	return true;
+}
+
+bool GDNative::is_initialized() {
+	return (native_handle != NULL);
 }
 
 void GDNativeCallRegistry::register_native_call_type(StringName p_call_type, native_call_cb p_callback) {
