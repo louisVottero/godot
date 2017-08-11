@@ -105,6 +105,7 @@ enum PropertyUsageFlags {
 	PROPERTY_USAGE_STORE_IF_NULL = 16384,
 	PROPERTY_USAGE_ANIMATE_AS_TRIGGER = 32768,
 	PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED = 65536,
+	PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE = 1 << 17,
 
 	PROPERTY_USAGE_DEFAULT = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK,
 	PROPERTY_USAGE_DEFAULT_INTL = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK | PROPERTY_USAGE_INTERNATIONALIZED,
@@ -533,7 +534,7 @@ public:
 
 	bool _is_gpl_reversed() const { return false; }
 
-	_FORCE_INLINE_ ObjectID get_instance_ID() const { return _instance_ID; }
+	_FORCE_INLINE_ ObjectID get_instance_id() const { return _instance_ID; }
 	// this is used for editors
 
 	void add_change_receptor(Object *p_receptor);

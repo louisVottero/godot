@@ -77,11 +77,11 @@ void Node::_notification(int p_notification) {
 			}
 
 			if (data.input)
-				add_to_group("_vp_input" + itos(get_viewport()->get_instance_ID()));
+				add_to_group("_vp_input" + itos(get_viewport()->get_instance_id()));
 			if (data.unhandled_input)
-				add_to_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_ID()));
+				add_to_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_id()));
 			if (data.unhandled_key_input)
-				add_to_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_ID()));
+				add_to_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_id()));
 
 			get_tree()->node_count++;
 
@@ -90,11 +90,11 @@ void Node::_notification(int p_notification) {
 
 			get_tree()->node_count--;
 			if (data.input)
-				remove_from_group("_vp_input" + itos(get_viewport()->get_instance_ID()));
+				remove_from_group("_vp_input" + itos(get_viewport()->get_instance_id()));
 			if (data.unhandled_input)
-				remove_from_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_ID()));
+				remove_from_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_id()));
 			if (data.unhandled_key_input)
-				remove_from_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_ID()));
+				remove_from_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_id()));
 
 			data.pause_owner = NULL;
 			if (data.path_cache) {
@@ -705,11 +705,11 @@ void Node::rpcp(int p_peer_id, bool p_unreliable, const StringName &p_method, co
 	ERR_FAIL_COND(!is_inside_tree());
 
 	bool skip_rpc = false;
+	bool call_local_native = false;
+	bool call_local_script = false;
 
 	if (p_peer_id == 0 || p_peer_id == get_tree()->get_network_unique_id() || (p_peer_id < 0 && p_peer_id != -get_tree()->get_network_unique_id())) {
 		//check that send mode can use local call
-
-		bool call_local = false;
 
 		Map<StringName, RPCMode>::Element *E = data.rpc_methods.find(p_method);
 		if (E) {
@@ -724,29 +724,22 @@ void Node::rpcp(int p_peer_id, bool p_unreliable, const StringName &p_method, co
 				} break;
 				case RPC_MODE_SYNC: {
 					//call it, sync always results in call
-					call_local = true;
+					call_local_native = true;
 				} break;
 				case RPC_MODE_MASTER: {
-					call_local = is_network_master();
-					if (call_local) {
+					call_local_native = is_network_master();
+					if (call_local_native) {
 						skip_rpc = true; //no other master so..
 					}
 				} break;
 				case RPC_MODE_SLAVE: {
-					call_local = !is_network_master();
+					call_local_native = !is_network_master();
 				} break;
 			}
 		}
 
-		if (call_local) {
-			Variant::CallError ce;
-			call(p_method, p_arg, p_argcount, ce);
-			if (ce.error != Variant::CallError::CALL_OK) {
-				String error = Variant::get_call_error_text(this, p_method, p_arg, p_argcount, ce);
-				error = "rpc() aborted in local call:  - " + error;
-				ERR_PRINTS(error);
-				return;
-			}
+		if (call_local_native) {
+			// done below
 		} else if (get_script_instance()) {
 			//attempt with script
 			ScriptInstance::RPCMode rpc_mode = get_script_instance()->get_rpc_mode(p_method);
@@ -761,37 +754,47 @@ void Node::rpcp(int p_peer_id, bool p_unreliable, const StringName &p_method, co
 				} break;
 				case ScriptInstance::RPC_MODE_SYNC: {
 					//call it, sync always results in call
-					call_local = true;
+					call_local_script = true;
 				} break;
 				case ScriptInstance::RPC_MODE_MASTER: {
-					call_local = is_network_master();
-					if (call_local) {
+					call_local_script = is_network_master();
+					if (call_local_script) {
 						skip_rpc = true; //no other master so..
 					}
 				} break;
 				case ScriptInstance::RPC_MODE_SLAVE: {
-					call_local = !is_network_master();
+					call_local_script = !is_network_master();
 				} break;
-			}
-
-			if (call_local) {
-				Variant::CallError ce;
-				ce.error = Variant::CallError::CALL_OK;
-				get_script_instance()->call(p_method, p_arg, p_argcount, ce);
-				if (ce.error != Variant::CallError::CALL_OK) {
-					String error = Variant::get_call_error_text(this, p_method, p_arg, p_argcount, ce);
-					error = "rpc() aborted in script local call:  - " + error;
-					ERR_PRINTS(error);
-					return;
-				}
 			}
 		}
 	}
 
-	if (skip_rpc)
-		return;
+	if (!skip_rpc) {
+		get_tree()->_rpc(this, p_peer_id, p_unreliable, false, p_method, p_arg, p_argcount);
+	}
 
-	get_tree()->_rpc(this, p_peer_id, p_unreliable, false, p_method, p_arg, p_argcount);
+	if (call_local_native) {
+		Variant::CallError ce;
+		call(p_method, p_arg, p_argcount, ce);
+		if (ce.error != Variant::CallError::CALL_OK) {
+			String error = Variant::get_call_error_text(this, p_method, p_arg, p_argcount, ce);
+			error = "rpc() aborted in local call:  - " + error;
+			ERR_PRINTS(error);
+			return;
+		}
+	}
+
+	if (call_local_script) {
+		Variant::CallError ce;
+		ce.error = Variant::CallError::CALL_OK;
+		get_script_instance()->call(p_method, p_arg, p_argcount, ce);
+		if (ce.error != Variant::CallError::CALL_OK) {
+			String error = Variant::get_call_error_text(this, p_method, p_arg, p_argcount, ce);
+			error = "rpc() aborted in script local call:  - " + error;
+			ERR_PRINTS(error);
+			return;
+		}
+	}
 }
 
 /******** RSET *********/
@@ -1115,9 +1118,9 @@ void Node::set_process_input(bool p_enable) {
 		return;
 
 	if (p_enable)
-		add_to_group("_vp_input" + itos(get_viewport()->get_instance_ID()));
+		add_to_group("_vp_input" + itos(get_viewport()->get_instance_id()));
 	else
-		remove_from_group("_vp_input" + itos(get_viewport()->get_instance_ID()));
+		remove_from_group("_vp_input" + itos(get_viewport()->get_instance_id()));
 }
 
 bool Node::is_processing_input() const {
@@ -1133,9 +1136,9 @@ void Node::set_process_unhandled_input(bool p_enable) {
 		return;
 
 	if (p_enable)
-		add_to_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_ID()));
+		add_to_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_id()));
 	else
-		remove_from_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_ID()));
+		remove_from_group("_vp_unhandled_input" + itos(get_viewport()->get_instance_id()));
 }
 
 bool Node::is_processing_unhandled_input() const {
@@ -1151,9 +1154,9 @@ void Node::set_process_unhandled_key_input(bool p_enable) {
 		return;
 
 	if (p_enable)
-		add_to_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_ID()));
+		add_to_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_id()));
 	else
-		remove_from_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_ID()));
+		remove_from_group("_vp_unhandled_key_input" + itos(get_viewport()->get_instance_id()));
 }
 
 bool Node::is_processing_unhandled_key_input() const {
@@ -2606,7 +2609,7 @@ static void _Node_debug_sn(Object *p_obj) {
 		path = n->get_name();
 	else
 		path = String(p->get_name()) + "/" + p->get_path_to(n);
-	print_line(itos(p_obj->get_instance_ID()) + "- Stray Node: " + path + " (Type: " + n->get_class() + ")");
+	print_line(itos(p_obj->get_instance_id()) + "- Stray Node: " + path + " (Type: " + n->get_class() + ")");
 }
 
 void Node::_print_stray_nodes() {

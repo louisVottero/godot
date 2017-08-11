@@ -375,6 +375,8 @@ void CanvasItemEditor::set_state(const Dictionary &p_state) {
 		int idx = skeleton_menu->get_item_index(SKELETON_SHOW_BONES);
 		skeleton_menu->set_item_checked(idx, skeleton_show_bones);
 	}
+
+	viewport->update();
 }
 
 void CanvasItemEditor::_add_canvas_item(CanvasItem *p_canvas_item) {
@@ -385,7 +387,7 @@ void CanvasItemEditor::_add_canvas_item(CanvasItem *p_canvas_item) {
 		return;
 
 	canvas_items.insert(p_canvas_item,p_info);
-	p_canvas_item->connect("hide",this,"_visibility_changed",varray(p_canvas_item->get_instance_ID()),CONNECT_ONESHOT);
+	p_canvas_item->connect("hide",this,"_visibility_changed",varray(p_canvas_item->get_instance_id()),CONNECT_ONESHOT);
 #endif
 }
 
@@ -1390,7 +1392,12 @@ void CanvasItemEditor::_viewport_gui_input(const Ref<InputEvent> &p_event) {
 		while ((n && n != scene && n->get_owner() != scene) || (n && !n->is_class("CanvasItem"))) {
 			n = n->get_parent();
 		};
-		c = n->cast_to<CanvasItem>();
+
+		if (n) {
+			c = n->cast_to<CanvasItem>();
+		} else {
+			c = NULL;
+		}
 
 		// Select the item
 		additive_selection = b->get_shift();
@@ -2204,7 +2211,7 @@ void CanvasItemEditor::_find_canvas_items_span(Node *p_node, Rect2 &r_rect, cons
 
 		if (c->has_meta("_edit_bone_")) {
 
-			ObjectID id = c->get_instance_ID();
+			ObjectID id = c->get_instance_id();
 			if (!bone_list.has(id)) {
 				BoneList bone;
 				bone.bone = id;
@@ -2769,7 +2776,7 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 					pc.pos = n2d->get_position();
 					pc.rot = n2d->get_rotation();
 					pc.scale = n2d->get_scale();
-					pc.id = n2d->get_instance_ID();
+					pc.id = n2d->get_instance_id();
 					pose_clipboard.push_back(pc);
 				}
 			}

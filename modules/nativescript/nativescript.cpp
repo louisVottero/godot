@@ -77,14 +77,12 @@ void NativeScript::_update_placeholder(PlaceHolderScriptInstance *p_placeholder)
 	ERR_FAIL_COND(!script_data);
 
 	List<PropertyInfo> info;
+	get_script_property_list(&info);
 	Map<StringName, Variant> values;
-
-	for (Map<StringName, NativeScriptDesc::Property>::Element *E = script_data->properties.front(); E; E = E->next()) {
-		PropertyInfo p = E->get().info;
-		p.name = String(E->key());
-
-		info.push_back(p);
-		values[p.name] = E->get().default_value;
+	for (List<PropertyInfo>::Element *E = info.front(); E; E = E->next()) {
+		Variant value;
+		get_property_default_value(E->get().name, value);
+		values[E->get().name] = value;
 	}
 
 	p_placeholder->update(info, values);
@@ -113,7 +111,7 @@ void NativeScript::set_library(Ref<GDNativeLibrary> p_library) {
 	lib_path = library->get_active_library_path();
 
 #ifndef NO_THREADS
-	if (Thread::get_caller_ID() != Thread::get_main_ID()) {
+	if (Thread::get_caller_id() != Thread::get_main_id()) {
 		NSL->defer_init_library(p_library, this);
 	} else
 #endif
@@ -317,11 +315,11 @@ void NativeScript::get_script_signal_list(List<MethodInfo> *r_signals) const {
 bool NativeScript::get_property_default_value(const StringName &p_property, Variant &r_value) const {
 	NativeScriptDesc *script_data = get_script_desc();
 
-	if (!script_data)
-		return false;
-
-	Map<StringName, NativeScriptDesc::Property>::Element *P = script_data->properties.find(p_property);
-
+	Map<StringName, NativeScriptDesc::Property>::Element *P = NULL;
+	while (!P && script_data) {
+		P = script_data->properties.find(p_property);
+		script_data = script_data->base_data;
+	}
 	if (!P)
 		return false;
 

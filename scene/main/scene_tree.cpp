@@ -540,6 +540,7 @@ bool SceneTree::iteration(float p_time) {
 	_notify_group_pause("fixed_process_internal", Node::NOTIFICATION_INTERNAL_FIXED_PROCESS);
 	_notify_group_pause("fixed_process", Node::NOTIFICATION_FIXED_PROCESS);
 	_flush_ugc();
+	MessageQueue::get_singleton()->flush(); //small little hack
 	_flush_transform_notifications();
 	call_group_flags(GROUP_CALL_REALTIME, "_viewports", "update_worlds");
 	root_lock--;
@@ -566,6 +567,8 @@ bool SceneTree::idle(float p_time) {
 
 	emit_signal("idle_frame");
 
+	MessageQueue::get_singleton()->flush(); //small little hack
+
 	_flush_transform_notifications();
 
 	_notify_group_pause("idle_process_internal", Node::NOTIFICATION_INTERNAL_PROCESS);
@@ -581,6 +584,7 @@ bool SceneTree::idle(float p_time) {
 	}
 
 	_flush_ugc();
+	MessageQueue::get_singleton()->flush(); //small little hack
 	_flush_transform_notifications(); //transforms after world update, to avoid unnecessary enter/exit notifications
 	call_group_flags(GROUP_CALL_REALTIME, "_viewports", "update_worlds");
 
@@ -1106,7 +1110,7 @@ static void _fill_array(Node *p_node, Array &array, int p_level) {
 	array.push_back(p_level);
 	array.push_back(p_node->get_name());
 	array.push_back(p_node->get_class());
-	array.push_back(p_node->get_instance_ID());
+	array.push_back(p_node->get_instance_id());
 	for (int i = 0; i < p_node->get_child_count(); i++) {
 
 		_fill_array(p_node->get_child(i), array, p_level + 1);
@@ -1141,7 +1145,7 @@ void SceneTree::queue_delete(Object *p_object) {
 	_THREAD_SAFE_METHOD_
 	ERR_FAIL_NULL(p_object);
 	p_object->_is_queued_for_deletion = true;
-	delete_queue.push_back(p_object->get_instance_ID());
+	delete_queue.push_back(p_object->get_instance_id());
 }
 
 int SceneTree::get_node_count() const {

@@ -247,7 +247,7 @@ void AnimationPlayer::_generate_node_caches(AnimationData *p_anim) {
 			ERR_EXPLAIN("On Animation: '" + p_anim->name + "', couldn't resolve track:  '" + String(a->track_get_path(i)) + "'");
 		}
 		ERR_CONTINUE(!child); // couldn't find the child node
-		uint32_t id = resource.is_valid() ? resource->get_instance_ID() : child->get_instance_ID();
+		uint32_t id = resource.is_valid() ? resource->get_instance_id() : child->get_instance_id();
 		int bone_idx = -1;
 
 		if (a->track_get_path(i).get_property() && child->cast_to<Skeleton>()) {
@@ -1268,7 +1268,7 @@ void AnimationPlayer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("advance", "delta"), &AnimationPlayer::advance);
 
-	ADD_GROUP("Playback", "playback_");
+	ADD_GROUP("Playback Options", "playback_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "playback_process_mode", PROPERTY_HINT_ENUM, "Fixed,Idle"), "set_animation_process_mode", "get_animation_process_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "playback_default_blend_time", PROPERTY_HINT_RANGE, "0,4096,0.01"), "set_default_blend_time", "get_default_blend_time");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "root_node"), "set_root", "get_root");

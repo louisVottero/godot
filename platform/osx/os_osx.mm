@@ -44,6 +44,9 @@
 #include <IOKit/IOKitLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
 #include <IOKit/hid/IOHIDLib.h>
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101200
+#include <os/log.h>
+#endif
 
 #include <fcntl.h>
 #include <libproc.h>
@@ -518,7 +521,7 @@ static int translateKey(unsigned int key) {
 		/* 21 */ KEY_BRACELEFT,
 		/* 22 */ KEY_I,
 		/* 23 */ KEY_P,
-		/* 24 */ KEY_RETURN,
+		/* 24 */ KEY_ENTER,
 		/* 25 */ KEY_L,
 		/* 26 */ KEY_J,
 		/* 27 */ KEY_APOSTROPHE,
@@ -558,7 +561,7 @@ static int translateKey(unsigned int key) {
 		/* 49 */ KEY_UNKNOWN, /* VolumeDown */
 		/* 4a */ KEY_UNKNOWN, /* Mute */
 		/* 4b */ KEY_KP_DIVIDE,
-		/* 4c */ KEY_ENTER,
+		/* 4c */ KEY_KP_ENTER,
 		/* 4d */ KEY_UNKNOWN,
 		/* 4e */ KEY_KP_SUBTRACT,
 		/* 4f */ KEY_UNKNOWN,
@@ -953,7 +956,7 @@ void OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 		visual_server = memnew(VisualServerWrapMT(visual_server, get_render_thread_mode() == RENDER_SEPARATE_THREAD));
 	}
 	visual_server->init();
-	visual_server->cursor_set_visible(false, 0);
+	//	visual_server->cursor_set_visible(false, 0);
 
 	AudioDriverManager::get_driver(p_audio_driver)->set_singleton();
 
@@ -1015,6 +1018,45 @@ void OS_OSX::delete_main_loop() {
 String OS_OSX::get_name() {
 
 	return "OSX";
+}
+
+void OS_OSX::print_error(const char *p_function, const char *p_file, int p_line, const char *p_code, const char *p_rationale, ErrorType p_type) {
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101200
+	if (!_print_error_enabled)
+		return;
+
+	const char *err_details;
+	if (p_rationale && p_rationale[0])
+		err_details = p_rationale;
+	else
+		err_details = p_code;
+
+	switch (p_type) {
+		case ERR_ERROR:
+			os_log_error(OS_LOG_DEFAULT, "ERROR: %{public}s: %{public}s\nAt: %{public}s:%i.", p_function, err_details, p_file, p_line);
+			print("\E[1;31mERROR: %s: \E[0m\E[1m%s\n", p_function, err_details);
+			print("\E[0;31m   At: %s:%i.\E[0m\n", p_file, p_line);
+			break;
+		case ERR_WARNING:
+			os_log_info(OS_LOG_DEFAULT, "WARNING: %{public}s: %{public}s\nAt: %{public}s:%i.", p_function, err_details, p_file, p_line);
+			print("\E[1;33mWARNING: %s: \E[0m\E[1m%s\n", p_function, err_details);
+			print("\E[0;33m   At: %s:%i.\E[0m\n", p_file, p_line);
+			break;
+		case ERR_SCRIPT:
+			os_log_error(OS_LOG_DEFAULT, "SCRIPT ERROR: %{public}s: %{public}s\nAt: %{public}s:%i.", p_function, err_details, p_file, p_line);
+			print("\E[1;35mSCRIPT ERROR: %s: \E[0m\E[1m%s\n", p_function, err_details);
+			print("\E[0;35m   At: %s:%i.\E[0m\n", p_file, p_line);
+			break;
+		case ERR_SHADER:
+			os_log_error(OS_LOG_DEFAULT, "SHADER ERROR: %{public}s: %{public}s\nAt: %{public}s:%i.", p_function, err_details, p_file, p_line);
+			print("\E[1;36mSHADER ERROR: %s: \E[0m\E[1m%s\n", p_function, err_details);
+			print("\E[0;36m   At: %s:%i.\E[0m\n", p_file, p_line);
+			break;
+	}
+#else
+	OS_Unix::print_error(p_function, p_file, p_line, p_code, p_rationale, p_type);
+#endif
 }
 
 void OS_OSX::alert(const String &p_alert, const String &p_title) {
@@ -1081,18 +1123,13 @@ void OS_OSX::warp_mouse_pos(const Point2 &p_to) {
 		mouse_y = p_to.y;
 	} else { //set OS position
 
-		/* this code has not been tested, please be a kind soul and fix it if it fails! */
-
 		//local point in window coords
-		NSPoint localPoint = { p_to.x, p_to.y };
-
-		NSPoint pointInWindow = [window_view convertPoint:localPoint toView:nil];
-		NSRect pointInWindowRect;
-		pointInWindowRect.origin = pointInWindow;
+		const NSRect contentRect = [window_view frame];
+		NSRect pointInWindowRect = NSMakeRect(p_to.x / display_scale, contentRect.size.height - (p_to.y / display_scale) - 1, 0, 0);
 		NSPoint pointOnScreen = [[window_view window] convertRectToScreen:pointInWindowRect].origin;
 
 		//point in scren coords
-		CGPoint lMouseWarpPos = { pointOnScreen.x, pointOnScreen.y };
+		CGPoint lMouseWarpPos = { pointOnScreen.x, CGDisplayBounds(CGMainDisplayID()).size.height - pointOnScreen.y };
 
 		//do the warping
 		CGEventSourceRef lEventRef = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);

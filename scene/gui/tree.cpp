@@ -291,7 +291,7 @@ void TreeItem::set_custom_draw(int p_column, Object *p_object, const StringName 
 	ERR_FAIL_INDEX(p_column, cells.size());
 	ERR_FAIL_NULL(p_object);
 
-	cells[p_column].custom_draw_obj = p_object->get_instance_ID();
+	cells[p_column].custom_draw_obj = p_object->get_instance_id();
 	cells[p_column].custom_draw_callback = p_callback;
 }
 
@@ -1917,8 +1917,8 @@ int Tree::propagate_mouse_event(const Point2i &p_pos, int x_ofs, int y_ofs, bool
 void Tree::_text_editor_modal_close() {
 
 	if (Input::get_singleton()->is_key_pressed(KEY_ESCAPE) ||
-			Input::get_singleton()->is_key_pressed(KEY_ENTER) ||
-			Input::get_singleton()->is_key_pressed(KEY_RETURN)) {
+			Input::get_singleton()->is_key_pressed(KEY_KP_ENTER) ||
+			Input::get_singleton()->is_key_pressed(KEY_ENTER)) {
 
 		return;
 	}
@@ -2237,8 +2237,8 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 
 			} break;
 			case KEY_F2:
-			case KEY_RETURN:
-			case KEY_ENTER: {
+			case KEY_ENTER:
+			case KEY_KP_ENTER: {
 
 				if (selected_item) {
 					//bring up editor if possible
