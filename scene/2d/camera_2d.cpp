@@ -552,11 +552,11 @@ float Camera2D::get_h_offset() const {
 	return h_ofs;
 }
 
-void Camera2D::_set_old_smoothing(float p_val) {
+void Camera2D::_set_old_smoothing(float p_enable) {
 	//compatibility
-	if (p_val > 0) {
+	if (p_enable > 0) {
 		smoothing_enabled = true;
-		set_follow_smoothing(p_val);
+		set_follow_smoothing(p_enable);
 	}
 }
 
@@ -679,8 +679,8 @@ void Camera2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_zoom", "zoom"), &Camera2D::set_zoom);
 	ClassDB::bind_method(D_METHOD("get_zoom"), &Camera2D::get_zoom);
 
-	ClassDB::bind_method(D_METHOD("set_custom_viewport", "viewport:Viewport"), &Camera2D::set_custom_viewport);
-	ClassDB::bind_method(D_METHOD("get_custom_viewport:Viewport"), &Camera2D::get_custom_viewport);
+	ClassDB::bind_method(D_METHOD("set_custom_viewport", "viewport"), &Camera2D::set_custom_viewport);
+	ClassDB::bind_method(D_METHOD("get_custom_viewport"), &Camera2D::get_custom_viewport);
 
 	ClassDB::bind_method(D_METHOD("set_follow_smoothing", "follow_smoothing"), &Camera2D::set_follow_smoothing);
 	ClassDB::bind_method(D_METHOD("get_follow_smoothing"), &Camera2D::get_follow_smoothing);

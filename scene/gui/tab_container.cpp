@@ -371,8 +371,10 @@ void TabContainer::add_child_notify(Node *p_child) {
 	if (tabs_visible)
 		c->set_margin(MARGIN_TOP, _get_top_margin());
 	Ref<StyleBox> sb = get_stylebox("panel");
-	for (int i = 0; i < 4; i++)
-		c->set_margin(Margin(i), c->get_margin(Margin(i)) + sb->get_margin(Margin(i)));
+	c->set_margin(Margin(MARGIN_TOP), c->get_margin(Margin(MARGIN_TOP)) + sb->get_margin(Margin(MARGIN_TOP)));
+	c->set_margin(Margin(MARGIN_LEFT), c->get_margin(Margin(MARGIN_LEFT)) + sb->get_margin(Margin(MARGIN_LEFT)));
+	c->set_margin(Margin(MARGIN_RIGHT), c->get_margin(Margin(MARGIN_RIGHT)) - sb->get_margin(Margin(MARGIN_RIGHT)));
+	c->set_margin(Margin(MARGIN_BOTTOM), c->get_margin(Margin(MARGIN_BOTTOM)) - sb->get_margin(Margin(MARGIN_BOTTOM)));
 
 	update();
 	p_child->connect("renamed", this, "_child_renamed_callback");
@@ -402,8 +404,10 @@ void TabContainer::set_current_tab(int p_current) {
 			c->set_area_as_parent_rect();
 			if (tabs_visible)
 				c->set_margin(MARGIN_TOP, _get_top_margin());
-			for (int i = 0; i < 4; i++)
-				c->set_margin(Margin(i), c->get_margin(Margin(i)) + sb->get_margin(Margin(i)));
+			c->set_margin(Margin(MARGIN_TOP), c->get_margin(Margin(MARGIN_TOP)) + sb->get_margin(Margin(MARGIN_TOP)));
+			c->set_margin(Margin(MARGIN_LEFT), c->get_margin(Margin(MARGIN_LEFT)) + sb->get_margin(Margin(MARGIN_LEFT)));
+			c->set_margin(Margin(MARGIN_RIGHT), c->get_margin(Margin(MARGIN_RIGHT)) - sb->get_margin(Margin(MARGIN_RIGHT)));
+			c->set_margin(Margin(MARGIN_BOTTOM), c->get_margin(Margin(MARGIN_BOTTOM)) - sb->get_margin(Margin(MARGIN_BOTTOM)));
 
 		} else
 			c->hide();
@@ -544,11 +548,11 @@ Ref<Texture> TabContainer::get_tab_icon(int p_tab) const {
 		return Ref<Texture>();
 }
 
-void TabContainer::set_tab_disabled(int p_tab, bool p_enabled) {
+void TabContainer::set_tab_disabled(int p_tab, bool p_disabled) {
 
 	Control *child = _get_tab(p_tab);
 	ERR_FAIL_COND(!child);
-	child->set_meta("_tab_disabled", p_enabled);
+	child->set_meta("_tab_disabled", p_disabled);
 	update();
 }
 
@@ -627,20 +631,20 @@ void TabContainer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_current_tab", "tab_idx"), &TabContainer::set_current_tab);
 	ClassDB::bind_method(D_METHOD("get_current_tab"), &TabContainer::get_current_tab);
 	ClassDB::bind_method(D_METHOD("get_previous_tab"), &TabContainer::get_previous_tab);
-	ClassDB::bind_method(D_METHOD("get_current_tab_control:Control"), &TabContainer::get_current_tab_control);
-	ClassDB::bind_method(D_METHOD("get_tab_control:Control", "idx"), &TabContainer::get_tab_control);
+	ClassDB::bind_method(D_METHOD("get_current_tab_control"), &TabContainer::get_current_tab_control);
+	ClassDB::bind_method(D_METHOD("get_tab_control", "idx"), &TabContainer::get_tab_control);
 	ClassDB::bind_method(D_METHOD("set_tab_align", "align"), &TabContainer::set_tab_align);
 	ClassDB::bind_method(D_METHOD("get_tab_align"), &TabContainer::get_tab_align);
 	ClassDB::bind_method(D_METHOD("set_tabs_visible", "visible"), &TabContainer::set_tabs_visible);
 	ClassDB::bind_method(D_METHOD("are_tabs_visible"), &TabContainer::are_tabs_visible);
 	ClassDB::bind_method(D_METHOD("set_tab_title", "tab_idx", "title"), &TabContainer::set_tab_title);
 	ClassDB::bind_method(D_METHOD("get_tab_title", "tab_idx"), &TabContainer::get_tab_title);
-	ClassDB::bind_method(D_METHOD("set_tab_icon", "tab_idx", "icon:Texture"), &TabContainer::set_tab_icon);
-	ClassDB::bind_method(D_METHOD("get_tab_icon:Texture", "tab_idx"), &TabContainer::get_tab_icon);
+	ClassDB::bind_method(D_METHOD("set_tab_icon", "tab_idx", "icon"), &TabContainer::set_tab_icon);
+	ClassDB::bind_method(D_METHOD("get_tab_icon", "tab_idx"), &TabContainer::get_tab_icon);
 	ClassDB::bind_method(D_METHOD("set_tab_disabled", "tab_idx", "disabled"), &TabContainer::set_tab_disabled);
 	ClassDB::bind_method(D_METHOD("get_tab_disabled", "tab_idx"), &TabContainer::get_tab_disabled);
-	ClassDB::bind_method(D_METHOD("set_popup", "popup:Popup"), &TabContainer::set_popup);
-	ClassDB::bind_method(D_METHOD("get_popup:Popup"), &TabContainer::get_popup);
+	ClassDB::bind_method(D_METHOD("set_popup", "popup"), &TabContainer::set_popup);
+	ClassDB::bind_method(D_METHOD("get_popup"), &TabContainer::get_popup);
 
 	ClassDB::bind_method(D_METHOD("_child_renamed_callback"), &TabContainer::_child_renamed_callback);
 

@@ -35,7 +35,18 @@
 
 PacketPeer::PacketPeer() {
 
+	allow_object_decoding = false;
 	last_get_error = OK;
+}
+
+void PacketPeer::set_allow_object_decoding(bool p_enable) {
+
+	allow_object_decoding = p_enable;
+}
+
+bool PacketPeer::is_object_decoding_allowed() const {
+
+	return allow_object_decoding;
 }
 
 Error PacketPeer::get_packet_buffer(PoolVector<uint8_t> &r_buffer) const {
@@ -75,7 +86,7 @@ Error PacketPeer::get_var(Variant &r_variant) const {
 	if (err)
 		return err;
 
-	return decode_variant(r_variant, buffer, buffer_size);
+	return decode_variant(r_variant, buffer, buffer_size, NULL, allow_object_decoding);
 }
 
 Error PacketPeer::put_var(const Variant &p_packet) {
@@ -120,12 +131,15 @@ Error PacketPeer::_get_packet_error() const {
 
 void PacketPeer::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("get_var:Variant"), &PacketPeer::_bnd_get_var);
-	ClassDB::bind_method(D_METHOD("put_var", "var:Variant"), &PacketPeer::put_var);
+	ClassDB::bind_method(D_METHOD("get_var"), &PacketPeer::_bnd_get_var);
+	ClassDB::bind_method(D_METHOD("put_var", "var"), &PacketPeer::put_var);
 	ClassDB::bind_method(D_METHOD("get_packet"), &PacketPeer::_get_packet);
-	ClassDB::bind_method(D_METHOD("put_packet:Error", "buffer"), &PacketPeer::_put_packet);
-	ClassDB::bind_method(D_METHOD("get_packet_error:Error"), &PacketPeer::_get_packet_error);
+	ClassDB::bind_method(D_METHOD("put_packet", "buffer"), &PacketPeer::_put_packet);
+	ClassDB::bind_method(D_METHOD("get_packet_error"), &PacketPeer::_get_packet_error);
 	ClassDB::bind_method(D_METHOD("get_available_packet_count"), &PacketPeer::get_available_packet_count);
+
+	ClassDB::bind_method(D_METHOD("set_allow_object_decoding", "enable"), &PacketPeer::set_allow_object_decoding);
+	ClassDB::bind_method(D_METHOD("is_object_decoding_allowed"), &PacketPeer::is_object_decoding_allowed);
 };
 
 /***************/
@@ -138,7 +152,7 @@ void PacketPeerStream::_set_stream_peer(REF p_peer) {
 
 void PacketPeerStream::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_stream_peer", "peer:StreamPeer"), &PacketPeerStream::_set_stream_peer);
+	ClassDB::bind_method(D_METHOD("set_stream_peer", "peer"), &PacketPeerStream::_set_stream_peer);
 	ClassDB::bind_method(D_METHOD("set_input_buffer_max_size", "max_size_bytes"), &PacketPeerStream::set_input_buffer_max_size);
 	ClassDB::bind_method(D_METHOD("set_output_buffer_max_size", "max_size_bytes"), &PacketPeerStream::set_output_buffer_max_size);
 }

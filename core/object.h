@@ -139,17 +139,17 @@ struct PropertyInfo {
 
 	static PropertyInfo from_dict(const Dictionary &p_dict);
 
-	PropertyInfo() {
-		type = Variant::NIL;
-		hint = PROPERTY_HINT_NONE;
-		usage = PROPERTY_USAGE_DEFAULT;
+	PropertyInfo()
+		: type(Variant::NIL),
+		  hint(PROPERTY_HINT_NONE),
+		  usage(PROPERTY_USAGE_DEFAULT) {
 	}
-	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT) {
-		type = p_type;
-		name = p_name;
-		hint = p_hint;
-		hint_string = p_hint_string;
-		usage = p_usage;
+	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT)
+		: type(p_type),
+		  name(p_name),
+		  hint(p_hint),
+		  hint_string(p_hint_string),
+		  usage(p_usage) {
 	}
 	bool operator<(const PropertyInfo &p_info) const {
 		return name < p_info.name;
@@ -401,9 +401,9 @@ private:
 
 			_FORCE_INLINE_ bool operator<(const Target &p_target) const { return (_id == p_target._id) ? (method < p_target.method) : (_id < p_target._id); }
 
-			Target(const ObjectID &p_id, const StringName &p_method) {
-				_id = p_id;
-				method = p_method;
+			Target(const ObjectID &p_id, const StringName &p_method)
+				: _id(p_id),
+				  method(p_method) {
 			}
 			Target() { _id = 0; }
 		};
@@ -443,7 +443,7 @@ private:
 	mutable StringName _class_name;
 	mutable const StringName *_class_ptr;
 
-	void _add_user_signal(const String &p_name, const Array &p_pargs = Array());
+	void _add_user_signal(const String &p_name, const Array &p_args = Array());
 	bool _has_user_signal(const StringName &p_name) const;
 	Variant _emit_signal(const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	Array _get_signal_list() const;

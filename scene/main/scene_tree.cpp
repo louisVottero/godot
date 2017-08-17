@@ -801,11 +801,11 @@ Ref<Material> SceneTree::get_debug_navigation_material() {
 		return navigation_material;
 
 	Ref<SpatialMaterial> line_material = Ref<SpatialMaterial>(memnew(SpatialMaterial));
-	/*	line_material->set_flag(Material::FLAG_UNSHADED, true);
-	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(SpatialMaterial::PARAM_DIFFUSE,get_debug_navigation_color());*/
+	line_material->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+	line_material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+	line_material->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	line_material->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+	line_material->set_albedo(get_debug_navigation_color());
 
 	navigation_material = line_material;
 
@@ -818,11 +818,11 @@ Ref<Material> SceneTree::get_debug_navigation_disabled_material() {
 		return navigation_disabled_material;
 
 	Ref<SpatialMaterial> line_material = Ref<SpatialMaterial>(memnew(SpatialMaterial));
-	/*	line_material->set_flag(Material::FLAG_UNSHADED, true);
-	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(SpatialMaterial::PARAM_DIFFUSE,get_debug_navigation_disabled_color());*/
+	line_material->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+	line_material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+	line_material->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	line_material->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+	line_material->set_albedo(get_debug_navigation_disabled_color());
 
 	navigation_disabled_material = line_material;
 
@@ -834,11 +834,11 @@ Ref<Material> SceneTree::get_debug_collision_material() {
 		return collision_material;
 
 	Ref<SpatialMaterial> line_material = Ref<SpatialMaterial>(memnew(SpatialMaterial));
-	/*line_material->set_flag(Material::FLAG_UNSHADED, true);
-	line_material->set_line_width(3.0);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_ALPHA, true);
-	line_material->set_fixed_flag(SpatialMaterial::FLAG_USE_COLOR_ARRAY, true);
-	line_material->set_parameter(SpatialMaterial::PARAM_DIFFUSE,get_debug_collisions_color());*/
+	line_material->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+	line_material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+	line_material->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	line_material->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+	line_material->set_albedo(get_debug_collisions_color());
 
 	collision_material = line_material;
 
@@ -852,11 +852,12 @@ Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
 
 	debug_contact_mesh = Ref<ArrayMesh>(memnew(ArrayMesh));
 
-	Ref<SpatialMaterial> mat = memnew(SpatialMaterial);
-	/*mat->set_flag(Material::FLAG_UNSHADED,true);
-	mat->set_flag(Material::FLAG_DOUBLE_SIDED,true);
-	mat->set_fixed_flag(SpatialMaterial::FLAG_USE_ALPHA,true);
-	mat->set_parameter(SpatialMaterial::PARAM_DIFFUSE,get_debug_collision_contact_color());*/
+	Ref<SpatialMaterial> mat = Ref<SpatialMaterial>(memnew(SpatialMaterial));
+	mat->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+	mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+	mat->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	mat->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+	mat->set_albedo(get_debug_collision_contact_color());
 
 	Vector3 diamond[6] = {
 		Vector3(-1, 0, 0),
@@ -1181,7 +1182,7 @@ void SceneTree::_update_root_rect() {
 	} else if (viewport_aspect < video_mode_aspect) {
 		// screen ratio is smaller vertically
 
-		if (stretch_aspect == STRETCH_ASPECT_KEEP_HEIGHT) {
+		if (stretch_aspect == STRETCH_ASPECT_KEEP_HEIGHT || stretch_aspect == STRETCH_ASPECT_EXPAND) {
 
 			//will stretch horizontally
 			viewport_size.x = desired_res.y * video_mode_aspect;
@@ -1196,7 +1197,7 @@ void SceneTree::_update_root_rect() {
 		}
 	} else {
 		//screen ratio is smaller horizontally
-		if (stretch_aspect == STRETCH_ASPECT_KEEP_WIDTH) {
+		if (stretch_aspect == STRETCH_ASPECT_KEEP_WIDTH || stretch_aspect == STRETCH_ASPECT_EXPAND) {
 
 			//will stretch horizontally
 			viewport_size.x = desired_res.x;
@@ -1217,12 +1218,11 @@ void SceneTree::_update_root_rect() {
 	Size2 margin;
 	Size2 offset;
 	//black bars and margin
-	if (screen_size.x < video_mode.x) {
+	if (stretch_aspect != STRETCH_ASPECT_EXPAND && screen_size.x < video_mode.x) {
 		margin.x = Math::round((video_mode.x - screen_size.x) / 2.0);
 		VisualServer::get_singleton()->black_bars_set_margins(margin.x, 0, margin.x, 0);
 		offset.x = Math::round(margin.x * viewport_size.y / screen_size.y);
-	} else if (screen_size.y < video_mode.y) {
-
+	} else if (stretch_aspect != STRETCH_ASPECT_EXPAND && screen_size.y < video_mode.y) {
 		margin.y = Math::round((video_mode.y - screen_size.y) / 2.0);
 		VisualServer::get_singleton()->black_bars_set_margins(0, margin.y, 0, margin.y);
 		offset.y = Math::round(margin.y * viewport_size.x / screen_size.x);
@@ -2184,7 +2184,7 @@ void SceneTree::_bind_methods() {
 
 	//ClassDB::bind_method(D_METHOD("call_group","call_flags","group","method","arg1","arg2"),&SceneMainLoop::_call_group,DEFVAL(Variant()),DEFVAL(Variant()));
 
-	ClassDB::bind_method(D_METHOD("get_root:Viewport"), &SceneTree::get_root);
+	ClassDB::bind_method(D_METHOD("get_root"), &SceneTree::get_root);
 	ClassDB::bind_method(D_METHOD("has_group", "name"), &SceneTree::has_group);
 
 	ClassDB::bind_method(D_METHOD("set_auto_accept_quit", "enabled"), &SceneTree::set_auto_accept_quit);
@@ -2197,8 +2197,8 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_debugging_navigation_hint"), &SceneTree::is_debugging_navigation_hint);
 
 #ifdef TOOLS_ENABLED
-	ClassDB::bind_method(D_METHOD("set_edited_scene_root", "scene:Node"), &SceneTree::set_edited_scene_root);
-	ClassDB::bind_method(D_METHOD("get_edited_scene_root:Node"), &SceneTree::get_edited_scene_root);
+	ClassDB::bind_method(D_METHOD("set_edited_scene_root", "scene"), &SceneTree::set_edited_scene_root);
+	ClassDB::bind_method(D_METHOD("get_edited_scene_root"), &SceneTree::get_edited_scene_root);
 #endif
 
 	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause);
@@ -2206,7 +2206,7 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_input_as_handled"), &SceneTree::set_input_as_handled);
 	ClassDB::bind_method(D_METHOD("is_input_handled"), &SceneTree::is_input_handled);
 
-	ClassDB::bind_method(D_METHOD("create_timer:SceneTreeTimer", "time_sec", "pause_mode_process"), &SceneTree::create_timer, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("create_timer", "time_sec", "pause_mode_process"), &SceneTree::create_timer, DEFVAL(true));
 
 	ClassDB::bind_method(D_METHOD("get_node_count"), &SceneTree::get_node_count);
 	ClassDB::bind_method(D_METHOD("get_frame"), &SceneTree::get_frame);
@@ -2234,22 +2234,22 @@ void SceneTree::_bind_methods() {
 
 	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "call_group", &SceneTree::_call_group, mi2);
 
-	ClassDB::bind_method(D_METHOD("notify_group", "call_flags", "group", "notification"), &SceneTree::notify_group);
-	ClassDB::bind_method(D_METHOD("set_group", "call_flags", "group", "property", "value"), &SceneTree::set_group);
+	ClassDB::bind_method(D_METHOD("notify_group", "group", "notification"), &SceneTree::notify_group);
+	ClassDB::bind_method(D_METHOD("set_group", "group", "property", "value"), &SceneTree::set_group);
 
 	ClassDB::bind_method(D_METHOD("get_nodes_in_group", "group"), &SceneTree::_get_nodes_in_group);
 
-	ClassDB::bind_method(D_METHOD("set_current_scene", "child_node:Node"), &SceneTree::set_current_scene);
-	ClassDB::bind_method(D_METHOD("get_current_scene:Node"), &SceneTree::get_current_scene);
+	ClassDB::bind_method(D_METHOD("set_current_scene", "child_node"), &SceneTree::set_current_scene);
+	ClassDB::bind_method(D_METHOD("get_current_scene"), &SceneTree::get_current_scene);
 
 	ClassDB::bind_method(D_METHOD("change_scene", "path"), &SceneTree::change_scene);
-	ClassDB::bind_method(D_METHOD("change_scene_to", "packed_scene:PackedScene"), &SceneTree::change_scene_to);
+	ClassDB::bind_method(D_METHOD("change_scene_to", "packed_scene"), &SceneTree::change_scene_to);
 
 	ClassDB::bind_method(D_METHOD("reload_current_scene"), &SceneTree::reload_current_scene);
 
 	ClassDB::bind_method(D_METHOD("_change_scene"), &SceneTree::_change_scene);
 
-	ClassDB::bind_method(D_METHOD("set_network_peer", "peer:NetworkedMultiplayerPeer"), &SceneTree::set_network_peer);
+	ClassDB::bind_method(D_METHOD("set_network_peer", "peer"), &SceneTree::set_network_peer);
 	ClassDB::bind_method(D_METHOD("is_network_server"), &SceneTree::is_network_server);
 	ClassDB::bind_method(D_METHOD("has_network_peer"), &SceneTree::has_network_peer);
 	ClassDB::bind_method(D_METHOD("get_network_connected_peers"), &SceneTree::get_network_connected_peers);

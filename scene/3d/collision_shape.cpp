@@ -89,13 +89,6 @@ void CollisionShape::_notification(int p_what) {
 				parent->shape_owner_set_transform(owner_id, get_transform());
 			}
 		} break;
-		case NOTIFICATION_EXIT_TREE: {
-			if (parent) {
-				parent->remove_shape_owner(owner_id);
-			}
-			owner_id = 0;
-			parent = NULL;
-		} break;
 		case NOTIFICATION_UNPARENTED: {
 			if (parent) {
 				parent->remove_shape_owner(owner_id);
@@ -127,9 +120,9 @@ String CollisionShape::get_configuration_warning() const {
 void CollisionShape::_bind_methods() {
 
 	//not sure if this should do anything
-	ClassDB::bind_method(D_METHOD("resource_changed", "resource:Resource"), &CollisionShape::resource_changed);
-	ClassDB::bind_method(D_METHOD("set_shape", "shape:Shape"), &CollisionShape::set_shape);
-	ClassDB::bind_method(D_METHOD("get_shape:Shape"), &CollisionShape::get_shape);
+	ClassDB::bind_method(D_METHOD("resource_changed", "resource"), &CollisionShape::resource_changed);
+	ClassDB::bind_method(D_METHOD("set_shape", "shape"), &CollisionShape::set_shape);
+	ClassDB::bind_method(D_METHOD("get_shape"), &CollisionShape::get_shape);
 	ClassDB::bind_method(D_METHOD("set_disabled", "enable"), &CollisionShape::set_disabled);
 	ClassDB::bind_method(D_METHOD("is_disabled"), &CollisionShape::is_disabled);
 	ClassDB::bind_method(D_METHOD("make_convex_from_brothers"), &CollisionShape::make_convex_from_brothers);

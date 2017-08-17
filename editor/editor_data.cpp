@@ -633,13 +633,13 @@ Vector<EditorData::EditedScene> EditorData::get_edited_scenes() const {
 	return out_edited_scenes_list;
 }
 
-void EditorData::set_edited_scene_version(uint64_t version, int scene_idx) {
+void EditorData::set_edited_scene_version(uint64_t version, int p_scene_idx) {
 	ERR_FAIL_INDEX(current_edited_scene, edited_scene.size());
-	if (scene_idx < 0) {
+	if (p_scene_idx < 0) {
 		edited_scene[current_edited_scene].version = version;
 	} else {
-		ERR_FAIL_INDEX(scene_idx, edited_scene.size());
-		edited_scene[scene_idx].version = version;
+		ERR_FAIL_INDEX(p_scene_idx, edited_scene.size());
+		edited_scene[p_scene_idx].version = version;
 	}
 }
 
@@ -867,8 +867,8 @@ void EditorSelection::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_node_removed"), &EditorSelection::_node_removed);
 	ClassDB::bind_method(D_METHOD("clear"), &EditorSelection::clear);
-	ClassDB::bind_method(D_METHOD("add_node", "node:Node"), &EditorSelection::add_node);
-	ClassDB::bind_method(D_METHOD("remove_node", "node:Node"), &EditorSelection::remove_node);
+	ClassDB::bind_method(D_METHOD("add_node", "node"), &EditorSelection::add_node);
+	ClassDB::bind_method(D_METHOD("remove_node", "node"), &EditorSelection::remove_node);
 	ClassDB::bind_method(D_METHOD("get_selected_nodes"), &EditorSelection::_get_selected_nodes);
 	ClassDB::bind_method(D_METHOD("get_transformable_selected_nodes"), &EditorSelection::_get_transformable_selected_nodes);
 	ADD_SIGNAL(MethodInfo("selection_changed"));

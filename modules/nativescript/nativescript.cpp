@@ -55,11 +55,11 @@
 ////// Script stuff
 
 void NativeScript::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_class_name", "class_name:String"), &NativeScript::set_class_name);
-	ClassDB::bind_method(D_METHOD("get_class_name:String"), &NativeScript::get_class_name);
+	ClassDB::bind_method(D_METHOD("set_class_name", "class_name"), &NativeScript::set_class_name);
+	ClassDB::bind_method(D_METHOD("get_class_name"), &NativeScript::get_class_name);
 
-	ClassDB::bind_method(D_METHOD("set_library", "library:GDNativeLibrary"), &NativeScript::set_library);
-	ClassDB::bind_method(D_METHOD("get_library:GDNativeLibrary"), &NativeScript::get_library);
+	ClassDB::bind_method(D_METHOD("set_library", "library"), &NativeScript::set_library);
+	ClassDB::bind_method(D_METHOD("get_library"), &NativeScript::get_library);
 
 	ADD_PROPERTYNZ(PropertyInfo(Variant::STRING, "class_name"), "set_class_name", "get_class_name");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT, "library", PROPERTY_HINT_RESOURCE_TYPE, "GDNativeLibrary"), "set_library", "get_library");
@@ -972,11 +972,11 @@ void NativeScriptLanguage::profiling_stop() {
 }
 
 int NativeScriptLanguage::profiling_get_accumulated_data(ProfilingInfo *p_info_arr, int p_info_max) {
-	return -1;
+	return 0;
 }
 
 int NativeScriptLanguage::profiling_get_frame_data(ProfilingInfo *p_info_arr, int p_info_max) {
-	return -1;
+	return 0;
 }
 
 #ifndef NO_THREADS

@@ -137,14 +137,14 @@ EditorFileSystemDirectory *EditorFileSystemDirectory::get_parent() {
 void EditorFileSystemDirectory::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_subdir_count"), &EditorFileSystemDirectory::get_subdir_count);
-	ClassDB::bind_method(D_METHOD("get_subdir:EditorFileSystemDirectory", "idx"), &EditorFileSystemDirectory::get_subdir);
+	ClassDB::bind_method(D_METHOD("get_subdir", "idx"), &EditorFileSystemDirectory::get_subdir);
 	ClassDB::bind_method(D_METHOD("get_file_count"), &EditorFileSystemDirectory::get_file_count);
 	ClassDB::bind_method(D_METHOD("get_file", "idx"), &EditorFileSystemDirectory::get_file);
 	ClassDB::bind_method(D_METHOD("get_file_path", "idx"), &EditorFileSystemDirectory::get_file_path);
 	ClassDB::bind_method(D_METHOD("get_file_type", "idx"), &EditorFileSystemDirectory::get_file_type);
 	ClassDB::bind_method(D_METHOD("get_name"), &EditorFileSystemDirectory::get_name);
 	ClassDB::bind_method(D_METHOD("get_path"), &EditorFileSystemDirectory::get_path);
-	ClassDB::bind_method(D_METHOD("get_parent:EditorFileSystemDirectory"), &EditorFileSystemDirectory::get_parent);
+	ClassDB::bind_method(D_METHOD("get_parent"), &EditorFileSystemDirectory::get_parent);
 	ClassDB::bind_method(D_METHOD("find_file_index", "name"), &EditorFileSystemDirectory::find_file_index);
 	ClassDB::bind_method(D_METHOD("find_dir_index", "name"), &EditorFileSystemDirectory::find_dir_index);
 }
@@ -339,6 +339,7 @@ bool EditorFileSystem::_update_scan_actions() {
 
 				int idx = ia.dir->find_file_index(ia.file);
 				ERR_CONTINUE(idx == -1);
+				_delete_internal_files(ia.dir->files[idx]->file);
 				memdelete(ia.dir->files[idx]);
 				ia.dir->files.remove(idx);
 
@@ -598,6 +599,10 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 				fi->type = fc->type;
 				fi->modified_time = fc->modification_time;
 				fi->import_modified_time = fc->import_modification_time;
+				if (fc->type == String()) {
+					fi->type = ResourceLoader::get_resource_type(path);
+					//there is also the chance that file type changed due to reimport, must probably check this somehow here (or kind of note it for next time in another file?)
+				}
 
 			} else {
 
@@ -615,6 +620,7 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 				}
 
 				fi->type = ResourceFormatImporter::get_singleton()->get_resource_type(path);
+				print_line("import extension tried resource type for " + path + " and its " + fi->type);
 				fi->modified_time = 0;
 				fi->import_modified_time = 0;
 
@@ -633,6 +639,7 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 				fi->import_modified_time = 0;
 			} else {
 				fi->type = ResourceLoader::get_resource_type(path);
+				print_line("regular import tried resource type for " + path + " and its " + fi->type);
 				fi->modified_time = mt;
 				fi->import_modified_time = 0;
 			}
@@ -829,6 +836,19 @@ void EditorFileSystem::_scan_fs_changes(EditorFileSystemDirectory *p_dir, const 
 			continue;
 		}
 		_scan_fs_changes(p_dir->get_subdir(i), p_progress);
+	}
+}
+
+void EditorFileSystem::_delete_internal_files(String p_file) {
+	if (FileAccess::exists(p_file + ".import")) {
+		List<String> paths;
+		ResourceFormatImporter::get_singleton()->get_internal_resource_path_list(p_file, &paths);
+		DirAccess *da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
+		for (List<String>::Element *E = paths.front(); E; E = E->next()) {
+			da->remove(E->get());
+		}
+		da->remove(p_file + ".import");
+		memdelete(da);
 	}
 }
 
@@ -1186,6 +1206,7 @@ void EditorFileSystem::update_file(const String &p_file) {
 
 	if (!FileAccess::exists(p_file)) {
 		//was removed
+		_delete_internal_files(p_file);
 		memdelete(fs->files[cpos]);
 		fs->files.remove(cpos);
 		call_deferred("emit_signal", "filesystem_changed"); //update later
@@ -1403,13 +1424,13 @@ void EditorFileSystem::reimport_files(const Vector<String> &p_files) {
 
 void EditorFileSystem::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("get_filesystem:EditorFileSystemDirectory"), &EditorFileSystem::get_filesystem);
+	ClassDB::bind_method(D_METHOD("get_filesystem"), &EditorFileSystem::get_filesystem);
 	ClassDB::bind_method(D_METHOD("is_scanning"), &EditorFileSystem::is_scanning);
 	ClassDB::bind_method(D_METHOD("get_scanning_progress"), &EditorFileSystem::get_scanning_progress);
 	ClassDB::bind_method(D_METHOD("scan"), &EditorFileSystem::scan);
 	ClassDB::bind_method(D_METHOD("scan_sources"), &EditorFileSystem::scan_changes);
 	ClassDB::bind_method(D_METHOD("update_file", "path"), &EditorFileSystem::update_file);
-	ClassDB::bind_method(D_METHOD("get_filesystem_path:EditorFileSystemDirectory", "path"), &EditorFileSystem::get_filesystem_path);
+	ClassDB::bind_method(D_METHOD("get_filesystem_path", "path"), &EditorFileSystem::get_filesystem_path);
 	ClassDB::bind_method(D_METHOD("get_file_type", "path"), &EditorFileSystem::get_file_type);
 
 	ADD_SIGNAL(MethodInfo("filesystem_changed"));

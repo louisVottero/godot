@@ -37,7 +37,6 @@
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "io/zip_io.h"
-#include "os/dir_access.h"
 #include "os/file_access.h"
 #include "project_settings.h"
 #include "script_language.h"
@@ -420,6 +419,63 @@ void EditorExportPlatform::_export_find_dependencies(const String &p_path, Set<S
 	}
 }
 
+void EditorExportPlatform::_edit_files_with_filter(DirAccess *da, const Vector<String> &p_filters, Set<String> &r_list, bool exclude) {
+
+	da->list_dir_begin();
+	String cur_dir = da->get_current_dir().replace("\\", "/");
+	if (!cur_dir.ends_with("/"))
+		cur_dir += "/";
+
+	Vector<String> dirs;
+	String f;
+	while ((f = da->get_next()) != "") {
+		if (da->current_is_dir())
+			dirs.push_back(f);
+		else {
+			String fullpath = cur_dir + f;
+			for (int i = 0; i < p_filters.size(); ++i) {
+				if (fullpath.matchn(p_filters[i])) {
+					if (!exclude) {
+						r_list.insert(fullpath);
+					} else {
+						r_list.erase(fullpath);
+					}
+				}
+			}
+		}
+	}
+
+	da->list_dir_end();
+
+	for (int i = 0; i < dirs.size(); ++i) {
+		String dir = dirs[i];
+		if (dir.begins_with("."))
+			continue;
+		da->change_dir(dir);
+		_edit_files_with_filter(da, p_filters, r_list, exclude);
+		da->change_dir("..");
+	}
+}
+
+void EditorExportPlatform::_edit_filter_list(Set<String> &r_list, const String &p_filter, bool exclude) {
+
+	if (p_filter == "")
+		return;
+	Vector<String> split = p_filter.split(",");
+	Vector<String> filters;
+	for (int i = 0; i < split.size(); i++) {
+		String f = split[i].strip_edges();
+		if (f.empty())
+			continue;
+		filters.push_back(f);
+	}
+
+	DirAccess *da = DirAccess::open("res://");
+	ERR_FAIL_NULL(da);
+	_edit_files_with_filter(da, filters, r_list, exclude);
+	memdelete(da);
+}
+
 Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &p_preset, EditorExportSaveFunction p_func, void *p_udata) {
 
 	Ref<EditorExportPlatform> platform = p_preset->get_platform();
@@ -448,6 +504,9 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 			_export_find_dependencies(files[i], paths);
 		}
 	}
+
+	_edit_filter_list(paths, p_preset->get_include_filter(), false);
+	_edit_filter_list(paths, p_preset->get_exclude_filter(), true);
 
 	//store everything in the export medium
 	int idx = 0;
@@ -3218,24 +3277,24 @@ PoolVector<String> EditorImportExport::_get_export_platforms() {
 
 void EditorImportExport::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("add_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::add_import_plugin);
-	ClassDB::bind_method(D_METHOD("remove_import_plugin","plugin:EditorImportPlugin"),&EditorImportExport::remove_import_plugin);
+	ClassDB::bind_method(D_METHOD("add_import_plugin","plugin"),&EditorImportExport::add_import_plugin);
+	ClassDB::bind_method(D_METHOD("remove_import_plugin","plugin"),&EditorImportExport::remove_import_plugin);
 	ClassDB::bind_method(D_METHOD("get_import_plugin_count"),&EditorImportExport::get_import_plugin_count);
-	ClassDB::bind_method(D_METHOD("get_import_plugin:EditorImportPlugin","idx"),&EditorImportExport::get_import_plugin);
-	ClassDB::bind_method(D_METHOD("get_import_plugin_by_name:EditorImportPlugin","name"),&EditorImportExport::get_import_plugin_by_name);
+	ClassDB::bind_method(D_METHOD("get_import_plugin","idx"),&EditorImportExport::get_import_plugin);
+	ClassDB::bind_method(D_METHOD("get_import_plugin_by_name","name"),&EditorImportExport::get_import_plugin_by_name);
 
-	ClassDB::bind_method(D_METHOD("add_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::add_export_plugin);
-	ClassDB::bind_method(D_METHOD("remove_export_plugin","plugin:EditorExportPlugin"),&EditorImportExport::remove_export_plugin);
+	ClassDB::bind_method(D_METHOD("add_export_plugin","plugin"),&EditorImportExport::add_export_plugin);
+	ClassDB::bind_method(D_METHOD("remove_export_plugin","plugin"),&EditorImportExport::remove_export_plugin);
 	ClassDB::bind_method(D_METHOD("get_export_plugin_count"),&EditorImportExport::get_export_plugin_count);
-	ClassDB::bind_method(D_METHOD("get_export_plugin:EditorExportPlugin","idx"),&EditorImportExport::get_export_plugin);
+	ClassDB::bind_method(D_METHOD("get_export_plugin","idx"),&EditorImportExport::get_export_plugin);
 
 	ClassDB::bind_method(D_METHOD("set_export_file_action","file","action"),&EditorImportExport::set_export_file_action);
 	ClassDB::bind_method(D_METHOD("get_export_file_action","file"),&EditorImportExport::get_export_file_action);
 	ClassDB::bind_method(D_METHOD("get_export_file_list"),&EditorImportExport::_get_export_file_list);
 
-	ClassDB::bind_method(D_METHOD("add_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
-	//ClassDB::bind_method(D_METHOD("remove_export_platform","platform:EditorExportplatform"),&EditorImportExport::add_export_platform);
-	ClassDB::bind_method(D_METHOD("get_export_platform:EditorExportPlatform","name"),&EditorImportExport::get_export_platform);
+	ClassDB::bind_method(D_METHOD("add_export_platform","platform"),&EditorImportExport::add_export_platform);
+	//ClassDB::bind_method(D_METHOD("remove_export_platform","platform"),&EditorImportExport::add_export_platform);
+	ClassDB::bind_method(D_METHOD("get_export_platform","name"),&EditorImportExport::get_export_platform);
 	ClassDB::bind_method(D_METHOD("get_export_platforms"),&EditorImportExport::_get_export_platforms);
 
 	ClassDB::bind_method(D_METHOD("set_export_filter","filter"),&EditorImportExport::set_export_filter);

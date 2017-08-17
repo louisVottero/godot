@@ -830,8 +830,8 @@ void GridMap::_update_dirty_map_callback() {
 
 void GridMap::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_theme", "theme:MeshLibrary"), &GridMap::set_theme);
-	ClassDB::bind_method(D_METHOD("get_theme:MeshLibrary"), &GridMap::get_theme);
+	ClassDB::bind_method(D_METHOD("set_theme", "theme"), &GridMap::set_theme);
+	ClassDB::bind_method(D_METHOD("get_theme"), &GridMap::get_theme);
 
 	ClassDB::bind_method(D_METHOD("set_cell_size", "size"), &GridMap::set_cell_size);
 	ClassDB::bind_method(D_METHOD("get_cell_size"), &GridMap::get_cell_size);
@@ -857,7 +857,7 @@ void GridMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_clip", "enabled", "clipabove", "floor", "axis"), &GridMap::set_clip, DEFVAL(true), DEFVAL(0), DEFVAL(Vector3::AXIS_X));
 
 	ClassDB::bind_method(D_METHOD("create_area", "id", "area"), &GridMap::create_area);
-	ClassDB::bind_method(D_METHOD("area_get_bounds", "area", "bounds"), &GridMap::area_get_bounds);
+	ClassDB::bind_method(D_METHOD("area_get_bounds", "area"), &GridMap::area_get_bounds);
 	ClassDB::bind_method(D_METHOD("area_set_exterior_portal", "area", "enable"), &GridMap::area_set_exterior_portal);
 	ClassDB::bind_method(D_METHOD("area_set_name", "area", "name"), &GridMap::area_set_name);
 	ClassDB::bind_method(D_METHOD("area_get_name", "area"), &GridMap::area_get_name);
@@ -867,7 +867,7 @@ void GridMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("area_set_portal_disable_color", "area", "color"), &GridMap::area_set_portal_disable_color);
 	ClassDB::bind_method(D_METHOD("area_get_portal_disable_color", "area"), &GridMap::area_get_portal_disable_color);
 	ClassDB::bind_method(D_METHOD("erase_area", "area"), &GridMap::erase_area);
-	ClassDB::bind_method(D_METHOD("get_unused_area_id", "area"), &GridMap::get_unused_area_id);
+	ClassDB::bind_method(D_METHOD("get_unused_area_id"), &GridMap::get_unused_area_id);
 
 	ClassDB::bind_method(D_METHOD("clear"), &GridMap::clear);
 
@@ -1049,21 +1049,21 @@ void GridMap::_update_area_instances() {
 	}
 }
 
-Error GridMap::create_area(int p_id, const Rect3 &p_bounds) {
+Error GridMap::create_area(int p_id, const Rect3 &p_area) {
 
 	ERR_FAIL_COND_V(area_map.has(p_id), ERR_ALREADY_EXISTS);
 	ERR_EXPLAIN("ID 0 is taken as global area, start from 1");
 	ERR_FAIL_COND_V(p_id == 0, ERR_INVALID_PARAMETER);
-	ERR_FAIL_COND_V(p_bounds.has_no_area(), ERR_INVALID_PARAMETER);
+	ERR_FAIL_COND_V(p_area.has_no_area(), ERR_INVALID_PARAMETER);
 
 	// FIRST VALIDATE AREA
 	IndexKey from, to;
-	from.x = p_bounds.position.x;
-	from.y = p_bounds.position.y;
-	from.z = p_bounds.position.z;
-	to.x = p_bounds.position.x + p_bounds.size.x;
-	to.y = p_bounds.position.y + p_bounds.size.y;
-	to.z = p_bounds.position.z + p_bounds.size.z;
+	from.x = p_area.position.x;
+	from.y = p_area.position.y;
+	from.z = p_area.position.z;
+	to.x = p_area.position.x + p_area.size.x;
+	to.y = p_area.position.y + p_area.size.y;
+	to.z = p_area.position.z + p_area.size.z;
 
 	for (Map<int, Area *>::Element *E = area_map.front(); E; E = E->next()) {
 		//this should somehow be faster...

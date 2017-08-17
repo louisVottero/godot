@@ -49,8 +49,17 @@ void TileMapEditor::_notification(int p_what) {
 			rotate_180->set_icon(get_icon("Rotate180", "EditorIcons"));
 			rotate_270->set_icon(get_icon("Rotate270", "EditorIcons"));
 
+			search_box->add_icon_override("right_icon", get_icon("Search", "EditorIcons"));
+
 		} break;
+
 		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
+
+			bool new_show_tile_info = EditorSettings::get_singleton()->get("editors/tile_map/show_tile_info_on_hover");
+			if (new_show_tile_info != show_tile_info) {
+				show_tile_info = new_show_tile_info;
+				tile_info->set_visible(show_tile_info);
+			}
 
 			if (is_visible_in_tree()) {
 				_update_palette();
@@ -910,12 +919,14 @@ bool TileMapEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 			canvas_item_editor->update();
 		}
 
-		int tile_under = node->get_cell(over_tile.x, over_tile.y);
-		String tile_name = "none";
+		if (show_tile_info) {
+			int tile_under = node->get_cell(over_tile.x, over_tile.y);
+			String tile_name = "none";
 
-		if (node->get_tileset()->has_tile(tile_under))
-			tile_name = node->get_tileset()->tile_get_name(tile_under);
-		tile_info->set_text(String::num(over_tile.x) + ", " + String::num(over_tile.y) + " [" + tile_name + "]");
+			if (node->get_tileset()->has_tile(tile_under))
+				tile_name = node->get_tileset()->tile_get_name(tile_under);
+			tile_info->set_text(String::num(over_tile.x) + ", " + String::num(over_tile.y) + " [" + tile_name + "]");
+		}
 
 		if (tool == TOOL_PAINTING) {
 
@@ -1437,6 +1448,7 @@ TileMapEditor::TileMapEditor(EditorNode *p_editor) {
 	tool = TOOL_NONE;
 	selection_active = false;
 	mouse_over = false;
+	show_tile_info = true;
 
 	flip_h = false;
 	flip_v = false;
@@ -1487,6 +1499,7 @@ TileMapEditor::TileMapEditor(EditorNode *p_editor) {
 	toolbar = memnew(HBoxContainer);
 	toolbar->set_h_size_flags(SIZE_EXPAND_FILL);
 	toolbar->set_alignment(BoxContainer::ALIGN_END);
+	toolbar->hide();
 	CanvasItemEditor::get_singleton()->add_control_to_menu_panel(toolbar);
 
 	// Tile position
@@ -1511,8 +1524,6 @@ TileMapEditor::TileMapEditor(EditorNode *p_editor) {
 	p->connect("id_pressed", this, "_menu_option");
 
 	toolbar->add_child(options);
-
-	toolbar->add_child(memnew(VSeparator));
 
 	transp = memnew(ToolButton);
 	transp->set_toggle_mode(true);
@@ -1601,6 +1612,7 @@ TileMapEditorPlugin::TileMapEditorPlugin(EditorNode *p_node) {
 	EDITOR_DEF("editors/tile_map/show_tile_ids", false);
 	EDITOR_DEF("editors/tile_map/sort_tiles_by_name", true);
 	EDITOR_DEF("editors/tile_map/bucket_fill_preview", true);
+	EDITOR_DEF("editors/tile_map/show_tile_info_on_hover", true);
 
 	tile_map_editor = memnew(TileMapEditor(p_node));
 	add_control_to_container(CONTAINER_CANVAS_EDITOR_SIDE, tile_map_editor);

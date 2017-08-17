@@ -55,6 +55,8 @@ void Particles2D::set_one_shot(bool p_enable) {
 
 	one_shot = p_enable;
 	VS::get_singleton()->particles_set_one_shot(particles, one_shot);
+	if (!one_shot && emitting)
+		VisualServer::get_singleton()->particles_restart(particles);
 }
 void Particles2D::set_pre_process_time(float p_time) {
 
@@ -327,7 +329,7 @@ void Particles2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_use_local_coordinates", "enable"), &Particles2D::set_use_local_coordinates);
 	ClassDB::bind_method(D_METHOD("set_fixed_fps", "fps"), &Particles2D::set_fixed_fps);
 	ClassDB::bind_method(D_METHOD("set_fractional_delta", "enable"), &Particles2D::set_fractional_delta);
-	ClassDB::bind_method(D_METHOD("set_process_material", "material:Material"), &Particles2D::set_process_material);
+	ClassDB::bind_method(D_METHOD("set_process_material", "material"), &Particles2D::set_process_material);
 	ClassDB::bind_method(D_METHOD("set_speed_scale", "scale"), &Particles2D::set_speed_scale);
 
 	ClassDB::bind_method(D_METHOD("is_emitting"), &Particles2D::is_emitting);
@@ -341,17 +343,17 @@ void Particles2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_use_local_coordinates"), &Particles2D::get_use_local_coordinates);
 	ClassDB::bind_method(D_METHOD("get_fixed_fps"), &Particles2D::get_fixed_fps);
 	ClassDB::bind_method(D_METHOD("get_fractional_delta"), &Particles2D::get_fractional_delta);
-	ClassDB::bind_method(D_METHOD("get_process_material:Material"), &Particles2D::get_process_material);
+	ClassDB::bind_method(D_METHOD("get_process_material"), &Particles2D::get_process_material);
 	ClassDB::bind_method(D_METHOD("get_speed_scale"), &Particles2D::get_speed_scale);
 
 	ClassDB::bind_method(D_METHOD("set_draw_order", "order"), &Particles2D::set_draw_order);
 	ClassDB::bind_method(D_METHOD("get_draw_order"), &Particles2D::get_draw_order);
 
-	ClassDB::bind_method(D_METHOD("set_texture", "texture:Texture"), &Particles2D::set_texture);
-	ClassDB::bind_method(D_METHOD("get_texture:Texture"), &Particles2D::get_texture);
+	ClassDB::bind_method(D_METHOD("set_texture", "texture"), &Particles2D::set_texture);
+	ClassDB::bind_method(D_METHOD("get_texture"), &Particles2D::get_texture);
 
-	ClassDB::bind_method(D_METHOD("set_normal_map", "texture:Texture"), &Particles2D::set_normal_map);
-	ClassDB::bind_method(D_METHOD("get_normal_map:Texture"), &Particles2D::get_normal_map);
+	ClassDB::bind_method(D_METHOD("set_normal_map", "texture"), &Particles2D::set_normal_map);
+	ClassDB::bind_method(D_METHOD("get_normal_map"), &Particles2D::get_normal_map);
 
 	ClassDB::bind_method(D_METHOD("capture_rect"), &Particles2D::capture_rect);
 

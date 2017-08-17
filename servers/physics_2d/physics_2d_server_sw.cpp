@@ -548,8 +548,8 @@ void Physics2DServerSW::body_set_space(RID p_body, RID p_space) {
 	if (body->get_space() == space)
 		return; //pointless
 
-	while (body->get_constraint_map().size()) {
-		RID self = body->get_constraint_map().front()->key()->get_self();
+	for (Map<Constraint2DSW *, int>::Element *E = body->get_constraint_map().front(); E; E = E->next()) {
+		RID self = E->key()->get_self();
 		if (!self.is_valid())
 			continue;
 		free(self);
@@ -722,11 +722,11 @@ uint32_t Physics2DServerSW::body_get_object_instance_id(RID p_body) const {
 	return body->get_instance_id();
 };
 
-void Physics2DServerSW::body_set_collision_layer(RID p_body, uint32_t p_flags) {
+void Physics2DServerSW::body_set_collision_layer(RID p_body, uint32_t p_layer) {
 
 	Body2DSW *body = body_owner.get(p_body);
 	ERR_FAIL_COND(!body);
-	body->set_collision_layer(p_flags);
+	body->set_collision_layer(p_layer);
 };
 
 uint32_t Physics2DServerSW::body_get_collision_layer(RID p_body) const {
@@ -737,11 +737,11 @@ uint32_t Physics2DServerSW::body_get_collision_layer(RID p_body) const {
 	return body->get_collision_layer();
 };
 
-void Physics2DServerSW::body_set_collision_mask(RID p_body, uint32_t p_flags) {
+void Physics2DServerSW::body_set_collision_mask(RID p_body, uint32_t p_mask) {
 
 	Body2DSW *body = body_owner.get(p_body);
 	ERR_FAIL_COND(!body);
-	body->set_collision_mask(p_flags);
+	body->set_collision_mask(p_mask);
 };
 
 uint32_t Physics2DServerSW::body_get_collision_mask(RID p_body) const {

@@ -59,6 +59,7 @@ public:
 	virtual bool can_be_imported(const String &p_path) const;
 
 	String get_internal_resource_path(const String &p_path) const;
+	void get_internal_resource_path_list(const String &p_path, List<String> *r_paths);
 
 	void add_importer(const Ref<ResourceImporter> &p_importer) { importers.insert(p_importer); }
 	void remove_importer(const Ref<ResourceImporter> &p_importer) { importers.erase(p_importer); }
@@ -85,9 +86,9 @@ public:
 		PropertyInfo option;
 		Variant default_value;
 
-		ImportOption(const PropertyInfo &p_info, const Variant &p_default) {
-			option = p_info;
-			default_value = p_default;
+		ImportOption(const PropertyInfo &p_info, const Variant &p_default)
+			: option(p_info),
+			  default_value(p_default) {
 		}
 		ImportOption() {}
 	};

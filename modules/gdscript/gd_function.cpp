@@ -1233,10 +1233,10 @@ int GDFunction::get_default_argument_count() const {
 
 	return default_arguments.size();
 }
-int GDFunction::get_default_argument_addr(int p_arg) const {
+int GDFunction::get_default_argument_addr(int p_idx) const {
 
-	ERR_FAIL_INDEX_V(p_arg, default_arguments.size(), -1);
-	return default_arguments[p_arg];
+	ERR_FAIL_INDEX_V(p_idx, default_arguments.size(), -1);
+	return default_arguments[p_idx];
 }
 
 StringName GDFunction::get_name() const {
@@ -1507,7 +1507,7 @@ Variant GDFunctionState::resume(const Variant &p_arg) {
 
 void GDFunctionState::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("resume:Variant", "arg"), &GDFunctionState::resume, DEFVAL(Variant()));
+	ClassDB::bind_method(D_METHOD("resume", "arg"), &GDFunctionState::resume, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("is_valid", "extended_check"), &GDFunctionState::is_valid, DEFVAL(false));
 	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "_signal_callback", &GDFunctionState::_signal_callback, MethodInfo("_signal_callback"));
 

@@ -70,6 +70,8 @@ private:
 	String text;
 	String placeholder;
 	float placeholder_alpha;
+	String ime_text;
+	Point2 ime_selection;
 
 	PopupMenu *menu;
 
@@ -92,6 +94,7 @@ private:
 
 	Timer *caret_blink_timer;
 
+	static void _ime_text_callback(void *p_self, String p_text, Point2 p_selection);
 	void _text_changed();
 	bool expand_to_text_length;
 
@@ -174,7 +177,7 @@ public:
 
 	virtual Size2 get_minimum_size() const;
 
-	void set_expand_to_text_length(bool p_len);
+	void set_expand_to_text_length(bool p_enabled);
 	bool get_expand_to_text_length() const;
 
 	virtual bool is_text_field() const;

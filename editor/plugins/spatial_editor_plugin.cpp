@@ -266,6 +266,9 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 	float closest_dist = 1e20;
 	int selected_handle = -1;
 
+	Vector<Spatial *> subscenes = Vector<Spatial *>();
+	Vector<Vector3> subscenes_positions = Vector<Vector3>();
+
 	for (int i = 0; i < instances.size(); i++) {
 
 		Object *obj = ObjectDB::get_instance(instances[i]);
@@ -279,11 +282,22 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 
 		Ref<SpatialEditorGizmo> seg = spat->get_gizmo();
 
-		if (!seg.is_valid())
-			continue;
+		if ((!seg.is_valid()) || found_gizmos.has(seg)) {
 
-		if (found_gizmos.has(seg))
+			Node *subscene_candidate = spat;
+			Vector3 source_click_spatial_pos = spat->get_global_transform().origin;
+
+			while ((subscene_candidate->get_owner() != NULL) && (subscene_candidate->get_owner() != editor->get_edited_scene()))
+				subscene_candidate = subscene_candidate->get_owner();
+
+			spat = subscene_candidate->cast_to<Spatial>();
+			if (spat && (spat->get_filename() != "") && (subscene_candidate->get_owner() != NULL)) {
+				subscenes.push_back(spat);
+				subscenes_positions.push_back(source_click_spatial_pos);
+			}
+
 			continue;
+		}
 
 		found_gizmos.insert(seg);
 		Vector3 point;
@@ -309,6 +323,22 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 
 		//	if (editor_selection->is_selected(spat))
 		//		r_includes_current=true;
+	}
+
+	for (int idx_subscene = 0; idx_subscene < subscenes.size(); idx_subscene++) {
+
+		Spatial *subscene = subscenes.get(idx_subscene);
+		float dist = ray.cross(subscenes_positions.get(idx_subscene) - pos).length();
+
+		if ((dist < 0) || (dist > 1.2))
+			continue;
+
+		if (dist < closest_dist) {
+			closest = subscene->get_instance_id();
+			closest_dist = dist;
+			item = subscene;
+			selected_handle = -1;
+		}
 	}
 
 	if (!item)
@@ -384,7 +414,7 @@ void SpatialEditorViewport::_find_items_at_pos(const Point2 &p_pos, bool &r_incl
 	results.sort();
 }
 
-Vector3 SpatialEditorViewport::_get_screen_to_space(const Vector3 &p_pos) {
+Vector3 SpatialEditorViewport::_get_screen_to_space(const Vector3 &p_vector3) {
 
 	CameraMatrix cm;
 	cm.set_perspective(get_fov(), get_size().aspect(), get_znear(), get_zfar());
@@ -397,7 +427,7 @@ Vector3 SpatialEditorViewport::_get_screen_to_space(const Vector3 &p_pos) {
 	camera_transform.basis.rotate(Vector3(0, 1, 0), -cursor.y_rot);
 	camera_transform.translate(0, 0, cursor.distance);
 
-	return camera_transform.xform(Vector3(((p_pos.x / get_size().width) * 2.0 - 1.0) * screen_w, ((1.0 - (p_pos.y / get_size().height)) * 2.0 - 1.0) * screen_h, -get_znear()));
+	return camera_transform.xform(Vector3(((p_vector3.x / get_size().width) * 2.0 - 1.0) * screen_w, ((1.0 - (p_vector3.y / get_size().height)) * 2.0 - 1.0) * screen_h, -get_znear()));
 }
 
 void SpatialEditorViewport::_select_region() {
@@ -2459,7 +2489,7 @@ SpatialEditorViewport::SpatialEditorViewport(SpatialEditor *p_spatial_editor, Ed
 
 	preview_camera = memnew(Button);
 	preview_camera->set_toggle_mode(true);
-	preview_camera->set_anchor_and_margin(MARGIN_LEFT, ANCHOR_END, 90 * EDSCALE);
+	preview_camera->set_anchor_and_margin(MARGIN_LEFT, ANCHOR_END, -90 * EDSCALE);
 	preview_camera->set_anchor_and_margin(MARGIN_TOP, ANCHOR_BEGIN, 10 * EDSCALE);
 	preview_camera->set_text("preview");
 	surface->add_child(preview_camera);

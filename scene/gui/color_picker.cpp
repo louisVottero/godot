@@ -314,9 +314,9 @@ void ColorPicker::_hsv_draw(int p_which, Control *c) {
 	}
 }
 
-void ColorPicker::_uv_input(const Ref<InputEvent> &ev) {
+void ColorPicker::_uv_input(const Ref<InputEvent> &p_event) {
 
-	Ref<InputEventMouseButton> bev = ev;
+	Ref<InputEventMouseButton> bev = p_event;
 
 	if (bev.is_valid()) {
 		if (bev->is_pressed() && bev->get_button_index() == BUTTON_LEFT) {
@@ -335,7 +335,7 @@ void ColorPicker::_uv_input(const Ref<InputEvent> &ev) {
 		}
 	}
 
-	Ref<InputEventMouseMotion> mev = ev;
+	Ref<InputEventMouseMotion> mev = p_event;
 
 	if (mev.is_valid()) {
 		if (!changing_color)
@@ -352,9 +352,9 @@ void ColorPicker::_uv_input(const Ref<InputEvent> &ev) {
 	}
 }
 
-void ColorPicker::_w_input(const Ref<InputEvent> &ev) {
+void ColorPicker::_w_input(const Ref<InputEvent> &p_event) {
 
-	Ref<InputEventMouseButton> bev = ev;
+	Ref<InputEventMouseButton> bev = p_event;
 
 	if (bev.is_valid()) {
 
@@ -372,7 +372,7 @@ void ColorPicker::_w_input(const Ref<InputEvent> &ev) {
 		emit_signal("color_changed", color);
 	}
 
-	Ref<InputEventMouseMotion> mev = ev;
+	Ref<InputEventMouseMotion> mev = p_event;
 
 	if (mev.is_valid()) {
 
@@ -388,9 +388,9 @@ void ColorPicker::_w_input(const Ref<InputEvent> &ev) {
 	}
 }
 
-void ColorPicker::_preset_input(const Ref<InputEvent> &ev) {
+void ColorPicker::_preset_input(const Ref<InputEvent> &p_event) {
 
-	Ref<InputEventMouseButton> bev = ev;
+	Ref<InputEventMouseButton> bev = p_event;
 
 	if (bev.is_valid()) {
 
@@ -407,7 +407,7 @@ void ColorPicker::_preset_input(const Ref<InputEvent> &ev) {
 		emit_signal("color_changed", color);
 	}
 
-	Ref<InputEventMouseMotion> mev = ev;
+	Ref<InputEventMouseMotion> mev = p_event;
 
 	if (mev.is_valid()) {
 
@@ -423,9 +423,9 @@ void ColorPicker::_preset_input(const Ref<InputEvent> &ev) {
 	}
 }
 
-void ColorPicker::_screen_input(const Ref<InputEvent> &ev) {
+void ColorPicker::_screen_input(const Ref<InputEvent> &p_event) {
 
-	Ref<InputEventMouseButton> bev = ev;
+	Ref<InputEventMouseButton> bev = p_event;
 
 	if (bev.is_valid()) {
 
@@ -435,7 +435,7 @@ void ColorPicker::_screen_input(const Ref<InputEvent> &ev) {
 		}
 	}
 
-	Ref<InputEventMouseMotion> mev = ev;
+	Ref<InputEventMouseMotion> mev = p_event;
 
 	if (mev.is_valid()) {
 		Viewport *r = get_tree()->get_root();
@@ -674,7 +674,7 @@ void ColorPickerButton::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_pick_color", "color"), &ColorPickerButton::set_pick_color);
 	ClassDB::bind_method(D_METHOD("get_pick_color"), &ColorPickerButton::get_pick_color);
-	ClassDB::bind_method(D_METHOD("get_picker:ColorPicker"), &ColorPickerButton::get_picker);
+	ClassDB::bind_method(D_METHOD("get_picker"), &ColorPickerButton::get_picker);
 	ClassDB::bind_method(D_METHOD("set_edit_alpha", "show"), &ColorPickerButton::set_edit_alpha);
 	ClassDB::bind_method(D_METHOD("is_editing_alpha"), &ColorPickerButton::is_editing_alpha);
 	ClassDB::bind_method(D_METHOD("_color_changed"), &ColorPickerButton::_color_changed);

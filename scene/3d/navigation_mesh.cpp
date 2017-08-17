@@ -208,6 +208,8 @@ void NavigationMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_polygon", "idx"), &NavigationMesh::get_polygon);
 	ClassDB::bind_method(D_METHOD("clear_polygons"), &NavigationMesh::clear_polygons);
 
+	ClassDB::bind_method(D_METHOD("create_from_mesh", "mesh"), &NavigationMesh::create_from_mesh);
+
 	ClassDB::bind_method(D_METHOD("_set_polygons", "polygons"), &NavigationMesh::_set_polygons);
 	ClassDB::bind_method(D_METHOD("_get_polygons"), &NavigationMesh::_get_polygons);
 
@@ -374,8 +376,8 @@ String NavigationMeshInstance::get_configuration_warning() const {
 
 void NavigationMeshInstance::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_navigation_mesh", "navmesh:NavigationMesh"), &NavigationMeshInstance::set_navigation_mesh);
-	ClassDB::bind_method(D_METHOD("get_navigation_mesh:NavigationMesh"), &NavigationMeshInstance::get_navigation_mesh);
+	ClassDB::bind_method(D_METHOD("set_navigation_mesh", "navmesh"), &NavigationMeshInstance::set_navigation_mesh);
+	ClassDB::bind_method(D_METHOD("get_navigation_mesh"), &NavigationMeshInstance::get_navigation_mesh);
 
 	ClassDB::bind_method(D_METHOD("set_enabled", "enabled"), &NavigationMeshInstance::set_enabled);
 	ClassDB::bind_method(D_METHOD("is_enabled"), &NavigationMeshInstance::is_enabled);
