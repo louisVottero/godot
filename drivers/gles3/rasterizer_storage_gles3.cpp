@@ -2143,7 +2143,7 @@ _FORCE_INLINE_ static void _fill_std140_variant_ubo_value(ShaderLanguage::DataTy
 
 				gui[0] = v.normal.x;
 				gui[1] = v.normal.y;
-				gui[2] = v.normal.x;
+				gui[2] = v.normal.z;
 				gui[3] = v.d;
 			}
 		} break;
@@ -5177,6 +5177,10 @@ void RasterizerStorageGLES3::particles_set_emitting(RID p_particles, bool p_emit
 
 	Particles *particles = particles_owner.getornull(p_particles);
 	ERR_FAIL_COND(!particles);
+	if (p_emitting != particles->emitting) {
+		// Restart is overriden by set_emitting
+		particles->restart_request = false;
+	}
 	particles->emitting = p_emitting;
 }
 void RasterizerStorageGLES3::particles_set_amount(RID p_particles, int p_amount) {

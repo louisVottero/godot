@@ -371,6 +371,7 @@ void EditorNode::_fs_changed() {
 			if (preset->get_name() == export_defer.preset) {
 				break;
 			}
+			preset.unref();
 		}
 		if (preset.is_null()) {
 			String err = "Unknown export preset: " + export_defer.preset;
@@ -385,7 +386,7 @@ void EditorNode::_fs_changed() {
 			}
 		}
 
-		export_defer.preset = "";
+		get_tree()->quit();
 	}
 
 	{
@@ -3939,6 +3940,7 @@ void EditorNode::_dock_select_input(const Ref<InputEvent> &p_input) {
 					splits[i]->hide();
 			}
 
+			_edit_current();
 			_save_docks();
 		}
 	}
@@ -3966,6 +3968,7 @@ void EditorNode::_dock_move_left() {
 	dock_slot[dock_popup_selected]->move_child(current, prev->get_index());
 	dock_slot[dock_popup_selected]->set_current_tab(dock_slot[dock_popup_selected]->get_current_tab() - 1);
 	dock_select->update();
+	_edit_current();
 	_save_docks();
 }
 
@@ -3978,6 +3981,7 @@ void EditorNode::_dock_move_right() {
 	dock_slot[dock_popup_selected]->move_child(next, current->get_index());
 	dock_slot[dock_popup_selected]->set_current_tab(dock_slot[dock_popup_selected]->get_current_tab() + 1);
 	dock_select->update();
+	_edit_current();
 	_save_docks();
 }
 

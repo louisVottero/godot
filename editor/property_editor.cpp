@@ -38,6 +38,7 @@
 #include "editor_node.h"
 #include "editor_settings.h"
 #include "io/image_loader.h"
+#include "io/marshalls.h"
 #include "io/resource_loader.h"
 #include "multi_node_edit.h"
 #include "os/input.h"
@@ -2320,7 +2321,15 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 		} break;
 		case Variant::OBJECT: {
 
-			if (obj->get(p_name).get_type() == Variant::NIL || obj->get(p_name).operator RefPtr().is_null()) {
+			Ref<EncodedObjectAsID> encoded = obj->get(p_name); //for debugger and remote tools
+
+			if (encoded.is_valid()) {
+
+				p_item->set_text(1, "Object: " + itos(encoded->get_object_id()));
+				p_item->set_icon(1, Ref<Texture>());
+				p_item->set_custom_as_button(1, true);
+
+			} else if (obj->get(p_name).get_type() == Variant::NIL || obj->get(p_name).operator RefPtr().is_null()) {
 				p_item->set_text(1, "<null>");
 				p_item->set_icon(1, Ref<Texture>());
 				p_item->set_custom_as_button(1, false);
@@ -3610,7 +3619,16 @@ void PropertyEditor::update_tree() {
 
 				RES res = obj->get(p.name).operator RefPtr();
 
-				if (obj->get(p.name).get_type() == Variant::NIL || res.is_null()) {
+				Ref<EncodedObjectAsID> encoded = obj->get(p.name); //for debugger and remote tools
+
+				if (encoded.is_valid()) {
+
+					item->set_text(1, "Object: " + itos(encoded->get_object_id()));
+					item->set_icon(1, Ref<Texture>());
+					item->set_custom_as_button(1, true);
+					item->set_editable(1, true);
+
+				} else if (obj->get(p.name).get_type() == Variant::NIL || res.is_null()) {
 					item->set_text(1, "<null>");
 					item->set_icon(1, Ref<Texture>());
 					item->set_custom_as_button(1, false);
@@ -3938,6 +3956,13 @@ void PropertyEditor::_item_edited() {
 		case Variant::OBJECT: {
 			if (!item->is_custom_set_as_button(1))
 				break;
+
+			Ref<EncodedObjectAsID> encoded = obj->get(name); //for debugger and remote tools
+
+			if (encoded.is_valid()) {
+
+				emit_signal("object_id_selected", encoded->get_object_id());
+			}
 
 			RES res = obj->get(name);
 			if (res.is_valid()) {
@@ -4774,18 +4799,19 @@ double PropertyValueEvaluator::eval(const String &p_text) {
 		return _default_eval(p_text);
 	}
 
-	ScriptInstance *script_instance = script->instance_create(obj);
+	Object dummy;
+	ScriptInstance *script_instance = script->instance_create(&dummy);
 	if (!script_instance)
 		return _default_eval(p_text);
 
 	Variant::CallError call_err;
-	double result = script_instance->call("e", NULL, 0, call_err);
+	Variant arg = obj;
+	const Variant *args[] = { &arg };
+	double result = script_instance->call("eval", args, 1, call_err);
 	if (call_err.error == Variant::CallError::CALL_OK) {
 		return result;
 	}
 	print_line("[PropertyValueEvaluator]: Error eval! Error code: " + itos(call_err.error));
-
-	memdelete(script_instance);
 
 	return _default_eval(p_text);
 }
@@ -4795,9 +4821,8 @@ void PropertyValueEvaluator::edit(Object *p_obj) {
 }
 
 String PropertyValueEvaluator::_build_script(const String &p_text) {
-	String script_text = "tool\nextends Object\nfunc e():\n\treturn ";
-	script_text += p_text.strip_edges();
-	script_text += "\n";
+	String script_text =
+			"tool\nextends Object\nfunc eval(s):\n\tself = s\n\treturn " + p_text.strip_edges() + "\n";
 	return script_text;
 }
 

@@ -463,7 +463,7 @@ bool StyleBoxFlat::is_anti_aliased() const {
 }
 
 void StyleBoxFlat::set_aa_size(const int &p_aa_size) {
-	aa_size = p_aa_size;
+	aa_size = CLAMP(p_aa_size, 1, 5);
 	emit_changed();
 }
 int StyleBoxFlat::get_aa_size() const {
@@ -471,7 +471,7 @@ int StyleBoxFlat::get_aa_size() const {
 }
 
 void StyleBoxFlat::set_corner_detail(const int &p_corner_detail) {
-	corner_detail = p_corner_detail;
+	corner_detail = CLAMP(p_corner_detail, 1, 128);
 	emit_changed();
 }
 int StyleBoxFlat::get_corner_detail() const {
@@ -514,6 +514,7 @@ inline void draw_ring(Vector<Vector2> &verts, Vector<int> &indices, Vector<Color
 	if (!vert_offset) {
 		vert_offset = 0;
 	}
+	int adapted_corner_detail = (corner_radius[0] == 0 && corner_radius[1] == 0 && corner_radius[2] == 0 && corner_radius[3] == 0) ? 1 : corner_detail;
 	int rings = (border_width[0] == 0 && border_width[1] == 0 && border_width[2] == 0 && border_width[3] == 0) ? 1 : 2;
 	rings = 2;
 
@@ -540,7 +541,7 @@ inline void draw_ring(Vector<Vector2> &verts, Vector<int> &indices, Vector<Color
 
 	//calculate the vert array
 	for (int corner_index = 0; corner_index < 4; corner_index++) {
-		for (int detail = 0; detail <= corner_detail; detail++) {
+		for (int detail = 0; detail <= adapted_corner_detail; detail++) {
 			for (int inner_outer = (2 - rings); inner_outer < 2; inner_outer++) {
 				float radius;
 				Color color;
@@ -554,8 +555,8 @@ inline void draw_ring(Vector<Vector2> &verts, Vector<int> &indices, Vector<Color
 					color = *outer_color;
 					corner_point = outer_points[corner_index];
 				}
-				float x = radius * (float)cos((double)corner_index * Math_PI / 2.0 + (double)detail / (double)corner_detail * Math_PI / 2.0 + Math_PI) + corner_point.x;
-				float y = radius * (float)sin((double)corner_index * Math_PI / 2.0 + (double)detail / (double)corner_detail * Math_PI / 2.0 + Math_PI) + corner_point.y;
+				float x = radius * (float)cos((double)corner_index * Math_PI / 2.0 + (double)detail / (double)adapted_corner_detail * Math_PI / 2.0 + Math_PI) + corner_point.x;
+				float y = radius * (float)sin((double)corner_index * Math_PI / 2.0 + (double)detail / (double)adapted_corner_detail * Math_PI / 2.0 + Math_PI) + corner_point.y;
 				verts.push_back(Vector2(x, y));
 				colors.push_back(color);
 			}
@@ -563,7 +564,7 @@ inline void draw_ring(Vector<Vector2> &verts, Vector<int> &indices, Vector<Color
 	}
 
 	if (rings == 2) {
-		int vert_count = (corner_detail + 1) * 4 * rings;
+		int vert_count = (adapted_corner_detail + 1) * 4 * rings;
 		//fill the indices and the colors for the border
 		for (int i = 0; i < vert_count; i++) {
 			//poly 1
@@ -717,7 +718,7 @@ void StyleBoxFlat::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_bg_color"), &StyleBoxFlat::get_bg_color);
 
 	ClassDB::bind_method(D_METHOD("set_border_color", "color"), &StyleBoxFlat::set_border_color_all);
-	ClassDB::bind_method(D_METHOD("get_border_color", "color"), &StyleBoxFlat::get_border_color_all);
+	ClassDB::bind_method(D_METHOD("get_border_color"), &StyleBoxFlat::get_border_color_all);
 
 	ClassDB::bind_method(D_METHOD("set_border_width_all", "width"), &StyleBoxFlat::set_border_width_all);
 	ClassDB::bind_method(D_METHOD("get_border_width_min"), &StyleBoxFlat::get_border_width_min);
@@ -776,7 +777,7 @@ void StyleBoxFlat::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::INT, "corner_radius_bottom_right", PROPERTY_HINT_RANGE, "0,1024,1"), "set_corner_radius", "get_corner_radius", CORNER_BOTTOM_RIGHT);
 	ADD_PROPERTYI(PropertyInfo(Variant::INT, "corner_radius_bottom_left", PROPERTY_HINT_RANGE, "0,1024,1"), "set_corner_radius", "get_corner_radius", CORNER_BOTTOM_LEFT);
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "corner_detail"), "set_corner_detail", "get_corner_detail");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "corner_detail", PROPERTY_HINT_RANGE, "1,128,1"), "set_corner_detail", "get_corner_detail");
 
 	ADD_GROUP("Expand Margin", "expand_margin_");
 	ADD_PROPERTYI(PropertyInfo(Variant::REAL, "expand_margin_left", PROPERTY_HINT_RANGE, "0,2048,1"), "set_expand_margin", "get_expand_margin", MARGIN_LEFT);
