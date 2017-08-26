@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "popup.h"
+
+#include "engine.h"
 #include "os/keyboard.h"
 
 void Popup::_gui_input(Ref<InputEvent> p_event) {
@@ -48,7 +50,7 @@ void Popup::_notification(int p_what) {
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 //small helper to make editing of these easier in editor
 #ifdef TOOLS_ENABLED
-		if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+		if (Engine::get_singleton()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
 			set_as_toplevel(false);
 		}
 #endif
@@ -93,7 +95,7 @@ void Popup::set_as_minsize() {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (!c->is_visible())
@@ -127,7 +129,7 @@ void Popup::popup_centered_minsize(const Size2 &p_minsize) {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (!c->is_visible())
@@ -247,6 +249,7 @@ void Popup::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("popup_hide"));
 	ADD_GROUP("Popup", "popup_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "popup_exclusive"), "set_exclusive", "is_exclusive");
+
 	BIND_CONSTANT(NOTIFICATION_POST_POPUP);
 	BIND_CONSTANT(NOTIFICATION_POPUP_HIDE);
 }
@@ -276,9 +279,10 @@ void PopupPanel::set_child_rect(Control *p_child) {
 
 	Ref<StyleBox> p = get_stylebox("panel");
 	p_child->set_area_as_parent_rect();
-	for (int i = 0; i < 4; i++) {
-		p_child->set_margin(Margin(i), p->get_margin(Margin(i)));
-	}
+	p_child->set_margin(MARGIN_LEFT, p->get_margin(MARGIN_LEFT));
+	p_child->set_margin(MARGIN_RIGHT, -p->get_margin(MARGIN_RIGHT));
+	p_child->set_margin(MARGIN_TOP, p->get_margin(MARGIN_TOP));
+	p_child->set_margin(MARGIN_BOTTOM, -p->get_margin(MARGIN_BOTTOM));
 }
 
 void PopupPanel::_notification(int p_what) {

@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "path_2d.h"
+
+#include "engine.h"
 #include "scene/scene_string_names.h"
 
 void Path2D::_notification(int p_what) {
@@ -35,7 +37,7 @@ void Path2D::_notification(int p_what) {
 	if (p_what == NOTIFICATION_DRAW && curve.is_valid()) {
 		//draw the curve!!
 
-		if (!get_tree()->is_editor_hint() && !get_tree()->is_debugging_navigation_hint()) {
+		if (!Engine::get_singleton()->is_editor_hint() && !get_tree()->is_debugging_navigation_hint()) {
 			return;
 		}
 
@@ -56,7 +58,7 @@ void Path2D::_notification(int p_what) {
 
 void Path2D::_curve_changed() {
 
-	if (is_inside_tree() && get_tree()->is_editor_hint())
+	if (is_inside_tree() && Engine::get_singleton()->is_editor_hint())
 		update();
 }
 
@@ -135,13 +137,8 @@ void PathFollow2D::_notification(int p_what) {
 
 		case NOTIFICATION_ENTER_TREE: {
 
-			Node *parent = get_parent();
-			if (parent) {
-
-				path = parent->cast_to<Path2D>();
-				if (path) {
-					_update_transform();
-				}
+			if ((path = Object::cast_to<Path2D>(get_parent()))) {
+				_update_transform();
 			}
 
 		} break;
@@ -229,7 +226,7 @@ String PathFollow2D::get_configuration_warning() const {
 	if (!is_visible_in_tree() || !is_inside_tree())
 		return String();
 
-	if (!get_parent() || !get_parent()->cast_to<Path2D>()) {
+	if (!Object::cast_to<Path2D>(get_parent())) {
 		return TTR("PathFollow2D only works when set as a child of a Path2D node.");
 	}
 

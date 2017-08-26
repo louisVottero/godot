@@ -29,6 +29,7 @@
 /*************************************************************************/
 #include "animation_player.h"
 
+#include "engine.h"
 #include "message_queue.h"
 #include "scene/scene_string_names.h"
 
@@ -199,7 +200,7 @@ void AnimationPlayer::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_READY: {
 
-			if (!get_tree()->is_editor_hint() && animation_set.has(autoplay)) {
+			if (!Engine::get_singleton()->is_editor_hint() && animation_set.has(autoplay)) {
 				play(autoplay);
 				set_autoplay(""); //this line is the fix for autoplay issues with animatio
 				_animation_process(0);
@@ -250,9 +251,9 @@ void AnimationPlayer::_generate_node_caches(AnimationData *p_anim) {
 		uint32_t id = resource.is_valid() ? resource->get_instance_id() : child->get_instance_id();
 		int bone_idx = -1;
 
-		if (a->track_get_path(i).get_property() && child->cast_to<Skeleton>()) {
+		if (a->track_get_path(i).get_property() && Object::cast_to<Skeleton>(child)) {
 
-			bone_idx = child->cast_to<Skeleton>()->find_bone(a->track_get_path(i).get_property());
+			bone_idx = Object::cast_to<Skeleton>(child)->find_bone(a->track_get_path(i).get_property());
 			if (bone_idx == -1) {
 
 				continue;
@@ -279,14 +280,14 @@ void AnimationPlayer::_generate_node_caches(AnimationData *p_anim) {
 			p_anim->node_cache[i]->path = a->track_get_path(i);
 			p_anim->node_cache[i]->node = child;
 			p_anim->node_cache[i]->resource = resource;
-			p_anim->node_cache[i]->node_2d = child->cast_to<Node2D>();
+			p_anim->node_cache[i]->node_2d = Object::cast_to<Node2D>(child);
 			if (a->track_get_type(i) == Animation::TYPE_TRANSFORM) {
 				// special cases and caches for transform tracks
 
 				// cache spatial
-				p_anim->node_cache[i]->spatial = child->cast_to<Spatial>();
+				p_anim->node_cache[i]->spatial = Object::cast_to<Spatial>(child);
 				// cache skeleton
-				p_anim->node_cache[i]->skeleton = child->cast_to<Skeleton>();
+				p_anim->node_cache[i]->skeleton = Object::cast_to<Skeleton>(child);
 				if (p_anim->node_cache[i]->skeleton) {
 
 					StringName bone_name = a->track_get_path(i).get_property();
@@ -344,7 +345,7 @@ void AnimationPlayer::_animation_process_animation(AnimationData *p_anim, float 
 	ERR_FAIL_COND(p_anim->node_cache.size() != p_anim->animation->get_track_count());
 
 	Animation *a = p_anim->animation.operator->();
-	bool can_call = is_inside_tree() && !get_tree()->is_editor_hint();
+	bool can_call = is_inside_tree() && !Engine::get_singleton()->is_editor_hint();
 
 	for (int i = 0; i < a->get_track_count(); i++) {
 
@@ -955,7 +956,7 @@ void AnimationPlayer::play(const StringName &p_name, float p_custom_blend, float
 
 	emit_signal(SceneStringNames::get_singleton()->animation_started, c.assigned);
 
-	if (is_inside_tree() && get_tree()->is_editor_hint())
+	if (is_inside_tree() && Engine::get_singleton()->is_editor_hint())
 		return; // no next in this case
 
 	StringName next = animation_get_next(p_name);
@@ -1277,8 +1278,8 @@ void AnimationPlayer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("animation_changed", PropertyInfo(Variant::STRING, "old_name"), PropertyInfo(Variant::STRING, "new_name")));
 	ADD_SIGNAL(MethodInfo("animation_started", PropertyInfo(Variant::STRING, "name")));
 
-	BIND_CONSTANT(ANIMATION_PROCESS_FIXED);
-	BIND_CONSTANT(ANIMATION_PROCESS_IDLE);
+	BIND_ENUM_CONSTANT(ANIMATION_PROCESS_FIXED);
+	BIND_ENUM_CONSTANT(ANIMATION_PROCESS_IDLE);
 }
 
 AnimationPlayer::AnimationPlayer() {

@@ -280,7 +280,7 @@ void TextureRegionEditor::_region_input(const Ref<InputEvent> &p_input) {
 								rect.expand_to(r.position);
 								rect.expand_to(r.position + r.size);
 							}
-							undo_redo->create_action("Set Region Rect");
+							undo_redo->create_action(TTR("Set Region Rect"));
 							if (node_sprite) {
 								undo_redo->add_do_method(node_sprite, "set_region_rect", rect);
 								undo_redo->add_undo_method(node_sprite, "set_region_rect", node_sprite->get_region_rect());
@@ -626,12 +626,12 @@ void TextureRegionEditor::edit(Object *p_obj) {
 	if (atlas_tex.is_valid())
 		atlas_tex->remove_change_receptor(this);
 	if (p_obj) {
-		node_sprite = p_obj->cast_to<Sprite>();
-		node_patch9 = p_obj->cast_to<NinePatchRect>();
-		if (p_obj->cast_to<StyleBoxTexture>())
-			obj_styleBox = Ref<StyleBoxTexture>(p_obj->cast_to<StyleBoxTexture>());
-		if (p_obj->cast_to<AtlasTexture>())
-			atlas_tex = Ref<AtlasTexture>(p_obj->cast_to<AtlasTexture>());
+		node_sprite = Object::cast_to<Sprite>(p_obj);
+		node_patch9 = Object::cast_to<NinePatchRect>(p_obj);
+		if (Object::cast_to<StyleBoxTexture>(p_obj))
+			obj_styleBox = Ref<StyleBoxTexture>(Object::cast_to<StyleBoxTexture>(p_obj));
+		if (Object::cast_to<AtlasTexture>(p_obj))
+			atlas_tex = Ref<AtlasTexture>(Object::cast_to<AtlasTexture>(p_obj));
 		p_obj->add_change_receptor(this);
 		_edit_region();
 	} else {

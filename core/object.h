@@ -107,6 +107,8 @@ enum PropertyUsageFlags {
 	PROPERTY_USAGE_ANIMATE_AS_TRIGGER = 32768,
 	PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED = 65536,
 	PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE = 1 << 17,
+	PROPERTY_USAGE_CLASS_IS_ENUM = 1 << 18,
+	PROPERTY_USAGE_NIL_IS_VARIANT = 1 << 19,
 
 	PROPERTY_USAGE_DEFAULT = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK,
 	PROPERTY_USAGE_DEFAULT_INTL = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK | PROPERTY_USAGE_INTERNATIONALIZED,
@@ -126,6 +128,7 @@ struct PropertyInfo {
 
 	Variant::Type type;
 	String name;
+	StringName class_name; //for classes
 	PropertyHint hint;
 	String hint_string;
 	uint32_t usage;
@@ -145,13 +148,27 @@ struct PropertyInfo {
 		  hint(PROPERTY_HINT_NONE),
 		  usage(PROPERTY_USAGE_DEFAULT) {
 	}
-	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT)
+	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT, const StringName &p_class_name = StringName())
 		: type(p_type),
 		  name(p_name),
 		  hint(p_hint),
 		  hint_string(p_hint_string),
 		  usage(p_usage) {
+
+		if (hint == PROPERTY_HINT_RESOURCE_TYPE) {
+			class_name = hint_string;
+		} else {
+			class_name = p_class_name;
+		}
 	}
+	PropertyInfo(const StringName &p_class_name)
+		: type(Variant::OBJECT),
+		  hint(PROPERTY_HINT_NONE),
+		  usage(PROPERTY_USAGE_DEFAULT) {
+
+		class_name = p_class_name;
+	}
+
 	bool operator<(const PropertyInfo &p_info) const {
 		return name < p_info.name;
 	}
@@ -541,45 +558,45 @@ public:
 	void add_change_receptor(Object *p_receptor);
 	void remove_change_receptor(Object *p_receptor);
 
-// TODO: ensure 'this' is never NULL since it's UB, but by now, avoid warning flood
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
-#endif
-
 	template <class T>
-	T *cast_to() {
-
+	static T *cast_to(Object *p_object) {
+#ifdef DEBUG_ENABLED
+		// TODO there are some legitimate reasons to pass NULL as p_object.
+		// we need to figure out how to deal with that in debug mode.
+		// This code will return NULL for a NULL input in release mode also.
+		ERR_FAIL_COND_V(p_object == NULL, NULL);
+#endif
 #ifndef NO_SAFE_CAST
-		return SAFE_CAST<T *>(this);
+		return dynamic_cast<T *>(p_object);
 #else
-		if (!this)
+		if (!p_object)
 			return NULL;
-		if (is_class_ptr(T::get_class_ptr_static()))
-			return static_cast<T *>(this);
+		if (p_pobject->is_class_ptr(T::get_class_ptr_static()))
+			return static_cast<T *>(p_pobject);
 		else
 			return NULL;
 #endif
 	}
 
 	template <class T>
-	const T *cast_to() const {
-
+	static const T *cast_to(const Object *p_object) {
+#ifdef DEBUG_ENABLED
+		// TODO there are some legitimate reasons to pass NULL as p_object.
+		// we need to figure out how to deal with that in debug mode.
+		// This code will return NULL for a NULL input in release mode also.
+		ERR_FAIL_COND_V(p_object == NULL, NULL);
+#endif
 #ifndef NO_SAFE_CAST
-		return SAFE_CAST<const T *>(this);
+		return dynamic_cast<const T *>(p_object);
 #else
-		if (!this)
+		if (!p_object)
 			return NULL;
-		if (is_class_ptr(T::get_class_ptr_static()))
-			return static_cast<const T *>(this);
+		if (p_pobject->is_class_ptr(T::get_class_ptr_static()))
+			return static_cast<const T *>(p_object);
 		else
 			return NULL;
 #endif
 	}
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 	enum {
 

@@ -106,7 +106,7 @@ bool LightOccluder2DEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 	if (node->get_occluder_polygon().is_null()) {
 		Ref<InputEventMouseButton> mb = p_event;
 		if (mb.is_valid() && mb->get_button_index() == 1 && mb->is_pressed()) {
-			create_poly->set_text("No OccluderPolygon2D resource on this node.\nCreate and assign one?");
+			create_poly->set_text(TTR("No OccluderPolygon2D resource on this node.\nCreate and assign one?"));
 			create_poly->popup_centered_minsize();
 		}
 		return (mb.is_valid() && mb->get_button_index() == 1);
@@ -367,7 +367,7 @@ void LightOccluder2DEditor::edit(Node *p_collision_polygon) {
 
 	if (p_collision_polygon) {
 
-		node = p_collision_polygon->cast_to<LightOccluder2D>();
+		node = Object::cast_to<LightOccluder2D>(p_collision_polygon);
 		if (!canvas_item_editor->get_viewport_control()->is_connected("draw", this, "_canvas_draw"))
 			canvas_item_editor->get_viewport_control()->connect("draw", this, "_canvas_draw");
 		wip.clear();
@@ -441,7 +441,7 @@ LightOccluder2DEditor::LightOccluder2DEditor(EditorNode *p_editor) {
 
 void LightOccluder2DEditorPlugin::edit(Object *p_object) {
 
-	collision_polygon_editor->edit(p_object->cast_to<Node>());
+	collision_polygon_editor->edit(Object::cast_to<Node>(p_object));
 }
 
 bool LightOccluder2DEditorPlugin::handles(Object *p_object) const {

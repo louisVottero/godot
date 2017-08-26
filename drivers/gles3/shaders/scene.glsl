@@ -1694,6 +1694,7 @@ FRAGMENT_SHADER_CODE
 	if (gl_FragCoord.w > shadow_split_offsets.w) {
 
 	vec3 pssm_coord;
+	float pssm_fade=0.0;
 
 #ifdef LIGHT_USE_PSSM_BLEND
 	float pssm_blend;
@@ -1751,6 +1752,7 @@ FRAGMENT_SHADER_CODE
 		} else {
 			highp vec4 splane=(shadow_matrix4 * vec4(vertex,1.0));
 			pssm_coord=splane.xyz/splane.w;
+			pssm_fade = smoothstep(shadow_split_offsets.z,shadow_split_offsets.w,gl_FragCoord.w);
 
 #if defined(LIGHT_USE_PSSM_BLEND)
 			use_blend=false;
@@ -1782,6 +1784,7 @@ FRAGMENT_SHADER_CODE
 	} else {
 		highp vec4 splane=(shadow_matrix2 * vec4(vertex,1.0));
 		pssm_coord=splane.xyz/splane.w;
+		pssm_fade = smoothstep(shadow_split_offsets.x,shadow_split_offsets.y,gl_FragCoord.w);
 #if defined(LIGHT_USE_PSSM_BLEND)
 		use_blend=false;
 
@@ -1818,7 +1821,7 @@ FRAGMENT_SHADER_CODE
 
 	}
 #endif
-	light_attenuation=mix(shadow_color_contact.rgb,vec3(1.0),shadow);
+	light_attenuation=mix(mix(shadow_color_contact.rgb,vec3(1.0),shadow),vec3(1.0),pssm_fade);
 
 
 	}
@@ -1966,6 +1969,14 @@ FRAGMENT_SHADER_CODE
 
 #ifdef USE_MULTIPLE_RENDER_TARGETS
 
+
+#ifdef SHADELESS
+	frag_color=vec4(albedo,alpha);
+	diffuse_buffer=vec4(albedo.rgb,0.0);
+	specular_buffer=vec4(0.0);
+
+#else
+
 #if defined(ENABLE_AO)
 
 	float ambient_scale=0.0; // AO is supplied by material
@@ -1981,12 +1992,14 @@ FRAGMENT_SHADER_CODE
 	diffuse_buffer=vec4(emission+diffuse_light+ambient_light,ambient_scale);
 	specular_buffer=vec4(specular_light,metallic);
 
+#endif //SHADELESS
 
 	normal_mr_buffer=vec4(normalize(normal)*0.5+0.5,roughness);
 
 #if defined (ENABLE_SSS)
 	sss_buffer = sss_strength;
 #endif
+
 
 #else //USE_MULTIPLE_RENDER_TARGETS
 

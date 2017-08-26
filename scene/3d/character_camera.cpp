@@ -369,7 +369,7 @@ void CharacterCamera::_notification(int p_what) {
 
 			Node* parent = get_parent();
 			while (parent) {
-				PhysicsBody* p = parent->cast_to<PhysicsBody>();
+				PhysicsBody* p = Object::cast_to<PhysicsBody>(parent);
 				if (p) {
 					target_body = p->get_body();
 					break;
@@ -659,8 +659,8 @@ void CharacterCamera::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_ray_collision"),&CharacterCamera::_ray_collision);
 
-	BIND_CONSTANT( CAMERA_FIXED );
-	BIND_CONSTANT( CAMERA_FOLLOW );
+	BIND_ENUM_CONSTANT( CAMERA_FIXED );
+	BIND_ENUM_CONSTANT( CAMERA_FOLLOW );
 }
 
 void CharacterCamera::_ray_collision(Vector3 p_point, Vector3 p_normal, int p_subindex, ObjectID p_against,int p_idx) {

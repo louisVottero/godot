@@ -215,7 +215,7 @@ void ScriptEditorDebugger::_scene_tree_folded(Object *obj) {
 
 		return;
 	}
-	TreeItem *item = obj->cast_to<TreeItem>();
+	TreeItem *item = Object::cast_to<TreeItem>(obj);
 
 	if (!item)
 		return;
@@ -306,8 +306,7 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 		String error = p_data[1];
 		step->set_disabled(!can_continue);
 		next->set_disabled(!can_continue);
-		reason->set_text(error);
-		reason->set_tooltip(error);
+		_set_reason_text(error, MESSAGE_ERROR);
 		breaked = true;
 		dobreak->set_disabled(true);
 		docontinue->set_disabled(false);
@@ -761,6 +760,21 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 	}
 }
 
+void ScriptEditorDebugger::_set_reason_text(const String &p_reason, MessageType p_type) {
+	switch (p_type) {
+		case MESSAGE_ERROR:
+			reason->add_color_override("font_color", get_color("error_color", "Editor"));
+			break;
+		case MESSAGE_WARNING:
+			reason->add_color_override("font_color", get_color("warning_color", "Editor"));
+			break;
+		default:
+			reason->add_color_override("font_color", get_color("success_color", "Editor"));
+	}
+	reason->set_text(p_reason);
+	reason->set_tooltip(p_reason);
+}
+
 void ScriptEditorDebugger::_performance_select(Object *, int, bool) {
 
 	perf_draw->update();
@@ -921,8 +935,7 @@ void ScriptEditorDebugger::_notification(int p_what) {
 					dobreak->set_disabled(false);
 					tabs->set_current_tab(0);
 
-					reason->set_text(TTR("Child Process Connected"));
-					reason->set_tooltip(TTR("Child Process Connected"));
+					_set_reason_text(TTR("Child Process Connected"), MESSAGE_SUCCESS);
 					profiler->clear();
 
 					inspect_scene_tree->clear();
@@ -1090,9 +1103,6 @@ void ScriptEditorDebugger::stop() {
 	EditorNode::get_singleton()->get_pause_button()->set_pressed(false);
 	EditorNode::get_singleton()->get_pause_button()->set_disabled(true);
 
-	//avoid confusion when stopped debugging but an object is still edited
-	EditorNode::get_singleton()->push_item(NULL);
-
 	if (hide_on_stop) {
 		if (is_visible_in_tree())
 			EditorNode::get_singleton()->hide_bottom_panel();
@@ -1211,7 +1221,7 @@ void ScriptEditorDebugger::_method_changed(Object *p_base, const StringName &p_n
 	if (!p_base || !live_debug || !connection.is_valid() || !editor->get_edited_scene())
 		return;
 
-	Node *node = p_base->cast_to<Node>();
+	Node *node = Object::cast_to<Node>(p_base);
 
 	VARIANT_ARGPTRS
 
@@ -1239,7 +1249,7 @@ void ScriptEditorDebugger::_method_changed(Object *p_base, const StringName &p_n
 		return;
 	}
 
-	Resource *res = p_base->cast_to<Resource>();
+	Resource *res = Object::cast_to<Resource>(p_base);
 
 	if (res && res->get_path() != String()) {
 
@@ -1267,7 +1277,7 @@ void ScriptEditorDebugger::_property_changed(Object *p_base, const StringName &p
 	if (!p_base || !live_debug || !connection.is_valid() || !editor->get_edited_scene())
 		return;
 
-	Node *node = p_base->cast_to<Node>();
+	Node *node = Object::cast_to<Node>(p_base);
 
 	if (node) {
 
@@ -1298,7 +1308,7 @@ void ScriptEditorDebugger::_property_changed(Object *p_base, const StringName &p
 		return;
 	}
 
-	Resource *res = p_base->cast_to<Resource>();
+	Resource *res = Object::cast_to<Resource>(p_base);
 
 	if (res && res->get_path() != String()) {
 

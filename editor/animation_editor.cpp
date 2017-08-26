@@ -2904,7 +2904,7 @@ void AnimationKeyEditor::_notification(int p_what) {
 			zoomicon->set_custom_minimum_size(Size2(24 * EDSCALE, 0));
 			zoomicon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
 
-			menu_add_track->set_icon(get_icon("AddTrack", "EditorIcons"));
+			menu_add_track->set_icon(get_icon("Add", "EditorIcons"));
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyValue", "EditorIcons"), "Add Normal Track", ADD_TRACK_MENU_ADD_VALUE_TRACK);
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyXform", "EditorIcons"), "Add Transform Track", ADD_TRACK_MENU_ADD_TRANSFORM_TRACK);
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyCall", "EditorIcons"), "Add Call Func Track", ADD_TRACK_MENU_ADD_CALL_TRACK);
@@ -3249,9 +3249,9 @@ void AnimationKeyEditor::insert_value_key(const String &p_property, const Varian
 	//let's build a node path
 	ERR_FAIL_COND(history->get_path_size() == 0);
 	Object *obj = ObjectDB::get_instance(history->get_path_object(0));
-	ERR_FAIL_COND(!obj || !obj->cast_to<Node>());
+	ERR_FAIL_COND(!Object::cast_to<Node>(obj));
 
-	Node *node = obj->cast_to<Node>();
+	Node *node = Object::cast_to<Node>(obj);
 
 	String path = root->get_path_to(node);
 

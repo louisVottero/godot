@@ -29,6 +29,7 @@
 /*************************************************************************/
 #include "particles_2d.h"
 
+#include "engine.h"
 #include "scene/3d/particles.h"
 #include "scene/scene_string_names.h"
 
@@ -295,7 +296,7 @@ void Particles2D::_notification(int p_what) {
 		VS::get_singleton()->canvas_item_add_particles(get_canvas_item(), particles, texture_rid, normal_rid, h_frames, v_frames);
 
 #ifdef TOOLS_ENABLED
-		if (get_tree()->is_editor_hint() && (this == get_tree()->get_edited_scene_root() || get_tree()->get_edited_scene_root()->is_a_parent_of(this))) {
+		if (Engine::get_singleton()->is_editor_hint() && (this == get_tree()->get_edited_scene_root() || get_tree()->get_edited_scene_root()->is_a_parent_of(this))) {
 
 			draw_rect(visibility_rect, Color(0, 0.7, 0.9, 0.4), false);
 		}
@@ -388,8 +389,8 @@ void Particles2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "h_frames", PROPERTY_HINT_RANGE, "1,1024,1"), "set_h_frames", "get_h_frames");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "v_frames", PROPERTY_HINT_RANGE, "1,1024,1"), "set_v_frames", "get_v_frames");
 
-	BIND_CONSTANT(DRAW_ORDER_INDEX);
-	BIND_CONSTANT(DRAW_ORDER_LIFETIME);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_INDEX);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_LIFETIME);
 }
 
 Particles2D::Particles2D() {

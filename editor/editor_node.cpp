@@ -277,9 +277,10 @@ void EditorNode::_notification(int p_what) {
 	}
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
+		Engine::get_singleton()->set_editor_hint(true);
+
 		get_tree()->get_root()->set_disable_3d(true);
 		//MessageQueue::get_singleton()->push_call(this,"_get_scene_metadata");
-		get_tree()->set_editor_hint(true);
 		get_tree()->get_root()->set_as_audio_listener(false);
 		get_tree()->get_root()->set_as_audio_listener_2d(false);
 		get_tree()->set_auto_accept_quit(false);
@@ -335,7 +336,7 @@ void EditorNode::_notification(int p_what) {
 	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 		scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
 		property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
-		Ref<Theme> theme = create_editor_theme();
+		Ref<Theme> theme = create_editor_theme(theme_base->get_theme());
 		theme_base->set_theme(theme);
 		gui_base->add_style_override("panel", gui_base->get_stylebox("Background", "EditorStyles"));
 		play_button_panel->add_style_override("panel", gui_base->get_stylebox("PlayButtonPanel", "EditorStyles"));
@@ -912,7 +913,7 @@ void EditorNode::_save_scene(String p_file, int idx) {
 		current_option = -1;
 		//accept->get_cancel()->hide();
 		accept->get_ok()->set_text(TTR("I see.."));
-		accept->set_text("This operation can't be done without a tree root.");
+		accept->set_text(TTR("This operation can't be done without a tree root."));
 		accept->popup_centered_minsize();
 		return;
 	}
@@ -929,7 +930,7 @@ void EditorNode::_save_scene(String p_file, int idx) {
 		// we must update it, but also let the previous scene state go, as
 		// old version still work for referencing changes in instanced or inherited scenes
 
-		sdata = Ref<PackedScene>(ResourceCache::get(p_file)->cast_to<PackedScene>());
+		sdata = Ref<PackedScene>(Object::cast_to<PackedScene>(ResourceCache::get(p_file)));
 		if (sdata.is_valid())
 			sdata->recreate_state();
 		else
@@ -1290,9 +1291,9 @@ void EditorNode::_dialog_action(String p_file) {
 			uint32_t current = editor_history.get_current();
 			Object *current_obj = current > 0 ? ObjectDB::get_instance(current) : NULL;
 
-			ERR_FAIL_COND(!current_obj->cast_to<Resource>())
+			ERR_FAIL_COND(!Object::cast_to<Resource>(current_obj))
 
-			RES current_res = RES(current_obj->cast_to<Resource>());
+			RES current_res = RES(Object::cast_to<Resource>(current_obj));
 
 			save_resource_in_path(current_res, p_file);
 
@@ -1427,8 +1428,8 @@ void EditorNode::_prepare_history() {
 			icon = base_icon;
 
 		String text;
-		if (obj->cast_to<Resource>()) {
-			Resource *r = obj->cast_to<Resource>();
+		if (Object::cast_to<Resource>(obj)) {
+			Resource *r = Object::cast_to<Resource>(obj);
 			if (r->get_path().is_resource_file())
 				text = r->get_path().get_file();
 			else if (r->get_name() != String()) {
@@ -1436,8 +1437,8 @@ void EditorNode::_prepare_history() {
 			} else {
 				text = r->get_class();
 			}
-		} else if (obj->cast_to<Node>()) {
-			text = obj->cast_to<Node>()->get_name();
+		} else if (Object::cast_to<Node>(obj)) {
+			text = Object::cast_to<Node>(obj)->get_name();
 		} else {
 			text = obj->get_class();
 		}
@@ -1535,7 +1536,7 @@ void EditorNode::_edit_current() {
 
 	if (is_resource) {
 
-		Resource *current_res = current_obj->cast_to<Resource>();
+		Resource *current_res = Object::cast_to<Resource>(current_obj);
 		ERR_FAIL_COND(!current_res);
 		scene_tree_dock->set_selected(NULL);
 		property_editor->edit(current_res);
@@ -1547,7 +1548,7 @@ void EditorNode::_edit_current() {
 		//top_pallete->set_current_tab(1);
 	} else if (is_node) {
 
-		Node *current_node = current_obj->cast_to<Node>();
+		Node *current_node = Object::cast_to<Node>(current_obj);
 		ERR_FAIL_COND(!current_node);
 		//		ERR_FAIL_COND(!current_node->is_inside_tree());
 
@@ -1687,7 +1688,7 @@ void EditorNode::_resource_created() {
 	Object *c = create_dialog->instance_selected();
 
 	ERR_FAIL_COND(!c);
-	Resource *r = c->cast_to<Resource>();
+	Resource *r = Object::cast_to<Resource>(c);
 	ERR_FAIL_COND(!r);
 
 	REF res(r);
@@ -1850,47 +1851,6 @@ void EditorNode::_run(bool p_current, const String &p_custom) {
 	_playing_edited = p_current;
 }
 
-void EditorNode::_cleanup_scene() {
-
-#if 0
-	Node *scene = editor_data.get_edited_scene_root();
-	editor_selection->clear();
-	editor_data.clear_editor_states();
-	editor_history.clear();
-	_hide_top_editors();
-	animation_editor->cleanup();
-	property_editor->edit(NULL);
-	resources_dock->cleanup();
-	scene_import_metadata.unref();
-	//set_edited_scene(NULL);
-	if (scene) {
-		if (scene->get_filename()!="") {
-			previous_scenes.push_back(scene->get_filename());
-		}
-
-		memdelete(scene);
-	}
-	editor_data.get_undo_redo().clear_history();
-	saved_version=editor_data.get_undo_redo().get_version();
-	run_settings_dialog->set_run_mode(0);
-	run_settings_dialog->set_custom_arguments("-l $scene");
-
-	List<Ref<Resource> > cached;
-	ResourceCache::get_cached_resources(&cached);
-
-	for(List<Ref<Resource> >::Element *E=cached.front();E;E=E->next()) {
-
-		String path = E->get()->get_path();
-		if (path.is_resource_file()) {
-			ERR_PRINT(("Stray resource not cleaned:"+path).utf8().get_data());
-		}
-
-	}
-
-	_update_title();
-#endif
-}
-
 void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 	//print_line("option "+itos(p_option)+" confirm "+itos(p_confirmed));
@@ -1913,8 +1873,6 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			int idx = editor_data.add_edited_scene(-1);
 			_scene_tab_changed(idx);
 			editor_data.clear_editor_states();
-
-			//_cleanup_scene();
 
 		} break;
 		case FILE_NEW_INHERITED_SCENE:
@@ -2009,7 +1967,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 				current_option = -1;
 				//confirmation->get_cancel()->hide();
 				accept->get_ok()->set_text(TTR("I see.."));
-				accept->set_text("This operation can't be done without a tree root.");
+				accept->set_text(TTR("This operation can't be done without a tree root."));
 				accept->popup_centered_minsize();
 				break;
 			}
@@ -2115,7 +2073,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 				current_option = -1;
 				//confirmation->get_cancel()->hide();
 				accept->get_ok()->set_text(TTR("I see.."));
-				accept->set_text("This operation can't be done without a scene.");
+				accept->set_text(TTR("This operation can't be done without a scene."));
 				accept->popup_centered_minsize();
 				break;
 			}
@@ -2160,7 +2118,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 				current_option = -1;
 				//accept->get_cancel()->hide();
 				accept->get_ok()->set_text(TTR("I see.."));
-				accept->set_text("This operation can't be done without a selected node.");
+				accept->set_text(TTR("This operation can't be done without a selected node."));
 				accept->popup_centered_minsize();
 				break;
 			}
@@ -2315,9 +2273,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			uint32_t current = editor_history.get_current();
 			Object *current_obj = current > 0 ? ObjectDB::get_instance(current) : NULL;
 
-			ERR_FAIL_COND(!current_obj->cast_to<Resource>())
+			ERR_FAIL_COND(!Object::cast_to<Resource>(current_obj))
 
-			RES current_res = RES(current_obj->cast_to<Resource>());
+			RES current_res = RES(Object::cast_to<Resource>(current_obj));
 
 			save_resource(current_res);
 
@@ -2327,9 +2285,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			uint32_t current = editor_history.get_current();
 			Object *current_obj = current > 0 ? ObjectDB::get_instance(current) : NULL;
 
-			ERR_FAIL_COND(!current_obj->cast_to<Resource>())
+			ERR_FAIL_COND(!Object::cast_to<Resource>(current_obj))
 
-			RES current_res = RES(current_obj->cast_to<Resource>());
+			RES current_res = RES(Object::cast_to<Resource>(current_obj));
 
 			save_resource_as(current_res);
 
@@ -2339,9 +2297,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			uint32_t current = editor_history.get_current();
 			Object *current_obj = current > 0 ? ObjectDB::get_instance(current) : NULL;
 
-			ERR_FAIL_COND(!current_obj->cast_to<Resource>())
+			ERR_FAIL_COND(!Object::cast_to<Resource>(current_obj))
 
-			RES current_res = RES(current_obj->cast_to<Resource>());
+			RES current_res = RES(Object::cast_to<Resource>(current_obj));
 			current_res->set_path("");
 			_edit_current();
 		} break;
@@ -2350,9 +2308,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			uint32_t current = editor_history.get_current();
 			Object *current_obj = current > 0 ? ObjectDB::get_instance(current) : NULL;
 
-			ERR_FAIL_COND(!current_obj->cast_to<Resource>())
+			ERR_FAIL_COND(!Object::cast_to<Resource>(current_obj))
 
-			RES current_res = RES(current_obj->cast_to<Resource>());
+			RES current_res = RES(Object::cast_to<Resource>(current_obj));
 
 			EditorSettings::get_singleton()->set_resource_clipboard(current_res);
 
@@ -2736,8 +2694,6 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 				import_reload_fn = scene->get_filename();
 				_save_scene(import_reload_fn);
-				_cleanup_scene();
-
 
 			}
 
@@ -2823,9 +2779,9 @@ void EditorNode::_discard_changes(const String &p_str) {
 			String exec = OS::get_singleton()->get_executable_path();
 
 			List<String> args;
-			args.push_back("-path");
+			args.push_back("--path");
 			args.push_back(exec.get_base_dir());
-			args.push_back("-pm");
+			args.push_back("--project-manager");
 
 			OS::ProcessID pid = 0;
 			Error err = OS::get_singleton()->execute(exec, args, false, &pid);
@@ -2988,12 +2944,12 @@ void EditorNode::set_addon_plugin_enabled(const String &p_addon, bool p_enabled)
 	String addon_path = "res://addons/" + p_addon + "/plugin.cfg";
 	Error err = cf->load(addon_path);
 	if (err != OK) {
-		show_warning("Unable to enable addon plugin at: '" + addon_path + "' parsing of config failed.");
+		show_warning(TTR("Unable to enable addon plugin at: '") + addon_path + TTR("' parsing of config failed."));
 		return;
 	}
 
 	if (!cf->has_section_key("plugin", "script")) {
-		show_warning("Unable to find script field for addon plugin at: 'res://addons/" + p_addon + "''.");
+		show_warning(TTR("Unable to find script field for addon plugin at: 'res://addons/") + p_addon + "''.");
 		return;
 	}
 
@@ -3003,18 +2959,18 @@ void EditorNode::set_addon_plugin_enabled(const String &p_addon, bool p_enabled)
 	Ref<Script> script = ResourceLoader::load(path);
 
 	if (script.is_null()) {
-		show_warning("Unable to load addon script from path: '" + path + "'.");
+		show_warning(TTR("Unable to load addon script from path: '") + path + "'.");
 		return;
 	}
 
 	//could check inheritance..
 	if (String(script->get_instance_base_type()) != "EditorPlugin") {
-		show_warning("Unable to load addon script from path: '" + path + "' Base type is not EditorPlugin.");
+		show_warning(TTR("Unable to load addon script from path: '") + path + "' Base type is not EditorPlugin.");
 		return;
 	}
 
 	if (!script->is_tool()) {
-		show_warning("Unable to load addon script from path: '" + path + "' Script is not in tool mode.");
+		show_warning(TTR("Unable to load addon script from path: '") + path + "' Script is not in tool mode.");
 		return;
 	}
 
@@ -3082,8 +3038,8 @@ void EditorNode::set_edited_scene(Node *p_scene) {
 	}
 	get_editor_data().set_edited_scene_root(p_scene);
 
-	if (p_scene && p_scene->cast_to<Popup>())
-		p_scene->cast_to<Popup>()->show(); //show popups
+	if (Object::cast_to<Popup>(p_scene))
+		Object::cast_to<Popup>(p_scene)->show(); //show popups
 	scene_tree_dock->set_edited_scene(p_scene);
 	if (get_tree())
 		get_tree()->set_edited_scene_root(p_scene);
@@ -3226,8 +3182,8 @@ void EditorNode::set_current_scene(int p_idx) {
 
 	Node *new_scene = editor_data.get_edited_scene_root();
 
-	if (new_scene && new_scene->cast_to<Popup>())
-		new_scene->cast_to<Popup>()->show(); //show popups
+	if (Object::cast_to<Popup>(new_scene))
+		Object::cast_to<Popup>(new_scene)->show(); //show popups
 
 	//print_line("set current 3 ");
 
@@ -3327,8 +3283,6 @@ Error EditorNode::load_scene(const String &p_scene, bool p_ignore_broken_deps, b
 		_scene_tab_changed(idx);
 	}
 
-	//_cleanup_scene(); // i'm sorry but this MUST happen to avoid modified resources to not be reloaded.
-
 	dependency_errors.clear();
 
 	Ref<PackedScene> sdata = ResourceLoader::load(lpath, "", true);
@@ -3379,7 +3333,7 @@ Error EditorNode::load_scene(const String &p_scene, bool p_ignore_broken_deps, b
 
 	if (ResourceCache::has(lpath)) {
 		//used from somewhere else? no problem! update state and replace sdata
-		Ref<PackedScene> ps = Ref<PackedScene>(ResourceCache::get(lpath)->cast_to<PackedScene>());
+		Ref<PackedScene> ps = Ref<PackedScene>(Object::cast_to<PackedScene>(ResourceCache::get(lpath)));
 		if (ps.is_valid()) {
 			ps->replace_state(sdata->get_state());
 			ps->set_last_modified_time(sdata->get_last_modified_time());
@@ -3507,7 +3461,7 @@ void EditorNode::_property_keyed(const String &p_keyed, const Variant &p_value, 
 
 void EditorNode::_transform_keyed(Object *sp, const String &p_sub, const Transform &p_key) {
 
-	Spatial *s = sp->cast_to<Spatial>();
+	Spatial *s = Object::cast_to<Spatial>(sp);
 	if (!s)
 		return;
 	AnimationPlayerEditor::singleton->get_key_editor()->insert_transform_key(s, p_sub, p_key);
@@ -3524,7 +3478,7 @@ void EditorNode::update_keying() {
 		if (editor_history.get_path_size() >= 1) {
 
 			Object *obj = ObjectDB::get_instance(editor_history.get_path_object(0));
-			if (obj && obj->cast_to<Node>()) {
+			if (Object::cast_to<Node>(obj)) {
 
 				valid = true;
 			}
@@ -4246,7 +4200,7 @@ void EditorNode::_load_docks_from_config(Ref<ConfigFile> p_layout, const String 
 			for (int k = 0; k < DOCK_SLOT_MAX; k++) {
 				if (!dock_slot[k]->has_node(name))
 					continue;
-				node = dock_slot[k]->get_node(name)->cast_to<Control>();
+				node = Object::cast_to<Control>(dock_slot[k]->get_node(name));
 				if (!node)
 					continue;
 				atidx = k;
@@ -4831,7 +4785,7 @@ void EditorNode::reload_scene(const String &p_path) {
 		if (E->get()->get_path().begins_with(p_path + "::")) //subresources of existing scene
 			to_clear.push_back(E->get());
 
-		if (!E->get()->cast_to<Texture>())
+		if (!cast_to<Texture>(E->get().ptr()))
 			continue;
 		if (!E->get()->get_path().is_resource_file() && !E->get()->get_path().is_abs_path())
 			continue;
@@ -4972,13 +4926,13 @@ void EditorNode::_dim_timeout() {
 void EditorNode::_check_gui_base_size() {
 	if (gui_base->get_size().width > 1200 * EDSCALE) {
 		for (int i = 0; i < singleton->main_editor_button_vb->get_child_count(); i++) {
-			ToolButton *btn = singleton->main_editor_button_vb->get_child(i)->cast_to<ToolButton>();
+			ToolButton *btn = Object::cast_to<ToolButton>(singleton->main_editor_button_vb->get_child(i));
 			if (btn == singleton->distraction_free) continue;
 			btn->set_text(btn->get_name());
 		}
 	} else {
 		for (int i = 0; i < singleton->main_editor_button_vb->get_child_count(); i++) {
-			ToolButton *btn = singleton->main_editor_button_vb->get_child(i)->cast_to<ToolButton>();
+			ToolButton *btn = Object::cast_to<ToolButton>(singleton->main_editor_button_vb->get_child(i));
 			if (btn == singleton->distraction_free) continue;
 			btn->set_text("");
 		}
@@ -5102,7 +5056,7 @@ EditorNode::EditorNode() {
 	ResourceLoader::clear_translation_remaps(); //no remaps using during editor
 	editor_initialize_certificates(); //for asset sharing
 
-	InputDefault *id = Input::get_singleton()->cast_to<InputDefault>();
+	InputDefault *id = Object::cast_to<InputDefault>(Input::get_singleton());
 
 	if (id) {
 
@@ -5241,7 +5195,7 @@ EditorNode::EditorNode() {
 	main_vbox = memnew(VBoxContainer);
 	gui_base->add_child(main_vbox);
 	main_vbox->set_area_as_parent_rect(8);
-	main_vbox->set_margin(MARGIN_TOP, 5);
+	main_vbox->set_margin(MARGIN_TOP, 5 * EDSCALE);
 
 	menu_hb = memnew(HBoxContainer);
 	main_vbox->add_child(menu_hb);
@@ -5656,7 +5610,7 @@ EditorNode::EditorNode() {
 	play_hb->add_child(stop_button);
 	//stop_button->set_toggle_mode(true);
 	stop_button->set_focus_mode(Control::FOCUS_NONE);
-	stop_button->set_icon(gui_base->get_icon("MainStop", "EditorIcons"));
+	stop_button->set_icon(gui_base->get_icon("Stop", "EditorIcons"));
 	stop_button->connect("pressed", this, "_menu_option", make_binds(RUN_STOP));
 	stop_button->set_tooltip(TTR("Stop the scene."));
 	stop_button->set_shortcut(ED_SHORTCUT("editor/stop", TTR("Stop"), KEY_F8));
@@ -6174,7 +6128,7 @@ EditorNode::EditorNode() {
 
 	open_imported = memnew(ConfirmationDialog);
 	open_imported->get_ok()->set_text(TTR("Open Anyway"));
-	new_inherited_button = open_imported->add_button("New Inherited", !OS::get_singleton()->get_swap_ok_cancel(), "inherit");
+	new_inherited_button = open_imported->add_button(TTR("New Inherited"), !OS::get_singleton()->get_swap_ok_cancel(), "inherit");
 	open_imported->connect("confirmed", this, "_open_imported");
 	open_imported->connect("custom_action", this, "_inherit_imported");
 	gui_base->add_child(open_imported);
@@ -6230,7 +6184,7 @@ EditorNode::EditorNode() {
 
 	pick_main_scene = memnew(ConfirmationDialog);
 	gui_base->add_child(pick_main_scene);
-	pick_main_scene->get_ok()->set_text("Select");
+	pick_main_scene->get_ok()->set_text(TTR("Select"));
 	pick_main_scene->connect("confirmed", this, "_menu_option", varray(SETTINGS_PICK_MAIN_SCENE));
 
 	//Ref<ImageTexture> it = gui_base->get_icon("logo","Icons");

@@ -205,6 +205,7 @@ class TextEdit : public Control {
 	Vector<String> completion_strings;
 	Vector<String> completion_options;
 	bool completion_active;
+	bool completion_forced;
 	String completion_current;
 	String completion_base;
 	int completion_index;
@@ -259,6 +260,7 @@ class TextEdit : public Control {
 	bool smooth_scroll_enabled;
 	bool scrolling;
 	float target_v_scroll;
+	float v_scroll_speed;
 
 	bool raised_from_completion;
 
@@ -298,6 +300,7 @@ class TextEdit : public Control {
 	void adjust_viewport_to_cursor();
 	void _scroll_moved(double);
 	void _update_scrollbars();
+	void _v_scroll_input();
 	void _click_selection_held();
 
 	void _pre_shift_selection();
@@ -494,6 +497,9 @@ public:
 	void set_smooth_scroll_enabled(bool p_enable);
 	bool is_smooth_scroll_enabled() const;
 
+	void set_v_scroll_speed(float p_speed);
+	float get_v_scroll_speed() const;
+
 	uint32_t get_version() const;
 	uint32_t get_saved_version() const;
 	void tag_saved_version();
@@ -517,7 +523,7 @@ public:
 	void set_tooltip_request_func(Object *p_obj, const StringName &p_function, const Variant &p_udata);
 
 	void set_completion(bool p_enabled, const Vector<String> &p_prefixes);
-	void code_complete(const Vector<String> &p_strings);
+	void code_complete(const Vector<String> &p_strings, bool p_forced = false);
 	void set_code_hint(const String &p_hint);
 	void query_code_comple();
 
@@ -534,5 +540,8 @@ public:
 	TextEdit();
 	~TextEdit();
 };
+
+VARIANT_ENUM_CAST(TextEdit::MenuItems);
+VARIANT_ENUM_CAST(TextEdit::SearchFlags);
 
 #endif // TEXT_EDIT_H

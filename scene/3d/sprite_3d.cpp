@@ -70,13 +70,9 @@ void SpriteBase3D::_notification(int p_what) {
 		if (!pending_update)
 			_im_update();
 
-		Node *parent = get_parent();
-		if (parent) {
-
-			parent_sprite = parent->cast_to<SpriteBase3D>();
-			if (parent_sprite) {
-				pI = parent_sprite->children.push_back(this);
-			}
+		parent_sprite = Object::cast_to<SpriteBase3D>(get_parent());
+		if (parent_sprite) {
+			pI = parent_sprite->children.push_back(this);
 		}
 	}
 
@@ -276,14 +272,14 @@ void SpriteBase3D::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "double_sided"), "set_draw_flag", "get_draw_flag", FLAG_DOUBLE_SIDED);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "alpha_cut", PROPERTY_HINT_ENUM, "Disabled,Discard,Opaque Pre-Pass"), "set_alpha_cut_mode", "get_alpha_cut_mode");
 
-	BIND_CONSTANT(FLAG_TRANSPARENT);
-	BIND_CONSTANT(FLAG_SHADED);
-	BIND_CONSTANT(FLAG_DOUBLE_SIDED);
-	BIND_CONSTANT(FLAG_MAX);
+	BIND_ENUM_CONSTANT(FLAG_TRANSPARENT);
+	BIND_ENUM_CONSTANT(FLAG_SHADED);
+	BIND_ENUM_CONSTANT(FLAG_DOUBLE_SIDED);
+	BIND_ENUM_CONSTANT(FLAG_MAX);
 
-	BIND_CONSTANT(ALPHA_CUT_DISABLED);
-	BIND_CONSTANT(ALPHA_CUT_DISCARD);
-	BIND_CONSTANT(ALPHA_CUT_OPAQUE_PREPASS);
+	BIND_ENUM_CONSTANT(ALPHA_CUT_DISABLED);
+	BIND_ENUM_CONSTANT(ALPHA_CUT_DISCARD);
+	BIND_ENUM_CONSTANT(ALPHA_CUT_OPAQUE_PREPASS);
 }
 
 SpriteBase3D::SpriteBase3D() {

@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "physics_body.h"
+
+#include "engine.h"
 #include "method_bind_ext.gen.inc"
 #include "scene/scene_string_names.h"
 
@@ -114,7 +116,7 @@ bool PhysicsBody::get_collision_layer_bit(int p_bit) const {
 void PhysicsBody::add_collision_exception_with(Node *p_node) {
 
 	ERR_FAIL_NULL(p_node);
-	PhysicsBody *physics_body = p_node->cast_to<PhysicsBody>();
+	PhysicsBody *physics_body = Object::cast_to<PhysicsBody>(p_node);
 	if (!physics_body) {
 		ERR_EXPLAIN("Collision exception only works between two objects of PhysicsBody type");
 	}
@@ -125,7 +127,7 @@ void PhysicsBody::add_collision_exception_with(Node *p_node) {
 void PhysicsBody::remove_collision_exception_with(Node *p_node) {
 
 	ERR_FAIL_NULL(p_node);
-	PhysicsBody *physics_body = p_node->cast_to<PhysicsBody>();
+	PhysicsBody *physics_body = Object::cast_to<PhysicsBody>(p_node);
 	if (!physics_body) {
 		ERR_EXPLAIN("Collision exception only works between two objects of PhysicsBody type");
 	}
@@ -252,7 +254,7 @@ StaticBody::~StaticBody() {
 void RigidBody::_body_enter_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 
 	Map<ObjectID, BodyState>::Element *E = contact_monitor->body_map.find(p_id);
@@ -276,7 +278,7 @@ void RigidBody::_body_enter_tree(ObjectID p_id) {
 void RigidBody::_body_exit_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 	Map<ObjectID, BodyState>::Element *E = contact_monitor->body_map.find(p_id);
 	ERR_FAIL_COND(!E);
@@ -301,7 +303,7 @@ void RigidBody::_body_inout(int p_status, ObjectID p_instance, int p_body_shape,
 	ObjectID objid = p_instance;
 
 	Object *obj = ObjectDB::get_instance(objid);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 
 	Map<ObjectID, BodyState>::Element *E = contact_monitor->body_map.find(objid);
 
@@ -367,7 +369,7 @@ void RigidBody::_direct_state_changed(Object *p_state) {
 //eh.. fuck
 #ifdef DEBUG_ENABLED
 
-	state = p_state->cast_to<PhysicsDirectBodyState>();
+	state = Object::cast_to<PhysicsDirectBodyState>(p_state);
 #else
 	state = (PhysicsDirectBodyState *)p_state; //trust it
 #endif
@@ -476,13 +478,13 @@ void RigidBody::_notification(int p_what) {
 
 #ifdef TOOLS_ENABLED
 	if (p_what == NOTIFICATION_ENTER_TREE) {
-		if (get_tree()->is_editor_hint()) {
+		if (Engine::get_singleton()->is_editor_hint()) {
 			set_notify_local_transform(true); //used for warnings and only in editor
 		}
 	}
 
 	if (p_what == NOTIFICATION_LOCAL_TRANSFORM_CHANGED) {
-		if (get_tree()->is_editor_hint()) {
+		if (Engine::get_singleton()->is_editor_hint()) {
 			update_configuration_warning();
 		}
 	}
@@ -868,10 +870,10 @@ void RigidBody::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("body_exited", PropertyInfo(Variant::OBJECT, "body")));
 	ADD_SIGNAL(MethodInfo("sleeping_state_changed"));
 
-	BIND_CONSTANT(MODE_STATIC);
-	BIND_CONSTANT(MODE_KINEMATIC);
-	BIND_CONSTANT(MODE_RIGID);
-	BIND_CONSTANT(MODE_CHARACTER);
+	BIND_ENUM_CONSTANT(MODE_STATIC);
+	BIND_ENUM_CONSTANT(MODE_KINEMATIC);
+	BIND_ENUM_CONSTANT(MODE_RIGID);
+	BIND_ENUM_CONSTANT(MODE_CHARACTER);
 }
 
 RigidBody::RigidBody()
@@ -1103,7 +1105,7 @@ Object *KinematicBody::get_collision_collider_shape(int p_collision) const {
 	ERR_FAIL_INDEX_V(p_collision, colliders.size(), NULL);
 	Object *collider = get_collision_collider(p_collision);
 	if (collider) {
-		CollisionObject *obj2d = collider->cast_to<CollisionObject>();
+		CollisionObject *obj2d = Object::cast_to<CollisionObject>(collider);
 		if (obj2d) {
 			uint32_t owner = shape_find_owner(colliders[p_collision].collider_shape);
 			return obj2d->shape_owner_get_owner(owner);

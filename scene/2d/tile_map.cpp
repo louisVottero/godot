@@ -50,12 +50,12 @@ void TileMap::_notification(int p_what) {
 			Node2D *c = this;
 			while (c) {
 
-				navigation = c->cast_to<Navigation2D>();
+				navigation = Object::cast_to<Navigation2D>(c);
 				if (navigation) {
 					break;
 				}
 
-				c = c->get_parent()->cast_to<Node2D>();
+				c = Object::cast_to<Node2D>(c->get_parent());
 			}
 
 			pending_update = true;
@@ -370,15 +370,13 @@ void TileMap::_update_dirty_quadrants() {
 				s = tex->get_size();
 			else {
 				s = r.size;
-				r.position.x += fp_adjust;
-				r.position.y += fp_adjust;
-				r.size.x -= fp_adjust * 2.0;
-				r.size.y -= fp_adjust * 2.0;
 			}
 
 			Rect2 rect;
 			rect.position = offset.floor();
 			rect.size = s;
+			rect.size.x += fp_adjust;
+			rect.size.y += fp_adjust;
 
 			if (rect.size.y > rect.size.x) {
 				if ((c.flip_h && (c.flip_v || c.transpose)) || (c.flip_v && !c.transpose))
@@ -1315,15 +1313,18 @@ void TileMap::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("settings_changed"));
 
 	BIND_CONSTANT(INVALID_CELL);
-	BIND_CONSTANT(MODE_SQUARE);
-	BIND_CONSTANT(MODE_ISOMETRIC);
-	BIND_CONSTANT(MODE_CUSTOM);
-	BIND_CONSTANT(HALF_OFFSET_X);
-	BIND_CONSTANT(HALF_OFFSET_Y);
-	BIND_CONSTANT(HALF_OFFSET_DISABLED);
-	BIND_CONSTANT(TILE_ORIGIN_TOP_LEFT);
-	BIND_CONSTANT(TILE_ORIGIN_CENTER);
-	BIND_CONSTANT(TILE_ORIGIN_BOTTOM_LEFT);
+
+	BIND_ENUM_CONSTANT(MODE_SQUARE);
+	BIND_ENUM_CONSTANT(MODE_ISOMETRIC);
+	BIND_ENUM_CONSTANT(MODE_CUSTOM);
+
+	BIND_ENUM_CONSTANT(HALF_OFFSET_X);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_Y);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_DISABLED);
+
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_TOP_LEFT);
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_CENTER);
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_BOTTOM_LEFT);
 }
 
 TileMap::TileMap() {

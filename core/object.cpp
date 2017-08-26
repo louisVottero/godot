@@ -65,6 +65,7 @@ PropertyInfo::operator Dictionary() const {
 
 	Dictionary d;
 	d["name"] = name;
+	d["class_name"] = class_name;
 	d["type"] = type;
 	d["hint"] = hint;
 	d["hint_string"] = hint_string;
@@ -81,6 +82,9 @@ PropertyInfo PropertyInfo::from_dict(const Dictionary &p_dict) {
 
 	if (p_dict.has("name"))
 		pi.name = p_dict["name"];
+
+	if (p_dict.has("class_name"))
+		pi.class_name = p_dict["class_name"];
 
 	if (p_dict.has("hint"))
 		pi.hint = PropertyHint(int(p_dict["hint"]));
@@ -650,7 +654,7 @@ void Object::call_multilevel(const StringName &p_method, const Variant **p_args,
 
 	if (p_method == CoreStringNames::get_singleton()->_free) {
 #ifdef DEBUG_ENABLED
-		if (cast_to<Reference>()) {
+		if (Object::cast_to<Reference>(this)) {
 			ERR_EXPLAIN("Can't 'free' a reference.");
 			ERR_FAIL();
 			return;
@@ -896,7 +900,7 @@ Variant Object::call(const StringName &p_method, const Variant **p_args, int p_a
 			r_error.error = Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS;
 			return Variant();
 		}
-		if (cast_to<Reference>()) {
+		if (Object::cast_to<Reference>(this)) {
 			r_error.argument = 0;
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 			ERR_EXPLAIN("Can't 'free' a reference.");
@@ -1737,9 +1741,9 @@ void Object::_bind_methods() {
 	BIND_CONSTANT(NOTIFICATION_POSTINITIALIZE);
 	BIND_CONSTANT(NOTIFICATION_PREDELETE);
 
-	BIND_CONSTANT(CONNECT_DEFERRED);
-	BIND_CONSTANT(CONNECT_PERSIST);
-	BIND_CONSTANT(CONNECT_ONESHOT);
+	BIND_ENUM_CONSTANT(CONNECT_DEFERRED);
+	BIND_ENUM_CONSTANT(CONNECT_PERSIST);
+	BIND_ENUM_CONSTANT(CONNECT_ONESHOT);
 }
 
 void Object::call_deferred(const StringName &p_method, VARIANT_ARG_DECLARE) {

@@ -2497,7 +2497,13 @@ void RasterizerStorageGLES3::_update_material(Material *material) {
 				//value=E->get().default_value;
 			} else {
 				//zero because it was not provided
-				_fill_std140_ubo_empty(E->get().type, data);
+				if (E->get().type == ShaderLanguage::TYPE_VEC4 && E->get().hint == ShaderLanguage::ShaderNode::Uniform::HINT_COLOR) {
+					//colors must be set as black, with alpha as 1.0
+					_fill_std140_variant_ubo_value(E->get().type, Color(0, 0, 0, 1), data, material->shader->mode == VS::SHADER_SPATIAL);
+				} else {
+					//else just zero it out
+					_fill_std140_ubo_empty(E->get().type, data);
+				}
 			}
 		}
 
@@ -6247,7 +6253,7 @@ void RasterizerStorageGLES3::_render_target_allocate(RenderTarget *rt) {
 				glBindFramebuffer(GL_FRAMEBUFFER, mm.fbo);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rt->effects.mip_maps[i].color, j);
 				bool used_depth = false;
-				if (j == 0 && i == 0 && rt->buffers.active == false && !rt->flags[RENDER_TARGET_NO_3D]) { //will use this one for rendering 3D
+				if (j == 0 && i == 0) { //use always
 					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rt->depth, 0);
 					used_depth = true;
 				}

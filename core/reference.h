@@ -180,7 +180,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -194,7 +194,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -209,7 +209,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -230,7 +230,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -254,7 +254,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -269,7 +269,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -374,12 +374,16 @@ struct PtrToArg<const RefPtr &> {
 	}
 };
 
+#endif // PTRCALL_ENABLED
+
+#ifdef DEBUG_METHODS_ENABLED
+
 template <class T>
 struct GetTypeInfo<Ref<T> > {
 	enum { VARIANT_TYPE = Variant::OBJECT };
 
-	static inline StringName get_class_name() {
-		return T::get_class_static();
+	static inline PropertyInfo get_class_info() {
+		return PropertyInfo(Variant::OBJECT, String(), PROPERTY_HINT_RESOURCE_TYPE, T::get_class_static());
 	}
 };
 
@@ -387,10 +391,11 @@ template <class T>
 struct GetTypeInfo<const Ref<T> &> {
 	enum { VARIANT_TYPE = Variant::OBJECT };
 
-	static inline StringName get_class_name() {
-		return T::get_class_static();
+	static inline PropertyInfo get_class_info() {
+		return PropertyInfo(Variant::OBJECT, String(), PROPERTY_HINT_RESOURCE_TYPE, T::get_class_static());
 	}
 };
 
-#endif
+#endif // DEBUG_METHODS_ENABLED
+
 #endif // REFERENCE_H

@@ -188,14 +188,15 @@ void CanvasItemMaterial::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "blend_mode", PROPERTY_HINT_ENUM, "Mix,Add,Sub,Mul,Premult Alpha"), "set_blend_mode", "get_blend_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "light_mode", PROPERTY_HINT_ENUM, "Normal,Unshaded,Light Only"), "set_light_mode", "get_light_mode");
 
-	BIND_CONSTANT(BLEND_MODE_MIX);
-	BIND_CONSTANT(BLEND_MODE_ADD);
-	BIND_CONSTANT(BLEND_MODE_SUB);
-	BIND_CONSTANT(BLEND_MODE_MUL);
-	BIND_CONSTANT(BLEND_MODE_PREMULT_ALPHA);
-	BIND_CONSTANT(LIGHT_MODE_NORMAL);
-	BIND_CONSTANT(LIGHT_MODE_UNSHADED);
-	BIND_CONSTANT(LIGHT_MODE_LIGHT_ONLY);
+	BIND_ENUM_CONSTANT(BLEND_MODE_MIX);
+	BIND_ENUM_CONSTANT(BLEND_MODE_ADD);
+	BIND_ENUM_CONSTANT(BLEND_MODE_SUB);
+	BIND_ENUM_CONSTANT(BLEND_MODE_MUL);
+	BIND_ENUM_CONSTANT(BLEND_MODE_PREMULT_ALPHA);
+
+	BIND_ENUM_CONSTANT(LIGHT_MODE_NORMAL);
+	BIND_ENUM_CONSTANT(LIGHT_MODE_UNSHADED);
+	BIND_ENUM_CONSTANT(LIGHT_MODE_LIGHT_ONLY);
 }
 
 CanvasItemMaterial::CanvasItemMaterial()
@@ -259,7 +260,7 @@ void CanvasItem::_propagate_visibility_changed(bool p_visible) {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		CanvasItem *c = get_child(i)->cast_to<CanvasItem>();
+		CanvasItem *c = Object::cast_to<CanvasItem>(get_child(i));
 
 		if (c && c->visible) //should the toplevels stop propagation? i think so but..
 			c->_propagate_visibility_changed(p_visible);
@@ -397,7 +398,7 @@ void CanvasItem::_toplevel_raise_self() {
 
 void CanvasItem::_enter_canvas() {
 
-	if ((!get_parent() || !get_parent()->cast_to<CanvasItem>()) || toplevel) {
+	if ((!Object::cast_to<CanvasItem>(get_parent())) || toplevel) {
 
 		Node *n = this;
 
@@ -405,7 +406,7 @@ void CanvasItem::_enter_canvas() {
 
 		while (n) {
 
-			canvas_layer = n->cast_to<CanvasLayer>();
+			canvas_layer = Object::cast_to<CanvasLayer>(n);
 			if (canvas_layer) {
 				break;
 			}
@@ -459,7 +460,7 @@ void CanvasItem::_notification(int p_what) {
 
 			first_draw = true;
 			if (get_parent()) {
-				CanvasItem *ci = get_parent()->cast_to<CanvasItem>();
+				CanvasItem *ci = Object::cast_to<CanvasItem>(get_parent());
 				if (ci)
 					C = ci->children_items.push_back(this);
 			}
@@ -487,7 +488,7 @@ void CanvasItem::_notification(int p_what) {
 				get_tree()->xform_change_list.remove(&xform_change);
 			_exit_canvas();
 			if (C) {
-				get_parent()->cast_to<CanvasItem>()->children_items.erase(C);
+				Object::cast_to<CanvasItem>(get_parent())->children_items.erase(C);
 				C = NULL;
 			}
 			global_invalid = true;
@@ -564,11 +565,7 @@ CanvasItem *CanvasItem::get_parent_item() const {
 	if (toplevel)
 		return NULL;
 
-	Node *parent = get_parent();
-	if (!parent)
-		return NULL;
-
-	return parent->cast_to<CanvasItem>();
+	return Object::cast_to<CanvasItem>(get_parent());
 }
 
 void CanvasItem::set_self_modulate(const Color &p_self_modulate) {
@@ -829,8 +826,8 @@ RID CanvasItem::get_canvas() const {
 CanvasItem *CanvasItem::get_toplevel() const {
 
 	CanvasItem *ci = const_cast<CanvasItem *>(this);
-	while (!ci->toplevel && ci->get_parent() && ci->get_parent()->cast_to<CanvasItem>()) {
-		ci = ci->get_parent()->cast_to<CanvasItem>();
+	while (!ci->toplevel && Object::cast_to<CanvasItem>(ci->get_parent())) {
+		ci = Object::cast_to<CanvasItem>(ci->get_parent());
 	}
 
 	return ci;
@@ -1042,11 +1039,11 @@ void CanvasItem::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("hide"));
 	ADD_SIGNAL(MethodInfo("item_rect_changed"));
 
-	BIND_CONSTANT(BLEND_MODE_MIX);
-	BIND_CONSTANT(BLEND_MODE_ADD);
-	BIND_CONSTANT(BLEND_MODE_SUB);
-	BIND_CONSTANT(BLEND_MODE_MUL);
-	BIND_CONSTANT(BLEND_MODE_PREMULT_ALPHA);
+	BIND_ENUM_CONSTANT(BLEND_MODE_MIX);
+	BIND_ENUM_CONSTANT(BLEND_MODE_ADD);
+	BIND_ENUM_CONSTANT(BLEND_MODE_SUB);
+	BIND_ENUM_CONSTANT(BLEND_MODE_MUL);
+	BIND_ENUM_CONSTANT(BLEND_MODE_PREMULT_ALPHA);
 
 	BIND_CONSTANT(NOTIFICATION_DRAW);
 	BIND_CONSTANT(NOTIFICATION_VISIBILITY_CHANGED);
@@ -1061,8 +1058,8 @@ Transform2D CanvasItem::get_canvas_transform() const {
 
 	if (canvas_layer)
 		return canvas_layer->get_transform();
-	else if (get_parent()->cast_to<CanvasItem>())
-		return get_parent()->cast_to<CanvasItem>()->get_canvas_transform();
+	else if (Object::cast_to<CanvasItem>(get_parent()))
+		return Object::cast_to<CanvasItem>(get_parent())->get_canvas_transform();
 	else
 		return get_viewport()->get_canvas_transform();
 }
@@ -1121,7 +1118,7 @@ Rect2 CanvasItem::get_item_and_children_rect() const {
 	Rect2 rect = get_item_rect();
 
 	for (int i = 0; i < get_child_count(); i++) {
-		CanvasItem *c = get_child(i)->cast_to<CanvasItem>();
+		CanvasItem *c = Object::cast_to<CanvasItem>(get_child(i));
 		if (c) {
 			Rect2 sir = c->get_transform().xform(c->get_item_and_children_rect());
 			rect = rect.merge(sir);

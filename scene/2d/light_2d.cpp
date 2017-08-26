@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "light_2d.h"
+
+#include "engine.h"
 #include "servers/visual_server.h"
 
 void Light2D::edit_set_pivot(const Point2 &p_pivot) {
@@ -70,7 +72,7 @@ void Light2D::_update_light_visibility() {
 
 #ifdef TOOLS_ENABLED
 	if (editor_only) {
-		if (!get_tree()->is_editor_hint()) {
+		if (!Engine::get_singleton()->is_editor_hint()) {
 			editor_ok = false;
 		} else {
 			editor_ok = (get_tree()->get_edited_scene_root() && (this == get_tree()->get_edited_scene_root() || get_owner() == get_tree()->get_edited_scene_root()));
@@ -437,10 +439,10 @@ void Light2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "shadow_filter_smooth", PROPERTY_HINT_RANGE, "0,64,0.1"), "set_shadow_smooth", "get_shadow_smooth");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "shadow_item_cull_mask", PROPERTY_HINT_LAYERS_2D_RENDER), "set_item_shadow_cull_mask", "get_item_shadow_cull_mask");
 
-	BIND_CONSTANT(MODE_ADD);
-	BIND_CONSTANT(MODE_SUB);
-	BIND_CONSTANT(MODE_MIX);
-	BIND_CONSTANT(MODE_MASK);
+	BIND_ENUM_CONSTANT(MODE_ADD);
+	BIND_ENUM_CONSTANT(MODE_SUB);
+	BIND_ENUM_CONSTANT(MODE_MIX);
+	BIND_ENUM_CONSTANT(MODE_MASK);
 }
 
 Light2D::Light2D() {

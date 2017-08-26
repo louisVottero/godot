@@ -809,27 +809,27 @@ void EditorFileDialog::set_mode(Mode p_mode) {
 
 		case MODE_OPEN_FILE:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a File");
+			set_title(TTR("Open a File"));
 			makedir->hide();
 			break;
 		case MODE_OPEN_FILES:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open File(s)");
+			set_title(TTR("Open File(s)"));
 			makedir->hide();
 			break;
 		case MODE_OPEN_DIR:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a Directory");
+			set_title(TTR("Open a Directory"));
 			makedir->show();
 			break;
 		case MODE_OPEN_ANY:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a File or Directory");
+			set_title(TTR("Open a File or Directory"));
 			makedir->show();
 			break;
 		case MODE_SAVE_FILE:
 			get_ok()->set_text(TTR("Save"));
-			set_title("Save a File");
+			set_title(TTR("Save a File"));
 			makedir->show();
 			break;
 	}
@@ -1187,15 +1187,15 @@ void EditorFileDialog::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("files_selected", PropertyInfo(Variant::POOL_STRING_ARRAY, "paths")));
 	ADD_SIGNAL(MethodInfo("dir_selected", PropertyInfo(Variant::STRING, "dir")));
 
-	BIND_CONSTANT(MODE_OPEN_FILE);
-	BIND_CONSTANT(MODE_OPEN_FILES);
-	BIND_CONSTANT(MODE_OPEN_DIR);
-	BIND_CONSTANT(MODE_OPEN_ANY);
-	BIND_CONSTANT(MODE_SAVE_FILE);
+	BIND_ENUM_CONSTANT(MODE_OPEN_FILE);
+	BIND_ENUM_CONSTANT(MODE_OPEN_FILES);
+	BIND_ENUM_CONSTANT(MODE_OPEN_DIR);
+	BIND_ENUM_CONSTANT(MODE_OPEN_ANY);
+	BIND_ENUM_CONSTANT(MODE_SAVE_FILE);
 
-	BIND_CONSTANT(ACCESS_RESOURCES);
-	BIND_CONSTANT(ACCESS_USERDATA);
-	BIND_CONSTANT(ACCESS_FILESYSTEM);
+	BIND_ENUM_CONSTANT(ACCESS_RESOURCES);
+	BIND_ENUM_CONSTANT(ACCESS_USERDATA);
+	BIND_ENUM_CONSTANT(ACCESS_FILESYSTEM);
 }
 
 void EditorFileDialog::set_show_hidden_files(bool p_show) {

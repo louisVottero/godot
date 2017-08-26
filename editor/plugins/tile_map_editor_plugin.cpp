@@ -106,7 +106,7 @@ void TileMapEditor::_menu_option(int p_option) {
 			if (!selection_active)
 				return;
 
-			undo_redo->create_action("Erase Selection");
+			undo_redo->create_action(TTR("Erase Selection"));
 			for (int i = rectangle.position.y; i <= rectangle.position.y + rectangle.size.y; i++) {
 				for (int j = rectangle.position.x; j <= rectangle.position.x + rectangle.size.x; j++) {
 
@@ -730,7 +730,7 @@ bool TileMapEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 
 						if (id != TileMap::INVALID_CELL) {
 
-							undo_redo->create_action("Line Draw");
+							undo_redo->create_action(TTR("Line Draw"));
 							for (Map<Point2i, CellOp>::Element *E = paint_undo.front(); E; E = E->next()) {
 
 								_set_cell(E->key(), id, flip_h, flip_v, transpose, true);
@@ -747,7 +747,7 @@ bool TileMapEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 
 						if (id != TileMap::INVALID_CELL) {
 
-							undo_redo->create_action("Rectangle Paint");
+							undo_redo->create_action(TTR("Rectangle Paint"));
 							for (int i = rectangle.position.y; i <= rectangle.position.y + rectangle.size.y; i++) {
 								for (int j = rectangle.position.x; j <= rectangle.position.x + rectangle.size.x; j++) {
 
@@ -796,7 +796,7 @@ bool TileMapEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 						op["flip_v"] = flip_v;
 						op["transpose"] = transpose;
 
-						undo_redo->create_action("Bucket Fill");
+						undo_redo->create_action(TTR("Bucket Fill"));
 
 						undo_redo->add_do_method(this, "_fill_points", points, op);
 						undo_redo->add_undo_method(this, "_fill_points", points, pop);
@@ -1329,7 +1329,7 @@ void TileMapEditor::edit(Node *p_tile_map) {
 		node->disconnect("settings_changed", this, "_tileset_settings_changed");
 	if (p_tile_map) {
 
-		node = p_tile_map->cast_to<TileMap>();
+		node = Object::cast_to<TileMap>(p_tile_map);
 		if (!canvas_item_editor->is_connected("draw", this, "_canvas_draw"))
 			canvas_item_editor->connect("draw", this, "_canvas_draw");
 		if (!canvas_item_editor->is_connected("mouse_entered", this, "_canvas_mouse_enter"))
@@ -1407,7 +1407,7 @@ TileMapEditor::CellOp TileMapEditor::_get_op_from_cell(const Point2i &p_pos) {
 
 void TileMapEditor::_update_transform_buttons(Object *p_button) {
 	//ERR_FAIL_NULL(p_button);
-	ToolButton *b = p_button->cast_to<ToolButton>();
+	ToolButton *b = Object::cast_to<ToolButton>(p_button);
 	//ERR_FAIL_COND(!b);
 
 	if (b == rotate_0) {
@@ -1582,7 +1582,7 @@ TileMapEditor::~TileMapEditor() {
 
 void TileMapEditorPlugin::edit(Object *p_object) {
 
-	tile_map_editor->edit(p_object->cast_to<Node>());
+	tile_map_editor->edit(Object::cast_to<Node>(p_object));
 }
 
 bool TileMapEditorPlugin::handles(Object *p_object) const {

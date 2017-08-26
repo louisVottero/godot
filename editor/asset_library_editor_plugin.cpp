@@ -535,7 +535,7 @@ void EditorAssetLibrary::_notification(int p_what) {
 
 			TextureRect *tf = memnew(TextureRect);
 			tf->set_texture(get_icon("Error", "EditorIcons"));
-			reverse->set_icon(get_icon("Updown", "EditorIcons"));
+			reverse->set_icon(get_icon("Sort", "EditorIcons"));
 
 			error_hb->add_child(tf);
 			error_label->raise();
@@ -595,7 +595,7 @@ void EditorAssetLibrary::_install_asset() {
 
 	for (int i = 0; i < downloads_hb->get_child_count(); i++) {
 
-		EditorAssetLibraryItemDownload *d = downloads_hb->get_child(i)->cast_to<EditorAssetLibraryItemDownload>();
+		EditorAssetLibraryItemDownload *d = Object::cast_to<EditorAssetLibraryItemDownload>(downloads_hb->get_child(i));
 		if (d && d->get_asset_id() == description->get_asset_id()) {
 
 			if (EditorNode::get_singleton() != NULL)

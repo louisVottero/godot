@@ -56,11 +56,10 @@ void ColorPicker::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_VISIBILITY_CHANGED: {
-			if (get_parent()) {
-				Popup *p = get_parent()->cast_to<Popup>();
-				if (p)
-					p->set_size(Size2(get_combined_minimum_size().width + get_constant("margin") * 2, get_combined_minimum_size().height + get_constant("margin") * 2));
-			}
+
+			Popup *p = Object::cast_to<Popup>(get_parent());
+			if (p)
+				p->set_size(Size2(get_combined_minimum_size().width + get_constant("margin") * 2, get_combined_minimum_size().height + get_constant("margin") * 2));
 		} break;
 
 		case MainLoop::NOTIFICATION_WM_QUIT_REQUEST: {
@@ -204,7 +203,7 @@ void ColorPicker::_update_presets() {
 }
 
 void ColorPicker::_text_type_toggled() {
-	if (!get_tree()->is_editor_hint())
+	if (!Engine::get_singleton()->is_editor_hint())
 		return;
 	text_is_constructor = !text_is_constructor;
 	if (text_is_constructor) {

@@ -218,7 +218,7 @@ private:
 				unzFile pkg = unzOpen2(zip_path.utf8().get_data(), &io);
 				if (!pkg) {
 
-					dialog_error->set_text("Error opening package file, not in zip format.");
+					dialog_error->set_text(TTR("Error opening package file, not in zip format."));
 					return;
 				}
 
@@ -465,7 +465,7 @@ void ProjectManager::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
-		get_tree()->set_editor_hint(true);
+		Engine::get_singleton()->set_editor_hint(true);
 
 	} else if (p_what == NOTIFICATION_VISIBILITY_CHANGED) {
 
@@ -475,7 +475,7 @@ void ProjectManager::_notification(int p_what) {
 
 void ProjectManager::_panel_draw(Node *p_hb) {
 
-	HBoxContainer *hb = p_hb->cast_to<HBoxContainer>();
+	HBoxContainer *hb = Object::cast_to<HBoxContainer>(p_hb);
 
 	hb->draw_line(Point2(0, hb->get_size().y + 1), Point2(hb->get_size().x - 10, hb->get_size().y + 1), get_color("guide_color", "Tree"));
 
@@ -487,7 +487,7 @@ void ProjectManager::_panel_draw(Node *p_hb) {
 void ProjectManager::_update_project_buttons() {
 	for (int i = 0; i < scroll_childs->get_child_count(); i++) {
 
-		CanvasItem *item = scroll_childs->get_child(i)->cast_to<CanvasItem>();
+		CanvasItem *item = Object::cast_to<CanvasItem>(scroll_childs->get_child(i));
 		item->update();
 	}
 
@@ -509,7 +509,7 @@ void ProjectManager::_panel_input(const Ref<InputEvent> &p_ev, Node *p_hb) {
 			int clicked_id = -1;
 			int last_clicked_id = -1;
 			for (int i = 0; i < scroll_childs->get_child_count(); i++) {
-				HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+				HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 				if (!hb) continue;
 				if (hb->get_meta("name") == clicked) clicked_id = i;
 				if (hb->get_meta("name") == last_clicked) last_clicked_id = i;
@@ -519,7 +519,7 @@ void ProjectManager::_panel_input(const Ref<InputEvent> &p_ev, Node *p_hb) {
 				int min = clicked_id < last_clicked_id ? clicked_id : last_clicked_id;
 				int max = clicked_id > last_clicked_id ? clicked_id : last_clicked_id;
 				for (int i = 0; i < scroll_childs->get_child_count(); ++i) {
-					HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+					HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 					if (!hb) continue;
 					if (i != clicked_id && (i < min || i > max) && !mb->get_control()) {
 						selected_list.erase(hb->get_meta("name"));
@@ -572,7 +572,7 @@ void ProjectManager::_unhandled_input(const Ref<InputEvent> &p_ev) {
 
 				for (int i = 0; i < scroll_childs->get_child_count(); i++) {
 
-					HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+					HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 					if (hb) {
 						selected_list.clear();
 						selected_list.insert(hb->get_meta("name"), hb->get_meta("main_scene"));
@@ -587,7 +587,7 @@ void ProjectManager::_unhandled_input(const Ref<InputEvent> &p_ev) {
 
 				for (int i = scroll_childs->get_child_count() - 1; i >= 0; i--) {
 
-					HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+					HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 					if (hb) {
 						selected_list.clear();
 						selected_list.insert(hb->get_meta("name"), hb->get_meta("main_scene"));
@@ -609,7 +609,7 @@ void ProjectManager::_unhandled_input(const Ref<InputEvent> &p_ev) {
 
 					for (int i = scroll_childs->get_child_count() - 1; i >= 0; i--) {
 
-						HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+						HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 						if (!hb) continue;
 
 						String current = hb->get_meta("name");
@@ -646,7 +646,7 @@ void ProjectManager::_unhandled_input(const Ref<InputEvent> &p_ev) {
 
 				for (int i = 0; i < scroll_childs->get_child_count(); i++) {
 
-					HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
+					HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
 					if (!hb) continue;
 
 					String current = hb->get_meta("name");
@@ -885,8 +885,8 @@ void ProjectManager::_load_recent_projects() {
 void ProjectManager::_on_project_created(const String &dir) {
 	bool has_already = false;
 	for (int i = 0; i < scroll_childs->get_child_count(); i++) {
-		HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
-		Label *fpath = hb->get_node(NodePath("project/path"))->cast_to<Label>();
+		HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
+		Label *fpath = Object::cast_to<Label>(hb->get_node(NodePath("project/path")));
 		if (fpath->get_text() == dir) {
 			has_already = true;
 			break;
@@ -903,8 +903,8 @@ void ProjectManager::_on_project_created(const String &dir) {
 
 void ProjectManager::_update_scroll_pos(const String &dir) {
 	for (int i = 0; i < scroll_childs->get_child_count(); i++) {
-		HBoxContainer *hb = scroll_childs->get_child(i)->cast_to<HBoxContainer>();
-		Label *fpath = hb->get_node(NodePath("project/path"))->cast_to<Label>();
+		HBoxContainer *hb = Object::cast_to<HBoxContainer>(scroll_childs->get_child(i));
+		Label *fpath = Object::cast_to<Label>(hb->get_node(NodePath("project/path")));
 		if (fpath->get_text() == dir) {
 			last_clicked = hb->get_meta("name");
 			selected_list.clear();
@@ -929,10 +929,10 @@ void ProjectManager::_open_project_confirm() {
 
 		List<String> args;
 
-		args.push_back("-path");
+		args.push_back("--path");
 		args.push_back(path);
 
-		args.push_back("-editor");
+		args.push_back("--editor");
 
 		String exec = OS::get_singleton()->get_executable_path();
 
@@ -969,7 +969,6 @@ void ProjectManager::_run_project_confirm() {
 			return;
 		}
 
-
 		const String &selected = E->key();
 		String path = EditorSettings::get_singleton()->get("projects/" + selected);
 
@@ -983,7 +982,7 @@ void ProjectManager::_run_project_confirm() {
 
 		List<String> args;
 
-		args.push_back("-path");
+		args.push_back("--path");
 		args.push_back(path);
 
 		String exec = OS::get_singleton()->get_executable_path();
@@ -1220,7 +1219,7 @@ ProjectManager::ProjectManager() {
 	panel->add_child(vb);
 	vb->set_area_as_parent_rect(20 * EDSCALE);
 	vb->set_margin(MARGIN_TOP, 4 * EDSCALE);
-	vb->set_margin(MARGIN_BOTTOM, 4 * EDSCALE);
+	vb->set_margin(MARGIN_BOTTOM, -4 * EDSCALE);
 	vb->add_constant_override("separation", 15 * EDSCALE);
 
 	String cp;
@@ -1390,9 +1389,6 @@ ProjectManager::ProjectManager() {
 		_scan_begin(EditorSettings::get_singleton()->get("filesystem/directories/autoscan_project_path"));
 	}
 
-	//get_ok()->set_text("Open");
-	//get_ok()->set_text("Exit");
-
 	last_clicked = "";
 
 	SceneTree::get_singleton()->connect("files_dropped", this, "_files_dropped");
@@ -1450,7 +1446,7 @@ void ProjectListFilter::_filter_option_selected(int p_idx) {
 void ProjectListFilter::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
-			clear_search_button->set_icon(get_icon("CloseHover", "EditorIcons"));
+			clear_search_button->set_icon(get_icon("Close", "EditorIcons"));
 		} break;
 	}
 }
