@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -35,7 +35,6 @@
 #include "io/image_loader.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
-#include "io_plugins/editor_texture_import_plugin.h"
 #include "os/dir_access.h"
 #include "os/file_access.h"
 #include "os/os.h"

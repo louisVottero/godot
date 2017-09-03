@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -842,7 +842,7 @@ void RigidBody::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_colliding_bodies"), &RigidBody::get_colliding_bodies);
 
-	BIND_VMETHOD(MethodInfo("_integrate_forces", PropertyInfo(Variant::OBJECT, "state:PhysicsDirectBodyState")));
+	BIND_VMETHOD(MethodInfo("_integrate_forces", PropertyInfo(Variant::OBJECT, "state", PROPERTY_HINT_RESOURCE_TYPE, "PhysicsDirectBodyState")));
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Rigid,Static,Character,Kinematic"), "set_mode", "get_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "mass", PROPERTY_HINT_EXP_RANGE, "0.01,65535,0.01"), "set_mass", "get_mass");
@@ -918,7 +918,7 @@ Dictionary KinematicBody::_move(const Vector3 &p_motion) {
 	if (move(p_motion, col)) {
 		Dictionary d;
 		d["position"] = col.collision;
-		d["normal"] = col.collision;
+		d["normal"] = col.normal;
 		d["local_shape"] = col.local_shape;
 		d["travel"] = col.travel;
 		d["remainder"] = col.remainder;
@@ -929,6 +929,7 @@ Dictionary KinematicBody::_move(const Vector3 &p_motion) {
 			d["collider"] = Variant();
 		}
 
+		d["collider_velocity"] = col.collider_vel;
 		d["collider_shape_index"] = col.collider_shape;
 		d["collider_metadata"] = col.collider_metadata;
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,28 +28,23 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "viewport.h"
+
 #include "os/input.h"
 #include "os/os.h"
-#include "scene/3d/spatial.h"
-#include "servers/physics_2d_server.h"
-//#include "scene/3d/camera.h"
-
+#include "project_settings.h"
+#include "scene/2d/collision_object_2d.h"
 #include "scene/3d/camera.h"
 #include "scene/3d/collision_object.h"
 #include "scene/3d/listener.h"
-#include "scene/3d/spatial_indexer.h"
+#include "scene/3d/scenario_fx.h"
+#include "scene/3d/spatial.h"
 #include "scene/gui/control.h"
-#include "scene/resources/mesh.h"
-
-#include "scene/2d/collision_object_2d.h"
-
 #include "scene/gui/label.h"
 #include "scene/gui/panel.h"
 #include "scene/main/timer.h"
+#include "scene/resources/mesh.h"
 #include "scene/scene_string_names.h"
-
-#include "project_settings.h"
-#include "scene/3d/scenario_fx.h"
+#include "servers/physics_2d_server.h"
 
 void ViewportTexture::setup_local_to_scene() {
 
@@ -395,7 +390,7 @@ void Viewport::_notification(int p_what) {
 				contact_3d_debug_instance = VisualServer::get_singleton()->instance_create();
 				VisualServer::get_singleton()->instance_set_base(contact_3d_debug_instance, contact_3d_debug_multimesh);
 				VisualServer::get_singleton()->instance_set_scenario(contact_3d_debug_instance, find_world()->get_scenario());
-				VisualServer::get_singleton()->instance_geometry_set_flag(contact_3d_debug_instance, VS::INSTANCE_FLAG_VISIBLE_IN_ALL_ROOMS, true);
+				//VisualServer::get_singleton()->instance_geometry_set_flag(contact_3d_debug_instance, VS::INSTANCE_FLAG_VISIBLE_IN_ALL_ROOMS, true);
 			}
 
 			VS::get_singleton()->viewport_set_active(viewport, true);
@@ -496,7 +491,7 @@ void Viewport::_notification(int p_what) {
 			if (physics_object_picking && (to_screen_rect == Rect2() || Input::get_singleton()->get_mouse_mode() != Input::MOUSE_MODE_CAPTURED)) {
 
 				Vector2 last_pos(1e20, 1e20);
-				CollisionObject *last_object;
+				CollisionObject *last_object = NULL;
 				ObjectID last_id = 0;
 				PhysicsDirectSpaceState::RayResult result;
 				Physics2DDirectSpaceState *ss2d = Physics2DServer::get_singleton()->space_get_direct_state(find_world_2d()->get_space());
@@ -609,7 +604,7 @@ void Viewport::_notification(int p_what) {
 					} else if (pos == last_pos) {
 
 						if (last_id) {
-							if (ObjectDB::get_instance(last_id)) {
+							if (ObjectDB::get_instance(last_id) && last_object) {
 								//good, exists
 								last_object->_input_event(camera, ev, result.position, result.normal, result.shape);
 								if (last_object->get_capture_input_on_drag() && mb.is_valid() && mb->get_button_index() == 1 && mb->is_pressed()) {
@@ -1180,44 +1175,7 @@ bool Viewport::is_size_override_stretch_enabled() const {
 
 	return size_override_stretch;
 }
-#if 0
-void Viewport::set_as_render_target(bool p_enable){
 
-/*	if (render_target==p_enable)
-		return;
-
-	render_target=p_enable;
-
-	VS::get_singleton()->viewport_set_as_render_target(viewport,p_enable);
-	if (is_inside_tree()) {
-
-		if (p_enable)
-			_vp_exit_tree();
-		else
-			_vp_enter_tree();
-	}
-
-	if (p_enable) {
-
-		texture_rid = VS::get_singleton()->viewport_get_texture(viewport);
-	} else {
-
-		texture_rid=RID();
-	}
-
-	texture->set_flags(texture->flags);
-	texture->emit_changed();
-
-	update_configuration_warning();
-	*/
-}
-
-bool Viewport::is_set_as_render_target() const{
-
-	return render_target;
-
-}
-#endif
 void Viewport::set_update_mode(UpdateMode p_mode) {
 
 	update_mode = p_mode;
@@ -1227,7 +1185,6 @@ Viewport::UpdateMode Viewport::get_update_mode() const {
 
 	return update_mode;
 }
-//RID get_texture() const;
 
 Ref<ViewportTexture> Viewport::get_texture() const {
 
@@ -1245,15 +1202,15 @@ bool Viewport::get_vflip() const {
 	return vflip;
 }
 
-void Viewport::set_clear_on_new_frame(bool p_enable) {
+void Viewport::set_clear_mode(ClearMode p_mode) {
 
-	clear_on_new_frame = p_enable;
-	//VisualServer::get_singleton()->viewport_set_clear_on_new_frame(viewport,p_enable);
+	clear_mode = p_mode;
+	VS::get_singleton()->viewport_set_clear_mode(viewport, VS::ViewportClearMode(p_mode));
 }
 
-bool Viewport::get_clear_on_new_frame() const {
+Viewport::ClearMode Viewport::get_clear_mode() const {
 
-	return clear_on_new_frame;
+	return clear_mode;
 }
 
 void Viewport::set_shadow_atlas_size(int p_size) {
@@ -1287,12 +1244,6 @@ Viewport::ShadowAtlasQuadrantSubdiv Viewport::get_shadow_atlas_quadrant_subdiv(i
 
 	ERR_FAIL_INDEX_V(p_quadrant, 4, SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	return shadow_atlas_quadrant_subdiv[p_quadrant];
-}
-
-void Viewport::clear() {
-
-	//clear=true;
-	//VisualServer::get_singleton()->viewport_clear(viewport);
 }
 
 Transform2D Viewport::_get_input_pre_xform() const {
@@ -2668,10 +2619,9 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_vflip", "enable"), &Viewport::set_vflip);
 	ClassDB::bind_method(D_METHOD("get_vflip"), &Viewport::get_vflip);
 
-	ClassDB::bind_method(D_METHOD("set_clear_on_new_frame", "enable"), &Viewport::set_clear_on_new_frame);
-	ClassDB::bind_method(D_METHOD("get_clear_on_new_frame"), &Viewport::get_clear_on_new_frame);
+	ClassDB::bind_method(D_METHOD("set_clear_mode", "mode"), &Viewport::set_clear_mode);
+	ClassDB::bind_method(D_METHOD("get_clear_mode"), &Viewport::get_clear_mode);
 
-	ClassDB::bind_method(D_METHOD("clear"), &Viewport::clear);
 	ClassDB::bind_method(D_METHOD("set_update_mode", "mode"), &Viewport::set_update_mode);
 	ClassDB::bind_method(D_METHOD("get_update_mode"), &Viewport::get_update_mode);
 
@@ -2735,7 +2685,7 @@ void Viewport::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "arvr"), "set_use_arvr", "use_arvr");
 
-	ADD_PROPERTY(PropertyInfo(Variant::RECT2, "size"), "set_size", "get_size");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "size"), "set_size", "get_size");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "own_world"), "set_use_own_world", "is_using_own_world");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "world", PROPERTY_HINT_RESOURCE_TYPE, "World"), "set_world", "get_world");
 	//ADD_PROPERTY( PropertyInfo(Variant::OBJECT,"world_2d",PROPERTY_HINT_RESOURCE_TYPE,"World2D"), "set_world_2d", "get_world_2d") ;
@@ -2748,7 +2698,7 @@ void Viewport::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "debug_draw", PROPERTY_HINT_ENUM, "Disabled,Unshaded,Overdraw,Wireframe"), "set_debug_draw", "get_debug_draw");
 	ADD_GROUP("Render Target", "render_target_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "render_target_v_flip"), "set_vflip", "get_vflip");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "render_target_clear_on_new_frame"), "set_clear_on_new_frame", "get_clear_on_new_frame");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "render_target_clear_mode", PROPERTY_HINT_ENUM, "Always,Never,NextFrame"), "set_clear_mode", "get_clear_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_target_update_mode", PROPERTY_HINT_ENUM, "Disabled,Once,When Visible,Always"), "set_update_mode", "get_update_mode");
 	ADD_GROUP("Audio Listener", "audio_listener_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "audio_listener_enable_2d"), "set_as_audio_listener_2d", "is_audio_listener_2d");
@@ -2827,7 +2777,7 @@ Viewport::Viewport() {
 	gen_mipmaps = false;
 
 	vflip = false;
-	clear_on_new_frame = true;
+
 	//clear=true;
 	update_mode = UPDATE_WHEN_VISIBLE;
 
@@ -2871,6 +2821,7 @@ Viewport::Viewport() {
 
 	usage = USAGE_3D;
 	debug_draw = DEBUG_DRAW_DISABLED;
+	clear_mode = CLEAR_MODE_ALWAYS;
 }
 
 Viewport::~Viewport() {

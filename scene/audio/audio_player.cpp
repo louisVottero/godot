@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -139,12 +139,12 @@ void AudioStreamPlayer::set_stream(Ref<AudioStream> p_stream) {
 	stream = p_stream;
 	stream_playback = p_stream->instance_playback();
 
+	AudioServer::get_singleton()->unlock();
+
 	if (stream_playback.is_null()) {
 		stream.unref();
 		ERR_FAIL_COND(stream_playback.is_null());
 	}
-
-	AudioServer::get_singleton()->unlock();
 }
 
 Ref<AudioStream> AudioStreamPlayer::get_stream() const {

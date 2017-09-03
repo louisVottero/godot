@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -64,12 +64,13 @@ void OS::debug_break(){
 
 void OS::print_error(const char *p_function, const char *p_file, int p_line, const char *p_code, const char *p_rationale, ErrorType p_type) {
 
-	const char *err_type;
+	const char *err_type = "**ERROR**";
 	switch (p_type) {
 		case ERR_ERROR: err_type = "**ERROR**"; break;
 		case ERR_WARNING: err_type = "**WARNING**"; break;
 		case ERR_SCRIPT: err_type = "**SCRIPT ERROR**"; break;
 		case ERR_SHADER: err_type = "**SHADER ERROR**"; break;
+		default: ERR_PRINT("Unknown error type"); break;
 	}
 
 	if (p_rationale && *p_rationale)

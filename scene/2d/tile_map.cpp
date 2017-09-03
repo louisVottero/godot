@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -336,6 +336,7 @@ void TileMap::_update_dirty_quadrants() {
 				if (mat.is_valid())
 					vs->canvas_item_set_material(canvas_item, mat->get_rid());
 				vs->canvas_item_set_parent(canvas_item, get_canvas_item());
+				_update_item_material_state(canvas_item);
 				Transform2D xform;
 				xform.set_origin(q.pos);
 				vs->canvas_item_set_transform(canvas_item, xform);
@@ -778,6 +779,35 @@ void TileMap::_clear_quadrants() {
 	while (quadrant_map.size()) {
 		_erase_quadrant(quadrant_map.front());
 	}
+}
+
+void TileMap::set_material(const Ref<Material> &p_material) {
+
+	CanvasItem::set_material(p_material);
+	_update_all_items_material_state();
+}
+
+void TileMap::set_use_parent_material(bool p_use_parent_material) {
+
+	CanvasItem::set_use_parent_material(p_use_parent_material);
+	_update_all_items_material_state();
+}
+
+void TileMap::_update_all_items_material_state() {
+
+	for (Map<PosKey, Quadrant>::Element *E = quadrant_map.front(); E; E = E->next()) {
+
+		Quadrant &q = E->get();
+		for (List<RID>::Element *E = q.canvas_items.front(); E; E = E->next()) {
+
+			_update_item_material_state(E->get());
+		}
+	}
+}
+
+void TileMap::_update_item_material_state(const RID &p_canvas_item) {
+
+	VS::get_singleton()->canvas_item_set_use_parent_material(p_canvas_item, get_use_parent_material() || get_material().is_valid());
 }
 
 void TileMap::clear() {

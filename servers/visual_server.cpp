@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "visual_server.h"
+
 #include "method_bind_ext.gen.inc"
 #include "project_settings.h"
 
@@ -37,25 +38,6 @@ VisualServer *(*VisualServer::create_func)() = NULL;
 VisualServer *VisualServer::get_singleton() {
 
 	return singleton;
-}
-
-PoolVector<String> VisualServer::_shader_get_param_list(RID p_shader) const {
-
-	//remove at some point
-
-	PoolVector<String> pl;
-
-#if 0
-	List<StringName> params;
-	shader_get_param_list(p_shader,&params);
-
-
-	for(List<StringName>::Element *E=params.front();E;E=E->next()) {
-
-		pl.push_back(E->get());
-	}
-#endif
-	return pl;
 }
 
 VisualServer *VisualServer::create() {
@@ -1440,6 +1422,7 @@ Array VisualServer::mesh_surface_get_arrays(RID p_mesh, int p_surface) const {
 
 void VisualServer::_bind_methods() {
 
+	ClassDB::bind_method(D_METHOD("force_draw"), &VisualServer::draw);
 	ClassDB::bind_method(D_METHOD("texture_create"), &VisualServer::texture_create);
 	ClassDB::bind_method(D_METHOD("texture_create_from_image", "image", "flags"), &VisualServer::texture_create_from_image, DEFVAL(TEXTURE_FLAGS_DEFAULT));
 	//ClassDB::bind_method(D_METHOD("texture_allocate"),&VisualServer::texture_allocate,DEFVAL( TEXTURE_FLAGS_DEFAULT ) );
@@ -1466,7 +1449,6 @@ void VisualServer::_camera_set_orthogonal(RID p_camera, float p_size, float p_z_
 
 void VisualServer::mesh_add_surface_from_mesh_data(RID p_mesh, const Geometry::MeshData &p_mesh_data) {
 
-#if 1
 	PoolVector<Vector3> vertices;
 	PoolVector<Vector3> normals;
 
@@ -1491,24 +1473,6 @@ void VisualServer::mesh_add_surface_from_mesh_data(RID p_mesh, const Geometry::M
 	d[ARRAY_VERTEX] = vertices;
 	d[ARRAY_NORMAL] = normals;
 	mesh_add_surface_from_arrays(p_mesh, PRIMITIVE_TRIANGLES, d);
-
-#else
-
-	PoolVector<Vector3> vertices;
-
-	for (int i = 0; i < p_mesh_data.edges.size(); i++) {
-
-		const Geometry::MeshData::Edge &f = p_mesh_data.edges[i];
-		vertices.push_back(p_mesh_data.vertices[f.a]);
-		vertices.push_back(p_mesh_data.vertices[f.b]);
-	}
-
-	Array d;
-	d.resize(VS::ARRAY_MAX);
-	d[ARRAY_VERTEX] = vertices;
-	mesh_add_surface(p_mesh, PRIMITIVE_LINES, d);
-
-#endif
 }
 
 void VisualServer::mesh_add_surface_from_planes(RID p_mesh, const PoolVector<Plane> &p_planes) {

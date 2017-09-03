@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -37,7 +37,7 @@ extern "C" {
 #include <stdint.h>
 #include <wchar.h>
 
-#define GODOT_STRING_SIZE 8
+#define GODOT_STRING_SIZE sizeof(void *)
 
 #ifndef GODOT_CORE_API_GODOT_STRING_TYPE_DEFINED
 #define GODOT_CORE_API_GODOT_STRING_TYPE_DEFINED
@@ -82,7 +82,7 @@ godot_int GDAPI godot_string_findmk_from(const godot_string *p_self, const godot
 godot_int GDAPI godot_string_findmk_from_in_place(const godot_string *p_self, const godot_array *p_keys, godot_int p_from, godot_int *r_key);
 godot_int GDAPI godot_string_findn(const godot_string *p_self, godot_string p_what);
 godot_int GDAPI godot_string_findn_from(const godot_string *p_self, godot_string p_what, godot_int p_from);
-godot_int GDAPI find_last(const godot_string *p_self, godot_string p_what);
+godot_int GDAPI godot_string_find_last(const godot_string *p_self, godot_string p_what);
 godot_string GDAPI godot_string_format(const godot_string *p_self, const godot_variant *p_values);
 godot_string GDAPI godot_string_format_with_custom_placeholder(const godot_string *p_self, const godot_variant *p_values, const char *p_placeholder);
 godot_string GDAPI godot_string_hex_encode_buffer(const uint8_t *p_buffer, godot_int p_len);

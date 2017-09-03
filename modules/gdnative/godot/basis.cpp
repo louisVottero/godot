@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -105,24 +105,6 @@ godot_basis GDAPI godot_basis_scaled(const godot_basis *p_self, const godot_vect
 	const Vector3 *scale = (const Vector3 *)p_scale;
 	*((Basis *)&dest) = self->scaled(*scale);
 	return dest;
-}
-
-void GDAPI godot_basis_set_scale(godot_basis *p_self, const godot_vector3 *p_scale) {
-	Basis *self = (Basis *)p_self;
-	const Vector3 *scale = (const Vector3 *)p_scale;
-	self->set_scale(*scale);
-}
-
-void GDAPI godot_basis_set_rotation_euler(godot_basis *p_self, const godot_vector3 *p_euler) {
-	Basis *self = (Basis *)p_self;
-	const Vector3 *euler = (const Vector3 *)p_euler;
-	self->set_rotation_euler(*euler);
-}
-
-void GDAPI godot_basis_set_rotation_axis_angle(godot_basis *p_self, const godot_vector3 *p_axis, const godot_real p_angle) {
-	Basis *self = (Basis *)p_self;
-	const Vector3 *axis = (const Vector3 *)p_axis;
-	self->set_rotation_axis_angle(*axis, p_angle);
 }
 
 godot_vector3 GDAPI godot_basis_get_scale(const godot_basis *p_self) {

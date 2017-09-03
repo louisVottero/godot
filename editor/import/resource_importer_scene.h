@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -83,9 +83,9 @@ class ResourceImporterScene : public ResourceImporter {
 	static ResourceImporterScene *singleton;
 
 	enum Presets {
-		PRESET_SINGLE_SCENE,
 		PRESET_SEPARATE_MATERIALS,
 		PRESET_SEPARATE_MESHES,
+		PRESET_SINGLE_SCENE,
 		PRESET_SEPARATE_MESHES_AND_MATERIALS,
 		PRESET_MULTIPLE_SCENES,
 		PRESET_MULTIPLE_SCENES_AND_MATERIALS,

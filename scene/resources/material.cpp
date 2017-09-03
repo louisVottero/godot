@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "material.h"
+
 #include "scene/scene_string_names.h"
 
 void Material::set_next_pass(const Ref<Material> &p_pass) {
@@ -47,6 +48,19 @@ Ref<Material> Material::get_next_pass() const {
 	return next_pass;
 }
 
+void Material::set_render_priority(int p_priority) {
+
+	ERR_FAIL_COND(p_priority < RENDER_PRIORITY_MIN);
+	ERR_FAIL_COND(p_priority > RENDER_PRIORITY_MAX);
+	render_priority = p_priority;
+	VS::get_singleton()->material_set_render_priority(material, p_priority);
+}
+
+int Material::get_render_priority() const {
+
+	return render_priority;
+}
+
 RID Material::get_rid() const {
 
 	return material;
@@ -57,12 +71,20 @@ void Material::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_next_pass", "next_pass"), &Material::set_next_pass);
 	ClassDB::bind_method(D_METHOD("get_next_pass"), &Material::get_next_pass);
 
+	ClassDB::bind_method(D_METHOD("set_render_priority", "priority"), &Material::set_render_priority);
+	ClassDB::bind_method(D_METHOD("get_render_priority"), &Material::get_render_priority);
+
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "render_priority", PROPERTY_HINT_RANGE, itos(RENDER_PRIORITY_MIN) + "," + itos(RENDER_PRIORITY_MAX) + ",1"), "set_render_priority", "get_render_priority");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "next_pass", PROPERTY_HINT_RESOURCE_TYPE, "Material"), "set_next_pass", "get_next_pass");
+
+	BIND_CONSTANT(RENDER_PRIORITY_MAX);
+	BIND_CONSTANT(RENDER_PRIORITY_MIN);
 }
 
 Material::Material() {
 
 	material = VisualServer::get_singleton()->material_create();
+	render_priority = 0;
 }
 
 Material::~Material() {
@@ -226,8 +248,8 @@ void SpatialMaterial::init_shaders() {
 	shader_names->uv1_blend_sharpness = "uv1_blend_sharpness";
 	shader_names->uv2_blend_sharpness = "uv2_blend_sharpness";
 
-	shader_names->particle_h_frames = "particle_h_frames";
-	shader_names->particle_v_frames = "particle_v_frames";
+	shader_names->particles_anim_h_frames = "particles_anim_h_frames";
+	shader_names->particles_anim_v_frames = "particles_anim_v_frames";
 	shader_names->particles_anim_loop = "particles_anim_loop";
 	shader_names->depth_min_layers = "depth_min_layers";
 	shader_names->depth_max_layers = "depth_max_layers";
@@ -346,14 +368,14 @@ void SpatialMaterial::_update_shader() {
 	if (flags[FLAG_UNSHADED]) {
 		code += ",unshaded";
 	}
-	if (flags[FLAG_ONTOP]) {
-		code += ",ontop";
+	if (flags[FLAG_DISABLE_DEPTH_TEST]) {
+		code += ",depth_test_disable";
 	}
 	if (flags[FLAG_USE_VERTEX_LIGHTING]) {
 		code += ",vertex_lighting";
 	}
 
-	if (flags[FLAG_UV1_USE_TRIPLANAR] || flags[FLAG_UV2_USE_TRIPLANAR]) {
+	if (flags[FLAG_TRIPLANAR_USE_WORLD] && (flags[FLAG_UV1_USE_TRIPLANAR] || flags[FLAG_UV2_USE_TRIPLANAR])) {
 		code += ",world_vertex_coords";
 	}
 	code += ";\n";
@@ -436,10 +458,10 @@ void SpatialMaterial::_update_shader() {
 		code += "uniform int depth_max_layers;\n";
 	}
 	if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-		code += "varying vec3 uv1_world_pos;\n";
+		code += "varying vec3 uv1_triplanar_pos;\n";
 	}
 	if (flags[FLAG_UV2_USE_TRIPLANAR]) {
-		code += "varying vec3 uv2_world_pos;\n";
+		code += "varying vec3 uv2_triplanar_pos;\n";
 	}
 	if (flags[FLAG_UV1_USE_TRIPLANAR]) {
 		code += "uniform float uv1_blend_sharpness;\n";
@@ -502,8 +524,8 @@ void SpatialMaterial::_update_shader() {
 			code += "\tint particle_total_frames = particles_anim_h_frames * particles_anim_v_frames;\n";
 			code += "\tint particle_frame = int(INSTANCE_CUSTOM.y * float(particle_total_frames));\n";
 			code += "\tif (particles_anim_loop) particle_frame=clamp(particle_frame,0,particle_total_frames-1); else particle_frame=abs(particle_frame)%particle_total_frames;\n";
-			//code += "\tUV /= vec2(float(particles_anim_h_frames),float(particles_anim_v_frames));\n";
-			//code += "\tUV+= UV * vec2(float(particle_frame % particles_anim_h_frames),float(particle_frame / particles_anim_v_frames));\n";
+			code += "\tUV /= vec2(float(particles_anim_h_frames),float(particles_anim_v_frames));\n";
+			code += "\tUV += vec2(float(particle_frame % particles_anim_h_frames) / float(particles_anim_h_frames),float(particle_frame / particles_anim_h_frames) / float(particles_anim_v_frames));\n";
 			//handle rotation
 			//	code += "\tmat4 rotation = mat4("
 		} break;
@@ -529,7 +551,7 @@ void SpatialMaterial::_update_shader() {
 	}
 
 	if (detail_uv == DETAIL_UV_2 && !flags[FLAG_UV2_USE_TRIPLANAR]) {
-		code += "\tUV2=UV2*uv2_scale+uv2_offset;\n";
+		code += "\tUV2=UV2*uv2_scale.xy+uv2_offset.xy;\n";
 	}
 	if (flags[FLAG_UV1_USE_TRIPLANAR] || flags[FLAG_UV2_USE_TRIPLANAR]) {
 		//generate tangent and binormal in world space
@@ -548,16 +570,16 @@ void SpatialMaterial::_update_shader() {
 
 		code += "\tuv1_power_normal=pow(abs(NORMAL),vec3(uv1_blend_sharpness));\n";
 		code += "\tuv1_power_normal/=dot(uv1_power_normal,vec3(1.0));\n";
-		code += "\tuv1_world_pos = VERTEX * uv1_scale + uv1_offset;\n";
-		code += "\tuv1_world_pos *= vec3(1.0,-1.0, 1.0);\n";
+		code += "\tuv1_triplanar_pos = VERTEX * uv1_scale + uv1_offset;\n";
+		code += "\tuv1_triplanar_pos *= vec3(1.0,-1.0, 1.0);\n";
 	}
 
 	if (flags[FLAG_UV2_USE_TRIPLANAR]) {
 
 		code += "\tuv2_power_normal=pow(abs(NORMAL), vec3(uv2_blend_sharpness));\n";
 		code += "\tuv2_power_normal/=dot(uv2_power_normal,vec3(1.0));\n";
-		code += "\tuv2_world_pos = VERTEX * uv2_scale + uv2_offset;\n";
-		code += "\tuv2_world_pos *= vec3(1.0,-1.0, 1.0);\n";
+		code += "\tuv2_triplanar_pos = VERTEX * uv2_scale + uv2_offset;\n";
+		code += "\tuv2_triplanar_pos *= vec3(1.0,-1.0, 1.0);\n";
 	}
 
 	if (grow_enabled) {
@@ -567,11 +589,11 @@ void SpatialMaterial::_update_shader() {
 	code += "}\n";
 	code += "\n\n";
 	if (flags[FLAG_UV1_USE_TRIPLANAR] || flags[FLAG_UV2_USE_TRIPLANAR]) {
-		code += "vec4 triplanar_texture(sampler2D p_sampler,vec3 p_weights,vec3 p_world_pos) {\n";
+		code += "vec4 triplanar_texture(sampler2D p_sampler,vec3 p_weights,vec3 p_triplanar_pos) {\n";
 		code += "\tvec4 samp=vec4(0.0);\n";
-		code += "\tsamp+= texture(p_sampler,p_world_pos.xy) * p_weights.z;\n";
-		code += "\tsamp+= texture(p_sampler,p_world_pos.xz) * p_weights.y;\n";
-		code += "\tsamp+= texture(p_sampler,p_world_pos.zy * vec2(-1.0,1.0)) * p_weights.x;\n";
+		code += "\tsamp+= texture(p_sampler,p_triplanar_pos.xy) * p_weights.z;\n";
+		code += "\tsamp+= texture(p_sampler,p_triplanar_pos.xz) * p_weights.y;\n";
+		code += "\tsamp+= texture(p_sampler,p_triplanar_pos.zy * vec2(-1.0,1.0)) * p_weights.x;\n";
 		code += "\treturn samp;\n";
 		code += "}\n";
 	}
@@ -627,7 +649,7 @@ void SpatialMaterial::_update_shader() {
 		code += "\tvec4 albedo_tex = texture(texture_albedo,POINT_COORD);\n";
 	} else {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tvec4 albedo_tex = triplanar_texture(texture_albedo,uv1_power_normal,uv1_world_pos);\n";
+			code += "\tvec4 albedo_tex = triplanar_texture(texture_albedo,uv1_power_normal,uv1_triplanar_pos);\n";
 		} else {
 			code += "\tvec4 albedo_tex = texture(texture_albedo,base_uv);\n";
 		}
@@ -639,13 +661,13 @@ void SpatialMaterial::_update_shader() {
 
 	code += "\tALBEDO = albedo.rgb * albedo_tex.rgb;\n";
 	if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-		code += "\tfloat metallic_tex = dot(triplanar_texture(texture_metallic,uv1_power_normal,uv1_world_pos),metallic_texture_channel);\n";
+		code += "\tfloat metallic_tex = dot(triplanar_texture(texture_metallic,uv1_power_normal,uv1_triplanar_pos),metallic_texture_channel);\n";
 	} else {
 		code += "\tfloat metallic_tex = dot(texture(texture_metallic,base_uv),metallic_texture_channel);\n";
 	}
 	code += "\tMETALLIC = metallic_tex * metallic;\n";
 	if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-		code += "\tfloat roughness_tex = dot(triplanar_texture(texture_roughness,uv1_power_normal,uv1_world_pos),roughness_texture_channel);\n";
+		code += "\tfloat roughness_tex = dot(triplanar_texture(texture_roughness,uv1_power_normal,uv1_triplanar_pos),roughness_texture_channel);\n";
 	} else {
 		code += "\tfloat roughness_tex = dot(texture(texture_roughness,base_uv),roughness_texture_channel);\n";
 	}
@@ -654,7 +676,7 @@ void SpatialMaterial::_update_shader() {
 
 	if (features[FEATURE_NORMAL_MAPPING]) {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tNORMALMAP = triplanar_texture(texture_normal,uv1_power_normal,uv1_world_pos).rgb;\n";
+			code += "\tNORMALMAP = triplanar_texture(texture_normal,uv1_power_normal,uv1_triplanar_pos).rgb;\n";
 		} else {
 			code += "\tNORMALMAP = texture(texture_normal,base_uv).rgb;\n";
 		}
@@ -663,7 +685,7 @@ void SpatialMaterial::_update_shader() {
 
 	if (features[FEATURE_EMISSION]) {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tvec3 emission_tex = triplanar_texture(texture_emission,uv1_power_normal,uv1_world_pos).rgb;\n";
+			code += "\tvec3 emission_tex = triplanar_texture(texture_emission,uv1_power_normal,uv1_triplanar_pos).rgb;\n";
 		} else {
 			code += "\tvec3 emission_tex = texture(texture_emission,base_uv).rgb;\n";
 		}
@@ -690,7 +712,7 @@ void SpatialMaterial::_update_shader() {
 
 	if (features[FEATURE_RIM]) {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tvec2 rim_tex = triplanar_texture(texture_rim,uv1_power_normal,uv1_world_pos).xy;\n";
+			code += "\tvec2 rim_tex = triplanar_texture(texture_rim,uv1_power_normal,uv1_triplanar_pos).xy;\n";
 		} else {
 			code += "\tvec2 rim_tex = texture(texture_rim,base_uv).xy;\n";
 		}
@@ -700,7 +722,7 @@ void SpatialMaterial::_update_shader() {
 
 	if (features[FEATURE_CLEARCOAT]) {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tvec2 clearcoat_tex = triplanar_texture(texture_clearcoat,uv1_power_normal,uv1_world_pos).xy;\n";
+			code += "\tvec2 clearcoat_tex = triplanar_texture(texture_clearcoat,uv1_power_normal,uv1_triplanar_pos).xy;\n";
 		} else {
 			code += "\tvec2 clearcoat_tex = texture(texture_clearcoat,base_uv).xy;\n";
 		}
@@ -710,7 +732,7 @@ void SpatialMaterial::_update_shader() {
 
 	if (features[FEATURE_ANISOTROPY]) {
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tvec3 anisotropy_tex = triplanar_texture(texture_flowmap,uv1_power_normal,uv1_world_pos).rga;\n";
+			code += "\tvec3 anisotropy_tex = triplanar_texture(texture_flowmap,uv1_power_normal,uv1_triplanar_pos).rga;\n";
 		} else {
 			code += "\tvec3 anisotropy_tex = texture(texture_flowmap,base_uv).rga;\n";
 		}
@@ -721,13 +743,13 @@ void SpatialMaterial::_update_shader() {
 	if (features[FEATURE_AMBIENT_OCCLUSION]) {
 		if (flags[FLAG_AO_ON_UV2]) {
 			if (flags[FLAG_UV2_USE_TRIPLANAR]) {
-				code += "\tAO = dot(triplanar_texture(texture_ambient_occlusion,uv2_power_normal,uv2_world_pos),ao_texture_channel);\n";
+				code += "\tAO = dot(triplanar_texture(texture_ambient_occlusion,uv2_power_normal,uv2_triplanar_pos),ao_texture_channel);\n";
 			} else {
 				code += "\tAO = dot(texture(texture_ambient_occlusion,base_uv2),ao_texture_channel);\n";
 			}
 		} else {
 			if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-				code += "\tAO = dot(triplanar_texture(texture_ambient_occlusion,uv1_power_normal,uv1_world_pos),ao_texture_channel);\n";
+				code += "\tAO = dot(triplanar_texture(texture_ambient_occlusion,uv1_power_normal,uv1_triplanar_pos),ao_texture_channel);\n";
 			} else {
 				code += "\tAO = dot(texture(texture_ambient_occlusion,base_uv),ao_texture_channel);\n";
 			}
@@ -737,7 +759,7 @@ void SpatialMaterial::_update_shader() {
 	if (features[FEATURE_SUBSURACE_SCATTERING]) {
 
 		if (flags[FLAG_UV1_USE_TRIPLANAR]) {
-			code += "\tfloat sss_tex = triplanar_texture(texture_subsurface_scattering,uv1_power_normal,uv1_world_pos).r;\n";
+			code += "\tfloat sss_tex = triplanar_texture(texture_subsurface_scattering,uv1_power_normal,uv1_triplanar_pos).r;\n";
 		} else {
 			code += "\tfloat sss_tex = texture(texture_subsurface_scattering,base_uv).r;\n";
 		}
@@ -750,8 +772,8 @@ void SpatialMaterial::_update_shader() {
 
 		if (triplanar) {
 			String tp_uv = detail_uv == DETAIL_UV_1 ? "uv1" : "uv2";
-			code += "\tvec4 detail_tex = triplanar_texture(texture_detail_albedo," + tp_uv + "_power_normal," + tp_uv + "_world_pos);\n";
-			code += "\tvec4 detail_norm_tex = triplanar_texture(texture_detail_normal," + tp_uv + "_power_normal," + tp_uv + "_world_pos);\n";
+			code += "\tvec4 detail_tex = triplanar_texture(texture_detail_albedo," + tp_uv + "_power_normal," + tp_uv + "_triplanar_pos);\n";
+			code += "\tvec4 detail_norm_tex = triplanar_texture(texture_detail_normal," + tp_uv + "_power_normal," + tp_uv + "_triplanar_pos);\n";
 
 		} else {
 			String det_uv = detail_uv == DETAIL_UV_1 ? "base_uv" : "base_uv2";
@@ -1280,7 +1302,7 @@ SpatialMaterial::BillboardMode SpatialMaterial::get_billboard_mode() const {
 void SpatialMaterial::set_particles_anim_h_frames(int p_frames) {
 
 	particles_anim_h_frames = p_frames;
-	VS::get_singleton()->material_set_param(_get_material(), shader_names->particle_h_frames, p_frames);
+	VS::get_singleton()->material_set_param(_get_material(), shader_names->particles_anim_h_frames, p_frames);
 }
 
 int SpatialMaterial::get_particles_anim_h_frames() const {
@@ -1290,7 +1312,7 @@ int SpatialMaterial::get_particles_anim_h_frames() const {
 void SpatialMaterial::set_particles_anim_v_frames(int p_frames) {
 
 	particles_anim_v_frames = p_frames;
-	VS::get_singleton()->material_set_param(_get_material(), shader_names->particle_v_frames, p_frames);
+	VS::get_singleton()->material_set_param(_get_material(), shader_names->particles_anim_v_frames, p_frames);
 }
 
 int SpatialMaterial::get_particles_anim_v_frames() const {
@@ -1458,6 +1480,12 @@ RID SpatialMaterial::get_material_rid_for_2d(bool p_shaded, bool p_transparent, 
 	return materials_for_2d[version]->get_rid();
 }
 
+void SpatialMaterial::set_on_top_of_alpha() {
+	set_feature(FEATURE_TRANSPARENT, true);
+	set_render_priority(RENDER_PRIORITY_MAX);
+	set_flag(FLAG_DISABLE_DEPTH_TEST, true);
+}
+
 void SpatialMaterial::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_albedo", "albedo"), &SpatialMaterial::set_albedo);
@@ -1605,8 +1633,9 @@ void SpatialMaterial::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_transparent"), "set_feature", "get_feature", FEATURE_TRANSPARENT);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_unshaded"), "set_flag", "get_flag", FLAG_UNSHADED);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_vertex_lighting"), "set_flag", "get_flag", FLAG_USE_VERTEX_LIGHTING);
-	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_on_top"), "set_flag", "get_flag", FLAG_ONTOP);
+	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_no_depth_test"), "set_flag", "get_flag", FLAG_DISABLE_DEPTH_TEST);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_use_point_size"), "set_flag", "get_flag", FLAG_USE_POINT_SIZE);
+	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_world_triplanar"), "set_flag", "get_flag", FLAG_TRIPLANAR_USE_WORLD);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "flags_fixed_size"), "set_flag", "get_flag", FLAG_FIXED_SIZE);
 	ADD_GROUP("Vertex Color", "vertex_color");
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "vertex_color_use_as_albedo"), "set_flag", "get_flag", FLAG_ALBEDO_FROM_VERTEX_COLOR);
@@ -1767,7 +1796,7 @@ void SpatialMaterial::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(FLAG_UNSHADED);
 	BIND_ENUM_CONSTANT(FLAG_USE_VERTEX_LIGHTING);
-	BIND_ENUM_CONSTANT(FLAG_ONTOP);
+	BIND_ENUM_CONSTANT(FLAG_DISABLE_DEPTH_TEST);
 	BIND_ENUM_CONSTANT(FLAG_ALBEDO_FROM_VERTEX_COLOR);
 	BIND_ENUM_CONSTANT(FLAG_SRGB_VERTEX_COLOR);
 	BIND_ENUM_CONSTANT(FLAG_USE_POINT_SIZE);
@@ -1776,6 +1805,7 @@ void SpatialMaterial::_bind_methods() {
 	BIND_ENUM_CONSTANT(FLAG_UV2_USE_TRIPLANAR);
 	BIND_ENUM_CONSTANT(FLAG_AO_ON_UV2);
 	BIND_ENUM_CONSTANT(FLAG_USE_ALPHA_SCISSOR);
+	BIND_ENUM_CONSTANT(FLAG_TRIPLANAR_USE_WORLD);
 	BIND_ENUM_CONSTANT(FLAG_MAX);
 
 	BIND_ENUM_CONSTANT(DIFFUSE_LAMBERT);

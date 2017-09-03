@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -232,7 +232,7 @@ godot_int GDAPI godot_string_findn_from(const godot_string *p_self, godot_string
 	return self->findn(*what, p_from);
 }
 
-godot_int GDAPI find_last(const godot_string *p_self, godot_string p_what) {
+godot_int GDAPI godot_string_find_last(const godot_string *p_self, godot_string p_what) {
 	const String *self = (const String *)p_self;
 	String *what = (String *)&p_what;
 

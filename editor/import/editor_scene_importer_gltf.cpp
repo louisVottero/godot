@@ -474,7 +474,7 @@ Error EditorSceneImporterGLTF::_decode_buffer_view(GLTFState &state, int p_buffe
 	int buffer_end = (stride * (count - 1)) + element_size;
 	ERR_FAIL_COND_V(buffer_end > bv.byte_length, ERR_PARSE_ERROR);
 
-	ERR_FAIL_COND_V((offset + buffer_end) > buffer.size(), ERR_PARSE_ERROR);
+	ERR_FAIL_COND_V((int)(offset + buffer_end) > buffer.size(), ERR_PARSE_ERROR);
 
 	//fill everything as doubles
 
@@ -1216,7 +1216,7 @@ Error EditorSceneImporterGLTF::_parse_materials(GLTFState &state) {
 				if (bct.has("index")) {
 					Ref<Texture> t = _get_texture(state, bct["index"]);
 					material->set_texture(SpatialMaterial::TEXTURE_METALLIC, t);
-					material->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_RED);
+					material->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_BLUE);
 					material->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, t);
 					material->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GREEN);
 					if (!mr.has("metallicFactor")) {
@@ -1243,6 +1243,7 @@ Error EditorSceneImporterGLTF::_parse_materials(GLTFState &state) {
 			Dictionary bct = d["occlusionTexture"];
 			if (bct.has("index")) {
 				material->set_texture(SpatialMaterial::TEXTURE_AMBIENT_OCCLUSION, _get_texture(state, bct["index"]));
+				material->set_ao_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_RED);
 				material->set_feature(SpatialMaterial::FEATURE_AMBIENT_OCCLUSION, true);
 			}
 		}
@@ -1433,6 +1434,8 @@ Error EditorSceneImporterGLTF::_parse_cameras(GLTFState &state) {
 	}
 
 	print_line("total cameras: " + itos(state.cameras.size()));
+
+	return OK;
 }
 
 Error EditorSceneImporterGLTF::_parse_animations(GLTFState &state) {

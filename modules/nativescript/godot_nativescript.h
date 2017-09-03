@@ -1,9 +1,9 @@
 /*************************************************************************/
-/*  godot.h                                                              */
+/*  godot_nativescript.h                                                 */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -58,7 +58,7 @@ extern "C" {
 #define GDAPI GDCALLINGCONV
 #endif
 #else
-#define GDCALLINGCONV __attribute__((sysv_abi))
+#define GDCALLINGCONV __attribute__((sysv_abi, visibility("default")))
 #define GDAPI GDCALLINGCONV
 #endif
 

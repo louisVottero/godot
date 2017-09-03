@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -69,7 +69,6 @@
 #include "core/io/file_access_zip.h"
 #include "core/io/stream_peer_ssl.h"
 #include "core/io/stream_peer_tcp.h"
-#include "core/os/thread.h"
 #include "main/input_default.h"
 #include "performance.h"
 #include "translation.h"
@@ -112,6 +111,8 @@ static int init_screen = -1;
 static bool use_vsync = true;
 static bool editor = false;
 static bool show_help = false;
+static bool disable_render_loop = false;
+static int fixed_fps = -1;
 
 static OS::ProcessID allow_focus_steal_pid = 0;
 
@@ -191,6 +192,8 @@ void Main::print_help(const char *p_binary) {
 #endif
 	OS::get_singleton()->print("  --frame-delay <ms>               Simulate high CPU load (delay each frame by <ms> milliseconds).\n");
 	OS::get_singleton()->print("  --time-scale <scale>             Force time scale (higher values are faster, 1.0 is normal speed).\n");
+	OS::get_singleton()->print("  --disable-render-loop            Disable render loop so rendering only occurs when called explicitly from script.\n");
+	OS::get_singleton()->print("  --fixed-fps <fps>                Forces a fixed ratio between process and fixed_process timing, for use when precision is required, or when rendering to video files. Setting this will disable real-time syncronization, so that run speed is only capped by performance\n");
 	OS::get_singleton()->print("\n");
 
 	OS::get_singleton()->print("Standalone tools:\n");
@@ -568,6 +571,16 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing editor PID argument, aborting.\n");
 				goto error;
 			}
+		} else if (I->get() == "--disable-render-loop") {
+			disable_render_loop = true;
+		} else if (I->get() == "--fixed-fps") {
+			if (I->next()) {
+				fixed_fps = I->next()->get().to_int();
+				N = I->next()->next();
+			} else {
+				OS::get_singleton()->print("Missing fixed-fps argument, aborting.\n");
+				goto error;
+			}
 		} else {
 
 			//test for game path
@@ -886,7 +899,11 @@ error:
 	return ERR_INVALID_PARAMETER;
 }
 
-Error Main::setup2() {
+Error Main::setup2(Thread::ID p_main_tid_override) {
+
+	if (p_main_tid_override) {
+		Thread::_main_thread_id = p_main_tid_override;
+	}
 
 	OS::get_singleton()->initialize(video_mode, video_driver_idx, audio_driver_idx);
 	if (init_use_custom_pos) {
@@ -1095,10 +1112,20 @@ bool Main::start() {
 				test = args[i + 1];
 			} else if (args[i] == "--export") {
 				editor = true; //needs editor
-				_export_preset = args[i + 1];
+				if (i + 1 < args.size()) {
+					_export_preset = args[i + 1];
+				} else {
+					ERR_PRINT("Export preset name not specified");
+					return false;
+				}
 			} else if (args[i] == "--export-debug") {
 				editor = true; //needs editor
-				_export_preset = args[i + 1];
+				if (i + 1 < args.size()) {
+					_export_preset = args[i + 1];
+				} else {
+					ERR_PRINT("Export preset name not specified");
+					return false;
+				}
 				export_debug = true;
 			} else {
 				// The parameter does not match anything known, don't skip the next argument
@@ -1502,6 +1529,9 @@ bool Main::iteration() {
 	uint64_t ticks_elapsed = ticks - last_ticks;
 
 	double step = (double)ticks_elapsed / 1000000.0;
+	if (fixed_fps != -1)
+		step = 1.0 / fixed_fps;
+
 	float frame_slice = 1.0 / Engine::get_singleton()->get_iterations_per_second();
 
 	Engine::get_singleton()->_frame_step = step;
@@ -1518,7 +1548,7 @@ bool Main::iteration() {
 
 	last_ticks = ticks;
 
-	if (step > frame_slice * 8)
+	if (fixed_fps == -1 && step > frame_slice * 8)
 		step = frame_slice * 8;
 
 	time_accum += step;
@@ -1571,7 +1601,7 @@ bool Main::iteration() {
 
 	VisualServer::get_singleton()->sync(); //sync if still drawing from previous frames.
 
-	if (OS::get_singleton()->can_draw()) {
+	if (OS::get_singleton()->can_draw() && !disable_render_loop) {
 
 		if ((!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
 			if (VisualServer::get_singleton()->has_changed()) {
@@ -1621,6 +1651,9 @@ bool Main::iteration() {
 		frame %= 1000000;
 		frames = 0;
 	}
+
+	if (fixed_fps != -1)
+		return exit;
 
 	if (OS::get_singleton()->is_in_low_processor_usage_mode() || !OS::get_singleton()->can_draw())
 		OS::get_singleton()->delay_usec(16600); //apply some delay to force idle time (results in about 60 FPS max)

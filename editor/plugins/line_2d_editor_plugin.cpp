@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -211,7 +211,7 @@ void Line2DEditor::_bind_methods() {
 }
 
 void Line2DEditor::_mode_selected(int p_mode) {
-	for (unsigned int i = 0; i < _MODE_COUNT; ++i) {
+	for (int i = 0; i < _MODE_COUNT; ++i) {
 		toolbar_buttons[i]->set_pressed(i == p_mode);
 	}
 	mode = Mode(p_mode);

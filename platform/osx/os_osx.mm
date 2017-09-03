@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1325,6 +1325,46 @@ void OS_OSX::set_icon(const Ref<Image> &p_icon) {
 MainLoop *OS_OSX::get_main_loop() const {
 
 	return main_loop;
+}
+
+String OS_OSX::get_system_dir(SystemDir p_dir) const {
+
+	NSSearchPathDirectory id = 0;
+
+	switch (p_dir) {
+		case SYSTEM_DIR_DESKTOP: {
+			id = NSDesktopDirectory;
+		} break;
+		case SYSTEM_DIR_DOCUMENTS: {
+			id = NSDocumentDirectory;
+		} break;
+		case SYSTEM_DIR_DOWNLOADS: {
+			id = NSDownloadsDirectory;
+		} break;
+		case SYSTEM_DIR_MOVIES: {
+			id = NSMoviesDirectory;
+		} break;
+		case SYSTEM_DIR_MUSIC: {
+			id = NSMusicDirectory;
+		} break;
+		case SYSTEM_DIR_PICTURES: {
+			id = NSPicturesDirectory;
+		} break;
+	}
+
+	String ret;
+	if (id) {
+
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(id, NSUserDomainMask, YES);
+		if (paths && [paths count] >= 1) {
+
+			char *utfs = strdup([[paths firstObject] UTF8String]);
+			ret.parse_utf8(utfs);
+			free(utfs);
+		}
+	}
+
+	return ret;
 }
 
 bool OS_OSX::can_draw() const {

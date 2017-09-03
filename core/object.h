@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -185,6 +185,7 @@ struct MethodInfo {
 	uint32_t flags;
 	int id;
 
+	inline bool operator==(const MethodInfo &p_method) const { return id == p_method.id; }
 	inline bool operator<(const MethodInfo &p_method) const { return id == p_method.id ? (name < p_method.name) : (id < p_method.id); }
 
 	operator Dictionary() const;
@@ -204,6 +205,12 @@ struct MethodInfo {
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3);
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4);
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4, const PropertyInfo &p_param5);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4, const PropertyInfo &p_param5);
 };
 
 // old cast_to
@@ -571,8 +578,8 @@ public:
 #else
 		if (!p_object)
 			return NULL;
-		if (p_pobject->is_class_ptr(T::get_class_ptr_static()))
-			return static_cast<T *>(p_pobject);
+		if (p_object->is_class_ptr(T::get_class_ptr_static()))
+			return static_cast<T *>(p_object);
 		else
 			return NULL;
 #endif
@@ -591,7 +598,7 @@ public:
 #else
 		if (!p_object)
 			return NULL;
-		if (p_pobject->is_class_ptr(T::get_class_ptr_static()))
+		if (p_object->is_class_ptr(T::get_class_ptr_static()))
 			return static_cast<const T *>(p_object);
 		else
 			return NULL;

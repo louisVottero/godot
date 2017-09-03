@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -74,7 +74,7 @@ class EditorHistory {
 	void _add_object(ObjectID p_object, const String &p_property, int p_level_change);
 
 public:
-	bool is_at_begining() const;
+	bool is_at_beginning() const;
 	bool is_at_end() const;
 
 	void add_object(ObjectID p_object);

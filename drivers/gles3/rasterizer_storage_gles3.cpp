@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1599,7 +1599,7 @@ void RasterizerStorageGLES3::_update_shader(Shader *p_shader) const {
 			p_shader->spatial.uses_alpha_scissor = false;
 			p_shader->spatial.uses_discard = false;
 			p_shader->spatial.unshaded = false;
-			p_shader->spatial.ontop = false;
+			p_shader->spatial.no_depth_test = false;
 			p_shader->spatial.uses_sss = false;
 			p_shader->spatial.uses_vertex_lighting = false;
 			p_shader->spatial.uses_screen_texture = false;
@@ -1621,7 +1621,7 @@ void RasterizerStorageGLES3::_update_shader(Shader *p_shader) const {
 			shaders.actions_scene.render_mode_values["cull_disabled"] = Pair<int *, int>(&p_shader->spatial.cull_mode, Shader::Spatial::CULL_MODE_DISABLED);
 
 			shaders.actions_scene.render_mode_flags["unshaded"] = &p_shader->spatial.unshaded;
-			shaders.actions_scene.render_mode_flags["ontop"] = &p_shader->spatial.ontop;
+			shaders.actions_scene.render_mode_flags["depth_test_disable"] = &p_shader->spatial.no_depth_test;
 
 			shaders.actions_scene.render_mode_flags["vertex_lighting"] = &p_shader->spatial.uses_vertex_lighting;
 
@@ -1946,6 +1946,17 @@ void RasterizerStorageGLES3::material_remove_instance_owner(RID p_material, Rast
 	if (E->get() == 0) {
 		material->instance_owners.erase(E);
 	}
+}
+
+void RasterizerStorageGLES3::material_set_render_priority(RID p_material, int priority) {
+
+	ERR_FAIL_COND(priority < VS::MATERIAL_RENDER_PRIORITY_MIN);
+	ERR_FAIL_COND(priority > VS::MATERIAL_RENDER_PRIORITY_MAX);
+
+	Material *material = material_owner.get(p_material);
+	ERR_FAIL_COND(!material);
+
+	material->render_priority = priority;
 }
 
 _FORCE_INLINE_ static void _fill_std140_variant_ubo_value(ShaderLanguage::DataType type, const Variant &value, uint8_t *data, bool p_linear_color) {
@@ -3963,13 +3974,15 @@ Color RasterizerStorageGLES3::multimesh_instance_get_color(RID p_multimesh, int 
 	ERR_FAIL_COND_V(multimesh->color_format == VS::MULTIMESH_COLOR_NONE, Color());
 
 	int stride = multimesh->color_floats + multimesh->xform_floats;
-	float *dataptr = &multimesh->data[stride * p_index + multimesh->color_floats];
+	float *dataptr = &multimesh->data[stride * p_index + multimesh->xform_floats];
 
 	if (multimesh->color_format == VS::MULTIMESH_COLOR_8BIT) {
 		union {
 			uint32_t colu;
 			float colf;
 		} cu;
+
+		cu.colf = dataptr[0];
 
 		return Color::hex(BSWAP32(cu.colu));
 
@@ -4448,6 +4461,7 @@ RID RasterizerStorageGLES3::light_create(VS::LightType p_type) {
 	light->param[VS::LIGHT_PARAM_SHADOW_SPLIT_2_OFFSET] = 0.3;
 	light->param[VS::LIGHT_PARAM_SHADOW_SPLIT_3_OFFSET] = 0.6;
 	light->param[VS::LIGHT_PARAM_SHADOW_NORMAL_BIAS] = 0.1;
+	light->param[VS::LIGHT_PARAM_SHADOW_BIAS_SPLIT_SCALE] = 0.1;
 
 	light->color = Color(1, 1, 1, 1);
 	light->shadow = false;
@@ -4852,35 +4866,6 @@ float RasterizerStorageGLES3::reflection_probe_get_origin_max_distance(RID p_pro
 	ERR_FAIL_COND_V(!reflection_probe, 0);
 
 	return reflection_probe->max_distance;
-}
-
-/* ROOM API */
-
-RID RasterizerStorageGLES3::room_create() {
-
-	return RID();
-}
-void RasterizerStorageGLES3::room_add_bounds(RID p_room, const PoolVector<Vector2> &p_convex_polygon, float p_height, const Transform &p_transform) {
-}
-void RasterizerStorageGLES3::room_clear_bounds(RID p_room) {
-}
-
-/* PORTAL API */
-
-// portals are only (x/y) points, forming a convex shape, which its clockwise
-// order points outside. (z is 0);
-
-RID RasterizerStorageGLES3::portal_create() {
-
-	return RID();
-}
-void RasterizerStorageGLES3::portal_set_shape(RID p_portal, const Vector<Point2> &p_shape) {
-}
-void RasterizerStorageGLES3::portal_set_enabled(RID p_portal, bool p_enabled) {
-}
-void RasterizerStorageGLES3::portal_set_disable_distance(RID p_portal, float p_distance) {
-}
-void RasterizerStorageGLES3::portal_set_disabled_color(RID p_portal, const Color &p_color) {
 }
 
 RID RasterizerStorageGLES3::gi_probe_create() {
