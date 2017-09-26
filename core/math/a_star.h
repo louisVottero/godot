@@ -101,10 +101,11 @@ public:
 	int get_available_point_id() const;
 
 	void add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale = 1);
-	Vector3 get_point_pos(int p_id) const;
+	Vector3 get_point_position(int p_id) const;
 	real_t get_point_weight_scale(int p_id) const;
 	void remove_point(int p_id);
 	bool has_point(int p_id) const;
+	Array get_points();
 
 	void connect_points(int p_id, int p_with_id, bool bidirectional = true);
 	void disconnect_points(int p_id, int p_with_id);
@@ -113,7 +114,7 @@ public:
 	void clear();
 
 	int get_closest_point(const Vector3 &p_point) const;
-	Vector3 get_closest_pos_in_segment(const Vector3 &p_point) const;
+	Vector3 get_closest_position_in_segment(const Vector3 &p_point) const;
 
 	PoolVector<Vector3> get_point_path(int p_from_id, int p_to_id);
 	PoolVector<int> get_id_path(int p_from_id, int p_to_id);

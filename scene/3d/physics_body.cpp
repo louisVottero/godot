@@ -825,7 +825,7 @@ void RigidBody::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_using_continuous_collision_detection"), &RigidBody::is_using_continuous_collision_detection);
 
 	ClassDB::bind_method(D_METHOD("set_axis_velocity", "axis_velocity"), &RigidBody::set_axis_velocity);
-	ClassDB::bind_method(D_METHOD("apply_impulse", "pos", "impulse"), &RigidBody::apply_impulse);
+	ClassDB::bind_method(D_METHOD("apply_impulse", "position", "impulse"), &RigidBody::apply_impulse);
 
 	ClassDB::bind_method(D_METHOD("set_sleeping", "sleeping"), &RigidBody::set_sleeping);
 	ClassDB::bind_method(D_METHOD("is_sleeping"), &RigidBody::is_sleeping);
@@ -874,6 +874,11 @@ void RigidBody::_bind_methods() {
 	BIND_ENUM_CONSTANT(MODE_KINEMATIC);
 	BIND_ENUM_CONSTANT(MODE_RIGID);
 	BIND_ENUM_CONSTANT(MODE_CHARACTER);
+
+	BIND_ENUM_CONSTANT(AXIS_LOCK_DISABLED);
+	BIND_ENUM_CONSTANT(AXIS_LOCK_X);
+	BIND_ENUM_CONSTANT(AXIS_LOCK_Y);
+	BIND_ENUM_CONSTANT(AXIS_LOCK_Z);
 }
 
 RigidBody::RigidBody()
@@ -1061,7 +1066,7 @@ KinematicBody::Collision KinematicBody::get_slide_collision(int p_bounce) const 
 Ref<KinematicCollision> KinematicBody::_get_slide_collision(int p_bounce) {
 
 	ERR_FAIL_INDEX_V(p_bounce, colliders.size(), Ref<KinematicCollision>());
-	if (p_bounce > slide_colliders.size()) {
+	if (p_bounce >= slide_colliders.size()) {
 		slide_colliders.resize(p_bounce + 1);
 	}
 

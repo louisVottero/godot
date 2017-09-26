@@ -866,7 +866,7 @@ static bool _guess_expression_type(GDCompletionContext &context, const GDParser:
 									MethodBind *mb = ClassDB::get_method(base_type, getter);
 									if (mb) {
 										PropertyInfo rt = mb->get_return_info();
-										if (rt.usage & PROPERTY_USAGE_CLASS_IS_ENUM && t == Variant::INT) {
+										if ((rt.usage & PROPERTY_USAGE_CLASS_IS_ENUM) && t == Variant::INT) {
 											r_type.enumeration = rt.class_name;
 										} else if (t == Variant::OBJECT) {
 
@@ -908,7 +908,7 @@ static bool _guess_expression_type(GDCompletionContext &context, const GDParser:
 			Variant::Operator vop = Variant::OP_MAX;
 			switch (op->op) {
 				case GDParser::OperatorNode::OP_ADD: vop = Variant::OP_ADD; break;
-				case GDParser::OperatorNode::OP_SUB: vop = Variant::OP_SUBSTRACT; break;
+				case GDParser::OperatorNode::OP_SUB: vop = Variant::OP_SUBTRACT; break;
 				case GDParser::OperatorNode::OP_MUL: vop = Variant::OP_MULTIPLY; break;
 				case GDParser::OperatorNode::OP_DIV: vop = Variant::OP_DIVIDE; break;
 				case GDParser::OperatorNode::OP_MOD: vop = Variant::OP_MODULE; break;
@@ -1903,11 +1903,11 @@ static void _find_call_arguments(GDCompletionContext &context, const GDParser::N
 				arghint += ", ";
 			else
 				arghint += " ";
-			if (i == p_argidx || (mi.flags & METHOD_FLAG_VARARG && i > p_argidx)) {
+			if (i == p_argidx || ((mi.flags & METHOD_FLAG_VARARG) && i > p_argidx)) {
 				arghint += String::chr(0xFFFF);
 			}
 			arghint += _get_visual_datatype(mi.arguments[i]) + " " + mi.arguments[i].name;
-			if (i == p_argidx || (mi.flags & METHOD_FLAG_VARARG && i > p_argidx)) {
+			if (i == p_argidx || ((mi.flags & METHOD_FLAG_VARARG) && i > p_argidx)) {
 				arghint += String::chr(0xFFFF);
 			}
 		}

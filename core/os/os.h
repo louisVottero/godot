@@ -34,7 +34,6 @@
 #include "image.h"
 #include "list.h"
 #include "os/main_loop.h"
-#include "power.h"
 #include "ustring.h"
 #include "vector.h"
 #include <stdarg.h>
@@ -64,6 +63,14 @@ class OS {
 
 public:
 	typedef void (*ImeCallback)(void *p_inp, String p_text, Point2 p_selection);
+
+	enum PowerState {
+		POWERSTATE_UNKNOWN, /**< cannot determine power status */
+		POWERSTATE_ON_BATTERY, /**< Not plugged in, running on the battery */
+		POWERSTATE_NO_BATTERY, /**< Plugged in, no battery available */
+		POWERSTATE_CHARGING, /**< Plugged in, charging battery */
+		POWERSTATE_CHARGED /**< Plugged in, battery charged */
+	};
 
 	enum RenderThreadMode {
 
@@ -149,7 +156,7 @@ public:
 	virtual void set_mouse_mode(MouseMode p_mode);
 	virtual MouseMode get_mouse_mode() const;
 
-	virtual void warp_mouse_pos(const Point2 &p_to) {}
+	virtual void warp_mouse_position(const Point2 &p_to) {}
 	virtual Point2 get_mouse_position() const = 0;
 	virtual int get_mouse_button_state() const = 0;
 	virtual void set_window_title(const String &p_title) = 0;
@@ -278,6 +285,9 @@ public:
 	virtual bool can_draw() const = 0;
 
 	bool is_stdout_verbose() const;
+
+	virtual void disable_crash_handler() {}
+	virtual bool is_disable_crash_handler() const { return false; }
 
 	enum CursorShape {
 		CURSOR_ARROW,
@@ -410,7 +420,7 @@ public:
 	virtual void set_use_vsync(bool p_enable);
 	virtual bool is_vsync_enabled() const;
 
-	virtual PowerState get_power_state();
+	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();
 	virtual int get_power_percent_left();
 
@@ -428,6 +438,6 @@ public:
 	virtual ~OS();
 };
 
-VARIANT_ENUM_CAST(PowerState);
+VARIANT_ENUM_CAST(OS::PowerState);
 
 #endif

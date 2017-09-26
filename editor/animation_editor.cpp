@@ -322,7 +322,7 @@ public:
 			undo_redo->add_do_method(animation.ptr(), "track_remove_key", track, key);
 			undo_redo->add_do_method(animation.ptr(), "track_insert_key", track, new_time, val, trans);
 			undo_redo->add_do_method(this, "_key_ofs_changed", animation, key_ofs, new_time);
-			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", track, new_time);
+			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", track, new_time);
 			undo_redo->add_undo_method(animation.ptr(), "track_insert_key", track, key_ofs, val, trans);
 			undo_redo->add_undo_method(this, "_key_ofs_changed", animation, new_time, key_ofs);
 
@@ -563,8 +563,8 @@ public:
 
 			case Animation::TYPE_TRANSFORM: {
 
-				p_list->push_back(PropertyInfo(Variant::VECTOR3, "loc"));
-				p_list->push_back(PropertyInfo(Variant::QUAT, "rot"));
+				p_list->push_back(PropertyInfo(Variant::VECTOR3, "location"));
+				p_list->push_back(PropertyInfo(Variant::QUAT, "rotation"));
 				p_list->push_back(PropertyInfo(Variant::VECTOR3, "scale"));
 
 			} break;
@@ -719,7 +719,7 @@ void AnimationKeyEditor::_anim_duplicate_keys(bool transpose) {
 			int existing_idx = animation->track_find_key(dst_track, dst_time, true);
 
 			undo_redo->add_do_method(animation.ptr(), "track_insert_key", dst_track, dst_time, animation->track_get_key_value(E->key().track, E->key().key), animation->track_get_key_transition(E->key().track, E->key().key));
-			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", dst_track, dst_time);
+			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", dst_track, dst_time);
 
 			Pair<int, float> p;
 			p.first = dst_track;
@@ -1016,7 +1016,7 @@ float AnimationKeyEditor::_get_zoom_scale() const {
 	}
 }
 
-void AnimationKeyEditor::_track_pos_draw() {
+void AnimationKeyEditor::_track_position_draw() {
 
 	if (!animation.is_valid()) {
 		return;
@@ -1038,7 +1038,7 @@ void AnimationKeyEditor::_track_pos_draw() {
 		//draw position
 		int pixel = (timeline_pos - h_scroll->get_value()) * zoom_scale;
 		pixel += name_limit;
-		track_pos->draw_line(ofs + Point2(pixel, 0), ofs + Point2(pixel, size.height), get_color("highlight_color", "Editor"));
+		track_pos->draw_line(ofs + Point2(pixel, 0), ofs + Point2(pixel, size.height), get_color("accent_color", "Editor"));
 	}
 }
 
@@ -1092,12 +1092,16 @@ void AnimationKeyEditor::_track_editor_draw() {
 	int sep = get_constant("vseparation", "Tree");
 	int hsep = get_constant("hseparation", "Tree");
 	Color color = get_color("font_color", "Tree");
-	Color sepcolor = Color(1, 1, 1, 0.2);
-	Color timecolor = Color(1, 1, 1, 0.2);
-	Color hover_color = Color(1, 1, 1, 0.05);
-	Color select_color = Color(1, 1, 1, 0.1);
+	Color sepcolor = color;
+	sepcolor.a = 0.2;
+	Color timecolor = color;
+	timecolor.a = 0.2;
+	Color hover_color = color;
+	hover_color.a = 0.05;
+	Color select_color = color;
+	select_color.a = 0.1;
 	Color invalid_path_color = get_color("error_color", "Editor");
-	Color track_select_color = get_color("highlight_color", "Editor");
+	Color track_select_color = get_color("accent", "Editor");
 
 	Ref<Texture> remove_icon = get_icon("Remove", "EditorIcons");
 	Ref<Texture> move_up_icon = get_icon("MoveUp", "EditorIcons");
@@ -1157,7 +1161,8 @@ void AnimationKeyEditor::_track_editor_draw() {
 	int settings_limit = size.width - right_separator_ofs;
 	int name_limit = settings_limit * name_column_ratio;
 
-	Color linecolor = Color(1, 1, 1, 0.2);
+	Color linecolor = color;
+	linecolor.a = 0.2;
 	te->draw_line(ofs + Point2(name_limit, 0), ofs + Point2(name_limit, size.height), linecolor);
 	te->draw_line(ofs + Point2(settings_limit, 0), ofs + Point2(settings_limit, size.height), linecolor);
 	te->draw_texture(hsize_icon, ofs + Point2(name_limit - hsize_icon->get_width() - hsep, (h - hsize_icon->get_height()) / 2));
@@ -1482,7 +1487,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 	switch (click.click) {
 		case ClickOver::CLICK_SELECT_KEYS: {
 
-			Color box_color = get_color("highlight_color", "Editor");
+			Color box_color = get_color("accent_color", "Editor");
 			box_color.a = 0.35;
 			te->draw_rect(Rect2(click.at, click.to - click.at), box_color);
 
@@ -2296,8 +2301,8 @@ void AnimationKeyEditor::_track_editor_gui_input(const Ref<InputEvent> &p_input)
 
 						if (tt == Animation::TYPE_TRANSFORM) {
 							Dictionary d;
-							d["loc"] = Vector3();
-							d["rot"] = Quat();
+							d["location"] = Vector3();
+							d["rotation"] = Quat();
 							d["scale"] = Vector3();
 							newval = d;
 
@@ -2332,7 +2337,7 @@ void AnimationKeyEditor::_track_editor_gui_input(const Ref<InputEvent> &p_input)
 						undo_redo->create_action(TTR("Anim Add Key"));
 
 						undo_redo->add_do_method(animation.ptr(), "track_insert_key", idx, pos, newval, 1);
-						undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", idx, pos);
+						undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", idx, pos);
 
 						if (existing != -1) {
 							Variant v = animation->track_get_key_value(idx, existing);
@@ -2501,7 +2506,7 @@ void AnimationKeyEditor::_track_editor_gui_input(const Ref<InputEvent> &p_input)
 							if (selection.has(sk))
 								continue; //already in selection, don't save
 
-							undo_redo->add_do_method(animation.ptr(), "track_remove_key_at_pos", E->key().track, newtime);
+							undo_redo->add_do_method(animation.ptr(), "track_remove_key_at_position", E->key().track, newtime);
 							_AnimMoveRestore amr;
 
 							amr.key = animation->track_get_key_value(E->key().track, idx);
@@ -2531,7 +2536,7 @@ void AnimationKeyEditor::_track_editor_gui_input(const Ref<InputEvent> &p_input)
 							if (newpos<0)
 								continue; //no remove what no inserted
 							*/
-							undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", E->key().track, newpos);
+							undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", E->key().track, newpos);
 						}
 
 						// 5-(undo) reinsert keys
@@ -2748,10 +2753,10 @@ void AnimationKeyEditor::_track_editor_gui_input(const Ref<InputEvent> &p_input)
 						case Animation::TYPE_TRANSFORM: {
 
 							Dictionary d = animation->track_get_key_value(idx, mouse_over.over_key);
-							if (d.has("loc"))
-								text += "loc: " + String(d["loc"]) + "\n";
-							if (d.has("rot"))
-								text += "rot: " + String(d["rot"]) + "\n";
+							if (d.has("location"))
+								text += "location: " + String(d["location"]) + "\n";
+							if (d.has("rotation"))
+								text += "rot: " + String(d["rotation"]) + "\n";
 							if (d.has("scale"))
 								text += "scale: " + String(d["scale"]) + "\n";
 						} break;
@@ -2890,14 +2895,8 @@ void AnimationKeyEditor::_notification(int p_what) {
 
 			key_editor->edit(key_edit);
 
-			zoomicon->set_texture(get_icon("Zoom", "EditorIcons"));
 			zoomicon->set_custom_minimum_size(Size2(24 * EDSCALE, 0));
 			zoomicon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
-
-			menu_add_track->set_icon(get_icon("Add", "EditorIcons"));
-			menu_add_track->get_popup()->add_icon_item(get_icon("KeyValue", "EditorIcons"), "Add Normal Track", ADD_TRACK_MENU_ADD_VALUE_TRACK);
-			menu_add_track->get_popup()->add_icon_item(get_icon("KeyXform", "EditorIcons"), "Add Transform Track", ADD_TRACK_MENU_ADD_TRANSFORM_TRACK);
-			menu_add_track->get_popup()->add_icon_item(get_icon("KeyCall", "EditorIcons"), "Add Call Func Track", ADD_TRACK_MENU_ADD_CALL_TRACK);
 
 			menu_track->set_icon(get_icon("Tools", "EditorIcons"));
 			menu_track->get_popup()->add_item(TTR("Scale Selection"), TRACK_MENU_SCALE);
@@ -2921,17 +2920,9 @@ void AnimationKeyEditor::_notification(int p_what) {
 			optimize_dialog->connect("confirmed", this, "_animation_optimize");
 
 			menu_track->get_popup()->add_child(tpp);
-			//menu_track->get_popup()->add_submenu_item("Set Transitions..","Transitions");
-			//menu_track->get_popup()->add_separator();
+
 			menu_track->get_popup()->add_item(TTR("Optimize Animation"), TRACK_MENU_OPTIMIZE);
 			menu_track->get_popup()->add_item(TTR("Clean-Up Animation"), TRACK_MENU_CLEAN_UP);
-
-			curve_linear->set_icon(get_icon("CurveLinear", "EditorIcons"));
-			curve_in->set_icon(get_icon("CurveIn", "EditorIcons"));
-			curve_out->set_icon(get_icon("CurveOut", "EditorIcons"));
-			curve_inout->set_icon(get_icon("CurveInOut", "EditorIcons"));
-			curve_outin->set_icon(get_icon("CurveOutIn", "EditorIcons"));
-			curve_constant->set_icon(get_icon("CurveConstant", "EditorIcons"));
 
 			curve_linear->connect("pressed", this, "_menu_track", varray(CURVE_SET_LINEAR));
 			curve_in->connect("pressed", this, "_menu_track", varray(CURVE_SET_IN));
@@ -2940,17 +2931,39 @@ void AnimationKeyEditor::_notification(int p_what) {
 			curve_outin->connect("pressed", this, "_menu_track", varray(CURVE_SET_OUTIN));
 			curve_constant->connect("pressed", this, "_menu_track", varray(CURVE_SET_CONSTANT));
 
+			edit_button->connect("pressed", this, "_toggle_edit_curves");
+
+			curve_edit->connect("transition_changed", this, "_curve_transition_changed");
+			call_select->connect("selected", this, "_add_call_track");
+
+			_update_menu();
+
+		} break;
+
+		case NOTIFICATION_THEME_CHANGED: {
+			zoomicon->set_texture(get_icon("Zoom", "EditorIcons"));
+
+			menu_add_track->set_icon(get_icon("Add", "EditorIcons"));
+
+			menu_track->set_icon(get_icon("Tools", "EditorIcons"));
+
+			menu_add_track->get_popup()->set_item_icon(ADD_TRACK_MENU_ADD_VALUE_TRACK, get_icon("KeyValue", "EditorIcons"));
+			menu_add_track->get_popup()->set_item_icon(ADD_TRACK_MENU_ADD_TRANSFORM_TRACK, get_icon("KeyXform", "EditorIcons"));
+			menu_add_track->get_popup()->set_item_icon(ADD_TRACK_MENU_ADD_CALL_TRACK, get_icon("KeyCall", "EditorIcons"));
+
+			curve_linear->set_icon(get_icon("CurveLinear", "EditorIcons"));
+			curve_in->set_icon(get_icon("CurveIn", "EditorIcons"));
+			curve_out->set_icon(get_icon("CurveOut", "EditorIcons"));
+			curve_inout->set_icon(get_icon("CurveInOut", "EditorIcons"));
+			curve_outin->set_icon(get_icon("CurveOutIn", "EditorIcons"));
+			curve_constant->set_icon(get_icon("CurveConstant", "EditorIcons"));
+
 			move_up_button->set_icon(get_icon("MoveUp", "EditorIcons"));
 			move_down_button->set_icon(get_icon("MoveDown", "EditorIcons"));
 			remove_button->set_icon(get_icon("Remove", "EditorIcons"));
 			edit_button->set_icon(get_icon("EditKey", "EditorIcons"));
-			edit_button->connect("pressed", this, "_toggle_edit_curves");
 
 			loop->set_icon(get_icon("Loop", "EditorIcons"));
-			curve_edit->connect("transition_changed", this, "_curve_transition_changed");
-
-			//edit_button->add_color_override("font_color",get_color("font_color","Tree"));
-			//edit_button->add_color_override("font_color_hover",get_color("font_color","Tree"));
 
 			{
 
@@ -2976,24 +2989,8 @@ void AnimationKeyEditor::_notification(int p_what) {
 					get_icon("InterpWrapClamp", "EditorIcons"),
 					get_icon("InterpWrapLoop", "EditorIcons"),
 				};
-
-				//right_data_size_cache = remove_icon->get_width() + move_up_icon->get_width() + move_down_icon->get_width() + down_icon->get_width() *2 + interp_icon[0]->get_width() + cont_icon[0]->get_width() + add_key_icon->get_width() + hsep*11;
 				right_data_size_cache = down_icon->get_width() * 3 + add_key_icon->get_width() + interp_icon[0]->get_width() + cont_icon[0]->get_width() + wrap_icon[0]->get_width() + hsep * 8;
 			}
-			call_select->connect("selected", this, "_add_call_track");
-			//rename_anim->set_icon( get_icon("Rename","EditorIcons") );
-			/*
-				edit_anim->set_icon( get_icon("Edit","EditorIcons") );
-				blend_anim->set_icon( get_icon("Blend","EditorIcons") );
-				play->set_icon( get_icon("Play","EditorIcons") );
-				stop->set_icon( get_icon("Stop","EditorIcons") );
-				pause->set_icon( get_icon("Pause","EditorIcons") );
-*/
-			//menu->set_icon(get_icon("Animation","EditorIcons"));
-			//play->set_icon(get_icon("AnimationPlay","EditorIcons"));
-			//menu->set_icon(get_icon("Animation","EditorIcons"));
-			_update_menu();
-
 		} break;
 	}
 }
@@ -3362,9 +3359,9 @@ int AnimationKeyEditor::_confirm_insert(InsertData p_id, int p_last_track) {
 
 			Transform tr = p_id.value;
 			Dictionary d;
-			d["loc"] = tr.origin;
+			d["location"] = tr.origin;
 			d["scale"] = tr.basis.get_scale();
-			d["rot"] = Quat(tr.basis); //.orthonormalized();
+			d["rotation"] = Quat(tr.basis); //.orthonormalized();
 			value = d;
 		} break;
 		default: {}
@@ -3379,7 +3376,7 @@ int AnimationKeyEditor::_confirm_insert(InsertData p_id, int p_last_track) {
 		p_last_track++;
 	} else {
 
-		undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", p_id.track_idx, time);
+		undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", p_id.track_idx, time);
 		int existing = animation->track_find_key(p_id.track_idx, time, true);
 		if (existing != -1) {
 			Variant v = animation->track_get_key_value(p_id.track_idx, existing);
@@ -3454,7 +3451,7 @@ void AnimationKeyEditor::_create_value_item(int p_type) {
 	Variant::CallError ce;
 	Variant v = Variant::construct(Variant::Type(p_type), NULL, 0, ce);
 	undo_redo->add_do_method(animation.ptr(), "track_insert_key", cvi_track, cvi_pos, v);
-	undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", cvi_track, cvi_pos);
+	undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", cvi_track, cvi_pos);
 
 	int existing = animation->track_find_key(cvi_track, cvi_pos, true);
 
@@ -3589,7 +3586,7 @@ void AnimationKeyEditor::_scale() {
 		if (selection.has(sk))
 			continue; //already in selection, don't save
 
-		undo_redo->add_do_method(animation.ptr(), "track_remove_key_at_pos", E->key().track, newtime);
+		undo_redo->add_do_method(animation.ptr(), "track_remove_key_at_position", E->key().track, newtime);
 		_AnimMoveRestore amr;
 
 		amr.key = animation->track_get_key_value(E->key().track, idx);
@@ -3612,7 +3609,7 @@ void AnimationKeyEditor::_scale() {
 	for (Map<SelectedKey, KeyInfo>::Element *E = selection.back(); E; E = E->prev()) {
 
 		float newpos = _NEW_POS(E->get().pos);
-		undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_pos", E->key().track, newpos);
+		undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", E->key().track, newpos);
 	}
 
 	// 5-(undo) reinsert keys
@@ -3699,7 +3696,7 @@ void AnimationKeyEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_menu_track"), &AnimationKeyEditor::_menu_track);
 	ClassDB::bind_method(D_METHOD("_clear_selection_for_anim"), &AnimationKeyEditor::_clear_selection_for_anim);
 	ClassDB::bind_method(D_METHOD("_select_at_anim"), &AnimationKeyEditor::_select_at_anim);
-	ClassDB::bind_method(D_METHOD("_track_pos_draw"), &AnimationKeyEditor::_track_pos_draw);
+	ClassDB::bind_method(D_METHOD("_track_position_draw"), &AnimationKeyEditor::_track_position_draw);
 	ClassDB::bind_method(D_METHOD("_insert_delay"), &AnimationKeyEditor::_insert_delay);
 	ClassDB::bind_method(D_METHOD("_step_changed"), &AnimationKeyEditor::_step_changed);
 
@@ -3718,7 +3715,7 @@ void AnimationKeyEditor::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("resource_selected", PropertyInfo(Variant::OBJECT, "res"), PropertyInfo(Variant::STRING, "prop")));
 	ADD_SIGNAL(MethodInfo("keying_changed"));
-	ADD_SIGNAL(MethodInfo("timeline_changed", PropertyInfo(Variant::REAL, "pos"), PropertyInfo(Variant::BOOL, "drag")));
+	ADD_SIGNAL(MethodInfo("timeline_changed", PropertyInfo(Variant::REAL, "position"), PropertyInfo(Variant::BOOL, "drag")));
 	ADD_SIGNAL(MethodInfo("animation_len_changed", PropertyInfo(Variant::REAL, "len")));
 	ADD_SIGNAL(MethodInfo("animation_step_changed", PropertyInfo(Variant::REAL, "step")));
 	ADD_SIGNAL(MethodInfo("key_edited", PropertyInfo(Variant::INT, "track"), PropertyInfo(Variant::INT, "key")));
@@ -3816,6 +3813,9 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	hb->add_child(menu_add_track);
 	menu_add_track->get_popup()->connect("id_pressed", this, "_menu_add_track");
 	menu_add_track->set_tooltip(TTR("Add new tracks."));
+	menu_add_track->get_popup()->add_icon_item(get_icon("KeyValue", "EditorIcons"), "Add Normal Track", ADD_TRACK_MENU_ADD_VALUE_TRACK);
+	menu_add_track->get_popup()->add_icon_item(get_icon("KeyXform", "EditorIcons"), "Add Transform Track", ADD_TRACK_MENU_ADD_TRANSFORM_TRACK);
+	menu_add_track->get_popup()->add_icon_item(get_icon("KeyCall", "EditorIcons"), "Add Call Func Track", ADD_TRACK_MENU_ADD_CALL_TRACK);
 
 	move_up_button = memnew(ToolButton);
 	hb->add_child(move_up_button);
@@ -3900,7 +3900,7 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	//menu->get_popup()->connect("id_pressed",this,"_menu_callback");
 
 	hb = memnew(HBoxContainer);
-	hb->set_area_as_parent_rect();
+	hb->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 	ec->add_child(hb);
 	hb->set_v_size_flags(SIZE_EXPAND_FILL);
 
@@ -3912,14 +3912,14 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	track_editor->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	track_pos = memnew(Control);
-	track_pos->set_area_as_parent_rect();
+	track_pos->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 	track_pos->set_mouse_filter(MOUSE_FILTER_IGNORE);
 	track_editor->add_child(track_pos);
-	track_pos->connect("draw", this, "_track_pos_draw");
+	track_pos->connect("draw", this, "_track_position_draw");
 
 	select_anim_warning = memnew(Label);
 	track_editor->add_child(select_anim_warning);
-	select_anim_warning->set_area_as_parent_rect();
+	select_anim_warning->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 	select_anim_warning->set_text(TTR("Select an AnimationPlayer from the Scene Tree to edit animations."));
 	select_anim_warning->set_autowrap(true);
 	select_anim_warning->set_align(Label::ALIGN_CENTER);
@@ -3933,10 +3933,10 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	key_editor_tab = memnew(TabContainer);
 	key_editor_tab->set_tab_align(TabContainer::ALIGN_LEFT);
 	hb->add_child(key_editor_tab);
-	key_editor_tab->set_custom_minimum_size(Size2(200, 0));
+	key_editor_tab->set_custom_minimum_size(Size2(200, 0) * EDSCALE);
 
 	key_editor = memnew(PropertyEditor);
-	key_editor->set_area_as_parent_rect();
+	key_editor->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 	key_editor->hide_top_label();
 	key_editor->set_name(TTR("Key"));
 	key_editor_tab->add_child(key_editor);
@@ -4050,8 +4050,6 @@ AnimationKeyEditor::AnimationKeyEditor() {
 	cleanup_dialog->get_ok()->set_text(TTR("Clean-Up"));
 
 	cleanup_dialog->connect("confirmed", this, "_menu_track", varray(TRACK_MENU_CLEAN_UP_CONFIRM));
-
-	add_constant_override("separation", get_constant("separation", "VBoxContainer"));
 
 	track_editor->set_clip_contents(true);
 }

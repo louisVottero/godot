@@ -466,14 +466,12 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 		EditorNode::progress_task_step(progress_task, "File: " + p_file_name, (p_file_no * 100) / p_total_files);
 	}
 
-	bool do_hash = p_file_name != "AppxSignature.p7x";
-
 	FileMeta meta;
 	meta.name = p_file_name;
 	meta.uncompressed_size = p_len;
 	meta.compressed_size = p_len;
 	meta.compressed = p_compress;
-	meta.zip_offset = package->get_pos();
+	meta.zip_offset = package->get_position();
 
 	Vector<uint8_t> file_buffer;
 
@@ -621,11 +619,11 @@ void AppxPackager::finish() {
 
 	// Write central directory
 	EditorNode::progress_task_step("export", "Finishing package...", 6);
-	central_dir_offset = package->get_pos();
+	central_dir_offset = package->get_position();
 	package->store_buffer(central_dir_data.ptr(), central_dir_data.size());
 
 	// End record
-	end_of_central_dir_offset = package->get_pos();
+	end_of_central_dir_offset = package->get_position();
 	Vector<uint8_t> end_record = make_end_of_central_record();
 	package->store_buffer(end_record.ptr(), end_record.size());
 

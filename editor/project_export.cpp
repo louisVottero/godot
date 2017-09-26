@@ -48,7 +48,7 @@ void ProjectExportDialog::_notification(int p_what) {
 
 	switch (p_what) {
 		case NOTIFICATION_READY: {
-			delete_preset->set_icon(get_icon("Del", "EditorIcons"));
+			delete_preset->set_icon(get_icon("Remove", "EditorIcons"));
 			connect("confirmed", this, "_export_pck_zip");
 			custom_feature_display->get_parent_control()->add_style_override("panel", get_stylebox("bg", "Tree"));
 		} break;
@@ -193,7 +193,7 @@ void ProjectExportDialog::_edit_preset(int p_index) {
 			patch->set_checked(0, true);
 		patch->set_tooltip(0, patchlist[i]);
 		patch->set_metadata(0, i);
-		patch->add_button(0, get_icon("Del", "EditorIcons"), 0);
+		patch->add_button(0, get_icon("Remove", "EditorIcons"), 0);
 		patch->add_button(0, get_icon("folder", "FileDialog"), 1);
 	}
 
@@ -425,15 +425,16 @@ void ProjectExportDialog::_delete_preset_confirm() {
 
 	int idx = presets->get_current();
 	parameters->edit(NULL); //to avoid crash
+	_edit_preset(-1);
 	EditorExport::get_singleton()->remove_export_preset(idx);
 	_update_presets();
-	_edit_preset(-1);
+	_edit_preset(presets->get_current());
 }
 
 Variant ProjectExportDialog::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
 
 	if (p_from == presets) {
-		int pos = presets->get_item_at_pos(p_point, true);
+		int pos = presets->get_item_at_position(p_point, true);
 
 		if (pos >= 0) {
 			Dictionary d;
@@ -454,7 +455,7 @@ Variant ProjectExportDialog::get_drag_data_fw(const Point2 &p_point, Control *p_
 		}
 	} else if (p_from == patches) {
 
-		TreeItem *item = patches->get_item_at_pos(p_point);
+		TreeItem *item = patches->get_item_at_position(p_point);
 
 		if (item && item->get_cell_mode(0) == TreeItem::CELL_MODE_CHECK) {
 
@@ -481,7 +482,7 @@ bool ProjectExportDialog::can_drop_data_fw(const Point2 &p_point, const Variant 
 		if (!d.has("type") || String(d["type"]) != "export_preset")
 			return false;
 
-		if (presets->get_item_at_pos(p_point, true) < 0 && !presets->is_pos_at_end_of_items(p_point))
+		if (presets->get_item_at_position(p_point, true) < 0 && !presets->is_pos_at_end_of_items(p_point))
 			return false;
 	} else if (p_from == patches) {
 
@@ -491,7 +492,7 @@ bool ProjectExportDialog::can_drop_data_fw(const Point2 &p_point, const Variant 
 
 		patches->set_drop_mode_flags(Tree::DROP_MODE_ON_ITEM);
 
-		TreeItem *item = patches->get_item_at_pos(p_point);
+		TreeItem *item = patches->get_item_at_position(p_point);
 
 		if (!item) {
 
@@ -510,8 +511,8 @@ void ProjectExportDialog::drop_data_fw(const Point2 &p_point, const Variant &p_d
 
 		int to_pos = -1;
 
-		if (presets->get_item_at_pos(p_point, true) >= 0) {
-			to_pos = presets->get_item_at_pos(p_point, true);
+		if (presets->get_item_at_position(p_point, true) >= 0) {
+			to_pos = presets->get_item_at_position(p_point, true);
 		}
 
 		if (to_pos == -1 && !presets->is_pos_at_end_of_items(p_point))
@@ -540,7 +541,7 @@ void ProjectExportDialog::drop_data_fw(const Point2 &p_point, const Variant &p_d
 
 		int from_pos = d["patch"];
 
-		TreeItem *item = patches->get_item_at_pos(p_point);
+		TreeItem *item = patches->get_item_at_position(p_point);
 		if (!item)
 			return;
 
@@ -732,6 +733,8 @@ void ProjectExportDialog::_export_project_to_path(const String &p_path) {
 	ERR_FAIL_COND(platform.is_null());
 
 	Error err = platform->export_project(current, export_debug->is_pressed(), p_path, 0);
+	if (err != OK)
+		ERR_PRINT("Failed to export project");
 }
 
 void ProjectExportDialog::_bind_methods() {
@@ -891,7 +894,7 @@ ProjectExportDialog::ProjectExportDialog() {
 	Panel *features_panel = memnew(Panel);
 	custom_feature_display = memnew(RichTextLabel);
 	features_panel->add_child(custom_feature_display);
-	custom_feature_display->set_area_as_parent_rect(10 * EDSCALE);
+	custom_feature_display->set_anchors_and_margins_preset(Control::PRESET_WIDE, Control::PRESET_MODE_MINSIZE, 10 * EDSCALE);
 	custom_feature_display->set_v_size_flags(SIZE_EXPAND_FILL);
 	feature_vb->add_margin_child(TTR("Feature List:"), features_panel, true);
 	sections->add_child(feature_vb);

@@ -87,6 +87,8 @@ void FileAccessNetworkClient::_thread_func() {
 
 		DEBUG_PRINT("SEM WAIT - " + itos(sem->get()));
 		Error err = sem->wait();
+		if (err != OK)
+			ERR_PRINT("sem->wait() failed");
 		DEBUG_TIME("sem_unlock");
 		//DEBUG_PRINT("semwait returned "+itos(werr));
 		DEBUG_PRINT("MUTEX LOCK " + itos(lockcount));
@@ -348,7 +350,7 @@ void FileAccessNetwork::seek_end(int64_t p_position) {
 
 	seek(total_size + p_position);
 }
-size_t FileAccessNetwork::get_pos() const {
+size_t FileAccessNetwork::get_position() const {
 
 	ERR_FAIL_COND_V(!opened, 0);
 	return pos;

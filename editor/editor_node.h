@@ -262,6 +262,9 @@ private:
 	Button *property_forward;
 	SceneTreeDock *scene_tree_dock;
 	PropertyEditor *property_editor;
+	Button *property_editable_warning;
+	AcceptDialog *property_editable_warning_dialog;
+	void _property_editable_warning_pressed();
 	NodeDock *node_dock;
 	ImportDock *import_dock;
 	VBoxContainer *prop_editor_vb;
@@ -602,9 +605,10 @@ private:
 
 	void _start_dimming(bool p_dimming);
 	void _dim_timeout();
-	void _check_gui_base_size();
 
 	void _license_tree_selected();
+
+	Vector<Ref<EditorResourceConversionPlugin> > resource_conversion_plugins;
 
 protected:
 	void _notification(int p_what);
@@ -712,7 +716,7 @@ public:
 
 	void show_warning(const String &p_text, const String &p_title = "Warning!");
 
-	Error export_preset(const String &p_platform, const String &p_path, bool p_debug, const String &p_password, bool p_quit_after = false);
+	Error export_preset(const String &p_preset, const String &p_path, bool p_debug, const String &p_password, bool p_quit_after = false);
 
 	static void register_editor_types();
 	static void unregister_editor_types();
@@ -773,6 +777,10 @@ public:
 	EditorNode();
 	~EditorNode();
 	void get_singleton(const char *arg1, bool arg2);
+
+	void add_resource_conversion_plugin(const Ref<EditorResourceConversionPlugin> &p_plugin);
+	void remove_resource_conversion_plugin(const Ref<EditorResourceConversionPlugin> &p_plugin);
+	Vector<Ref<EditorResourceConversionPlugin> > find_resource_conversion_plugin(const Ref<Resource> &p_for_resource);
 
 	static void add_init_callback(EditorNodeInitCallback p_callback) { _init_callbacks.push_back(p_callback); }
 	static void add_build_callback(EditorBuildCallback p_callback);

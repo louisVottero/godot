@@ -267,6 +267,7 @@ const ShaderLanguage::KeyWord ShaderLanguage::keyword_list[] = {
 	{ TK_CF_BREAK, "break" },
 	{ TK_CF_CONTINUE, "continue" },
 	{ TK_CF_RETURN, "return" },
+	{ TK_CF_DISCARD, "discard" },
 	{ TK_UNIFORM, "uniform" },
 	{ TK_VARYING, "varying" },
 	{ TK_ARG_IN, "in" },
@@ -1377,6 +1378,10 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 	{ "sqrt", TYPE_VEC2, { TYPE_VEC2, TYPE_VOID } },
 	{ "sqrt", TYPE_VEC3, { TYPE_VEC3, TYPE_VOID } },
 	{ "sqrt", TYPE_VEC4, { TYPE_VEC4, TYPE_VOID } },
+	{ "inversesqrt", TYPE_FLOAT, { TYPE_FLOAT, TYPE_VOID } },
+	{ "inversesqrt", TYPE_VEC2, { TYPE_VEC2, TYPE_VOID } },
+	{ "inversesqrt", TYPE_VEC3, { TYPE_VEC3, TYPE_VOID } },
+	{ "inversesqrt", TYPE_VEC4, { TYPE_VEC4, TYPE_VOID } },
 	//builtins - common
 	{ "abs", TYPE_FLOAT, { TYPE_FLOAT, TYPE_VOID } },
 	{ "abs", TYPE_VEC2, { TYPE_VEC2, TYPE_VOID } },
@@ -3000,8 +3005,6 @@ ShaderLanguage::Node *ShaderLanguage::_reduce_expression(BlockNode *p_block, Sha
 	if (op->op == OP_CONSTRUCT) {
 
 		ERR_FAIL_COND_V(op->arguments[0]->type != Node::TYPE_VARIABLE, p_node);
-		VariableNode *vn = static_cast<VariableNode *>(op->arguments[0]);
-		//StringName name=vn->name;
 
 		DataType base = get_scalar_type(op->get_datatype());
 
@@ -3121,8 +3124,8 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 			tk = _get_token();
 
 			VariableDeclarationNode *vardecl = alloc_node<VariableDeclarationNode>();
-			vardecl->datatype=type;
-			vardecl->precision=precision;
+			vardecl->datatype = type;
+			vardecl->precision = precision;
 
 			p_block->statements.push_back(vardecl);
 
@@ -3148,8 +3151,8 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 
 				VariableDeclarationNode::Declaration decl;
 
-				decl.name=name;
-				decl.initializer=NULL;
+				decl.name = name;
+				decl.initializer = NULL;
 
 				tk = _get_token();
 
@@ -3161,13 +3164,11 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 
 					decl.initializer = n;
 
-					if (var.type!=n->get_datatype()) {
+					if (var.type != n->get_datatype()) {
 						_set_error("Invalid assignment of '" + get_datatype_name(n->get_datatype()) + "' to '" + get_datatype_name(var.type) + "'");
 						return ERR_PARSE_ERROR;
-
 					}
 					tk = _get_token();
-
 				}
 
 				vardecl->declarations.push_back(decl);
@@ -3272,9 +3273,9 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 
 			BlockNode *init_block = alloc_node<BlockNode>();
 			init_block->parent_block = p_block;
-			init_block->single_statement=true;
+			init_block->single_statement = true;
 			cf->blocks.push_back(init_block);
-			if (_parse_block(init_block,p_builtin_types,true,false,false)!=OK) {
+			if (_parse_block(init_block, p_builtin_types, true, false, false) != OK) {
 				return ERR_PARSE_ERROR;
 			}
 
@@ -3282,10 +3283,9 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 			if (!n)
 				return ERR_PARSE_ERROR;
 
-			if (n->get_datatype()!=TYPE_BOOL) {
+			if (n->get_datatype() != TYPE_BOOL) {
 				_set_error("Middle expression is expected to be boolean.");
 				return ERR_PARSE_ERROR;
-
 			}
 
 			tk = _get_token();
@@ -3392,7 +3392,6 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 			p_block->statements.push_back(flow);
 		} else if (tk.type == TK_CF_BREAK) {
 
-
 			if (!p_can_break) {
 				//all is good
 				_set_error("Breaking is not allowed here");
@@ -3410,7 +3409,6 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 
 			p_block->statements.push_back(flow);
 		} else if (tk.type == TK_CF_CONTINUE) {
-
 
 			if (!p_can_break) {
 				//all is good
@@ -3807,6 +3805,10 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 				func_node->return_type = type;
 				func_node->return_precision = precision;
 
+				if (p_functions.has(name)) {
+					func_node->can_discard = p_functions[name].can_discard;
+				}
+
 				func_node->body = alloc_node<BlockNode>();
 				func_node->body->parent_function = func_node;
 
@@ -3980,6 +3982,8 @@ Error ShaderLanguage::complete(const String &p_code, const Map<StringName, Funct
 
 	shader = alloc_node<ShaderNode>();
 	Error err = _parse_shader(p_functions, p_render_modes, p_shader_types);
+	if (err != OK)
+		ERR_PRINT("Failed to parse shader");
 
 	switch (completion_type) {
 

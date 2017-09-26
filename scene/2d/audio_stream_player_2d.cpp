@@ -57,52 +57,32 @@ void AudioStreamPlayer2D::_mix_audio() {
 		AudioFrame vol_inc = (current.vol - prev_outputs[i].vol) / float(buffer_size);
 		AudioFrame vol = current.vol;
 
-		switch (AudioServer::get_singleton()->get_speaker_mode()) {
+		int cc = AudioServer::get_singleton()->get_channel_count();
 
-			case AudioServer::SPEAKER_MODE_STEREO: {
-				AudioFrame *target = AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 0);
+		if (cc == 1) {
+			AudioFrame *target = AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 0);
 
-				for (int j = 0; j < buffer_size; j++) {
+			for (int j = 0; j < buffer_size; j++) {
 
-					target[j] += buffer[j] * vol;
-					vol += vol_inc;
+				target[j] += buffer[j] * vol;
+				vol += vol_inc;
+			}
+
+		} else {
+			AudioFrame *targets[4];
+
+			for (int k = 0; k < cc; k++) {
+				targets[k] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, k);
+			}
+
+			for (int j = 0; j < buffer_size; j++) {
+
+				AudioFrame frame = buffer[j] * vol;
+				for (int k = 0; k < cc; k++) {
+					targets[k][j] += frame;
 				}
-
-			} break;
-			case AudioServer::SPEAKER_SURROUND_51: {
-
-				AudioFrame *targets[2] = {
-					AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 1),
-					AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 2),
-				};
-
-				for (int j = 0; j < buffer_size; j++) {
-
-					AudioFrame frame = buffer[j] * vol;
-					targets[0][j] += frame;
-					targets[1][j] += frame;
-					vol += vol_inc;
-				}
-
-			} break;
-			case AudioServer::SPEAKER_SURROUND_71: {
-
-				AudioFrame *targets[3] = {
-					AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 1),
-					AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 2),
-					AudioServer::get_singleton()->thread_get_channel_mix_buffer(current.bus_index, 3)
-				};
-
-				for (int j = 0; j < buffer_size; j++) {
-
-					AudioFrame frame = buffer[j] * vol;
-					targets[0][j] += frame;
-					targets[1][j] += frame;
-					targets[2][j] += frame;
-					vol += vol_inc;
-				}
-
-			} break;
+				vol += vol_inc;
+			}
 		}
 
 		prev_outputs[i] = current;
@@ -165,7 +145,7 @@ void AudioStreamPlayer2D::_notification(int p_what) {
 				if (!area2d->is_overriding_audio_bus())
 					continue;
 
-				StringName bus_name = area2d->get_audio_bus();
+				StringName bus_name = area2d->get_audio_bus_name();
 				bus_index = AudioServer::get_singleton()->thread_find_bus_index(bus_name);
 				break;
 			}
@@ -254,8 +234,6 @@ void AudioStreamPlayer2D::set_stream(Ref<AudioStream> p_stream) {
 		stream.unref();
 		ERR_FAIL_COND(stream_playback.is_null());
 	}
-
-
 }
 
 Ref<AudioStream> AudioStreamPlayer2D::get_stream() const {
@@ -306,10 +284,10 @@ bool AudioStreamPlayer2D::is_playing() const {
 	return false;
 }
 
-float AudioStreamPlayer2D::get_pos() {
+float AudioStreamPlayer2D::get_playback_position() {
 
 	if (stream_playback.is_valid()) {
-		return stream_playback->get_pos();
+		return stream_playback->get_playback_position();
 	}
 
 	return 0;
@@ -412,12 +390,12 @@ void AudioStreamPlayer2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_volume_db", "volume_db"), &AudioStreamPlayer2D::set_volume_db);
 	ClassDB::bind_method(D_METHOD("get_volume_db"), &AudioStreamPlayer2D::get_volume_db);
 
-	ClassDB::bind_method(D_METHOD("play", "from_pos"), &AudioStreamPlayer2D::play, DEFVAL(0.0));
-	ClassDB::bind_method(D_METHOD("seek", "to_pos"), &AudioStreamPlayer2D::seek);
+	ClassDB::bind_method(D_METHOD("play", "from_position"), &AudioStreamPlayer2D::play, DEFVAL(0.0));
+	ClassDB::bind_method(D_METHOD("seek", "to_position"), &AudioStreamPlayer2D::seek);
 	ClassDB::bind_method(D_METHOD("stop"), &AudioStreamPlayer2D::stop);
 
 	ClassDB::bind_method(D_METHOD("is_playing"), &AudioStreamPlayer2D::is_playing);
-	ClassDB::bind_method(D_METHOD("get_pos"), &AudioStreamPlayer2D::get_pos);
+	ClassDB::bind_method(D_METHOD("get_playback_position"), &AudioStreamPlayer2D::get_playback_position);
 
 	ClassDB::bind_method(D_METHOD("set_bus", "bus"), &AudioStreamPlayer2D::set_bus);
 	ClassDB::bind_method(D_METHOD("get_bus"), &AudioStreamPlayer2D::get_bus);
@@ -441,7 +419,7 @@ void AudioStreamPlayer2D::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "stream", PROPERTY_HINT_RESOURCE_TYPE, "AudioStream"), "set_stream", "get_stream");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "volume_db", PROPERTY_HINT_RANGE, "-80,24"), "set_volume_db", "get_volume_db");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "play", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_playing", "_is_active");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "playing", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_playing", "is_playing");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "autoplay"), "set_autoplay", "is_autoplay_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "max_distance", PROPERTY_HINT_RANGE, "1,65536,1"), "set_max_distance", "get_max_distance");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "attenuation", PROPERTY_HINT_EXP_EASING), "set_attenuation", "get_attenuation");
@@ -449,7 +427,6 @@ void AudioStreamPlayer2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "area_mask", PROPERTY_HINT_LAYERS_2D_PHYSICS), "set_area_mask", "get_area_mask");
 
 	ADD_SIGNAL(MethodInfo("finished"));
-
 }
 
 AudioStreamPlayer2D::AudioStreamPlayer2D() {

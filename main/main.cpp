@@ -58,6 +58,7 @@
 
 #ifdef TOOLS_ENABLED
 #include "editor/doc/doc_data.h"
+#include "editor/doc/doc_data_class_path.gen.h"
 #include "editor/editor_node.h"
 #include "editor/project_manager.h"
 #endif
@@ -73,6 +74,7 @@
 #include "performance.h"
 #include "translation.h"
 #include "version.h"
+#include "version_hash.gen.h"
 
 static ProjectSettings *globals = NULL;
 static Engine *engine = NULL;
@@ -121,6 +123,14 @@ static String unescape_cmdline(const String &p_str) {
 	return p_str.replace("%20", " ");
 }
 
+static String get_full_version_string() {
+
+	String hash = String(VERSION_HASH);
+	if (hash.length() != 0)
+		hash = "." + hash.left(7);
+	return String(VERSION_MKSTRING) + hash;
+}
+
 //#define DEBUG_INIT
 
 #ifdef DEBUG_INIT
@@ -131,7 +141,7 @@ static String unescape_cmdline(const String &p_str) {
 
 void Main::print_help(const char *p_binary) {
 
-	OS::get_singleton()->print(VERSION_FULL_NAME " - https://godotengine.org\n");
+	print_line(String(_MKSTR(VERSION_NAME)) + " v" + get_full_version_string() + " - https://godotengine.org");
 	OS::get_singleton()->print("(c) 2007-2017 Juan Linietsky, Ariel Manzur.\n");
 	OS::get_singleton()->print("(c) 2014-2017 Godot Engine contributors.\n");
 	OS::get_singleton()->print("\n");
@@ -140,6 +150,7 @@ void Main::print_help(const char *p_binary) {
 
 	OS::get_singleton()->print("General options:\n");
 	OS::get_singleton()->print("  -h, --help                       Display this help message.\n");
+	OS::get_singleton()->print("  --version                        Display the version string.\n");
 	OS::get_singleton()->print("  -v, --verbose                    Use verbose stdout mode.\n");
 	OS::get_singleton()->print("  --quiet                          Quiet mode, silences stdout messages. Errors are still displayed.\n");
 	OS::get_singleton()->print("\n");
@@ -177,7 +188,7 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  -w, --windowed                   Request windowed mode.\n");
 	OS::get_singleton()->print("  --resolution <W>x<H>             Request window resolution.\n");
 	OS::get_singleton()->print("  --position <X>,<Y>               Request window position.\n");
-	OS::get_singleton()->print("  --low-dpi                        Force low-DPI mode (macOS only).\n");
+	OS::get_singleton()->print("  --low-dpi                        Force low-DPI mode (macOS and Windows only).\n");
 	OS::get_singleton()->print("  --no-window                      Disable window creation (Windows only). Useful together with --script.\n");
 	OS::get_singleton()->print("\n");
 
@@ -193,7 +204,8 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  --frame-delay <ms>               Simulate high CPU load (delay each frame by <ms> milliseconds).\n");
 	OS::get_singleton()->print("  --time-scale <scale>             Force time scale (higher values are faster, 1.0 is normal speed).\n");
 	OS::get_singleton()->print("  --disable-render-loop            Disable render loop so rendering only occurs when called explicitly from script.\n");
-	OS::get_singleton()->print("  --fixed-fps <fps>                Forces a fixed ratio between process and fixed_process timing, for use when precision is required, or when rendering to video files. Setting this will disable real-time syncronization, so that run speed is only capped by performance\n");
+	OS::get_singleton()->print("  --disable-crash-handler          Disable crash handler when supported by the platform code.\n");
+	OS::get_singleton()->print("  --fixed-fps <fps>                Force a fixed number of frames per second. This setting disables real-time synchronization.\n");
 	OS::get_singleton()->print("\n");
 
 	OS::get_singleton()->print("Standalone tools:\n");
@@ -201,7 +213,7 @@ void Main::print_help(const char *p_binary) {
 #ifdef TOOLS_ENABLED
 	OS::get_singleton()->print("  --export <target>                Export the project using the given export target.\n");
 	OS::get_singleton()->print("  --export-debug                   Use together with --export, enables debug mode for the template.\n");
-	OS::get_singleton()->print("  --doctool <file>                 Dump the whole engine API to <file> in XML format. If <file> exists, it will be merged.\n");
+	OS::get_singleton()->print("  --doctool <path>                 Dump the engine API reference to the given <path> in XML format, merging if existing files are found.\n");
 	OS::get_singleton()->print("  --no-docbase                     Disallow dumping the base types (used with --doctool).\n");
 #ifdef DEBUG_METHODS_ENABLED
 	OS::get_singleton()->print("  --gdnative-generate-json-api     Generate JSON dump of the Godot API for GDNative bindings.\n");
@@ -246,6 +258,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	performance = memnew(Performance);
 	globals->add_singleton(ProjectSettings::Singleton("Performance", performance));
 
+	GLOBAL_DEF("debug/settings/crash_handler/message", String("Please include this when reporting the bug on https://github.com/godotengine/godot/issues"));
+
 	MAIN_PRINT("Main: Parse CMDLine");
 
 	/* argument parsing and main creation */
@@ -264,7 +278,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	while (I) {
 
 		I->get() = unescape_cmdline(I->get().strip_escapes());
-		//print_line("CMD: "+I->get());
 		I = I->next();
 	}
 
@@ -312,6 +325,11 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		if (I->get() == "-h" || I->get() == "--help" || I->get() == "/?") { // display help
 
 			show_help = true;
+			goto error;
+
+		} else if (I->get() == "--version") {
+
+			print_line(get_full_version_string());
 			goto error;
 
 		} else if (I->get() == "--resolution") { // force resolution
@@ -581,6 +599,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing fixed-fps argument, aborting.\n");
 				goto error;
 			}
+		} else if (I->get() == "--disable-crash-handler") {
+			OS::get_singleton()->disable_crash_handler();
 		} else {
 
 			//test for game path
@@ -984,8 +1004,10 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 #endif
 		}
 
+#ifdef TOOLS_ENABLED
 		Ref<Image> icon = memnew(Image(app_icon_png));
 		OS::get_singleton()->set_icon(icon);
+#endif
 	}
 
 	MAIN_PRINT("Main: DCC");
@@ -1076,6 +1098,7 @@ bool Main::start() {
 
 	ERR_FAIL_COND_V(!_start_success, false);
 
+	bool hasicon = false;
 	bool editor = false;
 	String doc_tool;
 	List<String> removal_docs;
@@ -1143,26 +1166,46 @@ bool Main::start() {
 #ifdef TOOLS_ENABLED
 	if (doc_tool != "") {
 
+		{
+			DirAccessRef da = DirAccess::open(doc_tool);
+			if (!da) {
+				ERR_EXPLAIN("Argument supplied to --doctool must be a base godot build directory");
+				ERR_FAIL_V(false);
+			}
+		}
 		DocData doc;
 		doc.generate(doc_base);
 
 		DocData docsrc;
-		if (docsrc.load(doc_tool) == OK) {
-			print_line("Doc exists. Merging..");
-			doc.merge_from(docsrc);
-		} else {
-			print_line("No Doc exists. Generating empty.");
-		}
+		Map<String, String> doc_data_classes;
+		Set<String> checked_paths;
+		print_line("Loading docs..");
 
-		for (List<String>::Element *E = removal_docs.front(); E; E = E->next()) {
-			DocData rmdoc;
-			if (rmdoc.load(E->get()) == OK) {
-				print_line(String("Removing classes in ") + E->get());
-				doc.remove_from(rmdoc);
+		for (int i = 0; i < _doc_data_class_path_count; i++) {
+			String path = doc_tool.plus_file(_doc_data_class_paths[i].path);
+			String name = _doc_data_class_paths[i].name;
+			doc_data_classes[name] = path;
+			if (!checked_paths.has(path)) {
+				checked_paths.insert(path);
+				docsrc.load_classes(path);
+				print_line("Loading docs from: " + path);
 			}
 		}
 
-		doc.save(doc_tool);
+		String index_path = doc_tool.plus_file("doc/classes");
+		docsrc.load_classes(index_path);
+		checked_paths.insert(index_path);
+		print_line("Loading docs from: " + index_path);
+
+		print_line("Merging docs..");
+		doc.merge_from(docsrc);
+		for (Set<String>::Element *E = checked_paths.front(); E; E = E->next()) {
+			print_line("Erasing old docs at: " + E->get());
+			DocData::erase_classes(E->get());
+		}
+
+		print_line("Generating new docs..");
+		doc.save_classes(index_path, doc_data_classes);
 
 		return false;
 	}
@@ -1325,7 +1368,6 @@ bool Main::start() {
 			int shadow_atlas_q2_subdiv = GLOBAL_GET("rendering/quality/shadow_atlas/quadrant_2_subdiv");
 			int shadow_atlas_q3_subdiv = GLOBAL_GET("rendering/quality/shadow_atlas/quadrant_3_subdiv");
 
-
 			sml->get_root()->set_shadow_atlas_size(shadow_atlas_size);
 			sml->get_root()->set_shadow_atlas_quadrant_subdiv(0, Viewport::ShadowAtlasQuadrantSubdiv(shadow_atlas_q0_subdiv));
 			sml->get_root()->set_shadow_atlas_quadrant_subdiv(1, Viewport::ShadowAtlasQuadrantSubdiv(shadow_atlas_q1_subdiv));
@@ -1347,7 +1389,6 @@ bool Main::start() {
 			sml->set_auto_accept_quit(GLOBAL_DEF("application/config/auto_accept_quit", true));
 			sml->set_quit_on_go_back(GLOBAL_DEF("application/config/quit_on_go_back", true));
 			GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
-
 		}
 
 		String local_game_path;
@@ -1389,6 +1430,8 @@ bool Main::start() {
 			if (editor) {
 
 				Error serr = editor_node->load_scene(local_game_path);
+				if (serr != OK)
+					ERR_PRINT("Failed to load scene");
 				OS::get_singleton()->set_context(OS::CONTEXT_EDITOR);
 			}
 #endif
@@ -1493,8 +1536,10 @@ bool Main::start() {
 				if (iconpath != "") {
 					Ref<Image> icon;
 					icon.instance();
-					if (icon->load(iconpath) == OK)
+					if (icon->load(iconpath) == OK) {
 						OS::get_singleton()->set_icon(icon);
+						hasicon = true;
+					}
 				}
 			}
 		}
@@ -1509,6 +1554,11 @@ bool Main::start() {
 			OS::get_singleton()->set_context(OS::CONTEXT_PROJECTMAN);
 		}
 #endif
+	}
+
+	if (!hasicon) {
+		Ref<Image> icon = memnew(Image(app_icon_png));
+		OS::get_singleton()->set_icon(icon);
 	}
 
 	OS::get_singleton()->set_main_loop(main_loop);

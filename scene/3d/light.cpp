@@ -308,16 +308,14 @@ DirectionalLight::ShadowMode DirectionalLight::get_shadow_mode() const {
 }
 
 void DirectionalLight::set_shadow_depth_range(ShadowDepthRange p_range) {
-	shadow_depth_range=p_range;
+	shadow_depth_range = p_range;
 	VS::get_singleton()->light_directional_set_shadow_depth_range_mode(light, VS::LightDirectionalShadowDepthRangeMode(p_range));
-
 }
 
 DirectionalLight::ShadowDepthRange DirectionalLight::get_shadow_depth_range() const {
 
 	return shadow_depth_range;
 }
-
 
 void DirectionalLight::set_blend_splits(bool p_enable) {
 
@@ -356,8 +354,8 @@ void DirectionalLight::_bind_methods() {
 	BIND_ENUM_CONSTANT(SHADOW_PARALLEL_2_SPLITS);
 	BIND_ENUM_CONSTANT(SHADOW_PARALLEL_4_SPLITS);
 
-	BIND_ENUM_CONSTANT( SHADOW_DEPTH_RANGE_STABLE );
-	BIND_ENUM_CONSTANT( SHADOW_DEPTH_RANGE_OPTIMIZED );
+	BIND_ENUM_CONSTANT(SHADOW_DEPTH_RANGE_STABLE);
+	BIND_ENUM_CONSTANT(SHADOW_DEPTH_RANGE_OPTIMIZED);
 }
 
 DirectionalLight::DirectionalLight()
@@ -369,7 +367,6 @@ DirectionalLight::DirectionalLight()
 	set_param(PARAM_SHADOW_BIAS_SPLIT_SCALE, 0.25);
 	set_shadow_mode(SHADOW_PARALLEL_4_SPLITS);
 	set_shadow_depth_range(SHADOW_DEPTH_RANGE_STABLE);
-
 
 	blend_splits = false;
 }
@@ -408,6 +405,12 @@ void OmniLight::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::REAL, "omni_attenuation", PROPERTY_HINT_EXP_EASING), "set_param", "get_param", PARAM_ATTENUATION);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "omni_shadow_mode", PROPERTY_HINT_ENUM, "Dual Paraboloid,Cube"), "set_shadow_mode", "get_shadow_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "omni_shadow_detail", PROPERTY_HINT_ENUM, "Vertical,Horizontal"), "set_shadow_detail", "get_shadow_detail");
+
+	BIND_ENUM_CONSTANT(SHADOW_DUAL_PARABOLOID);
+	BIND_ENUM_CONSTANT(SHADOW_CUBE);
+
+	BIND_ENUM_CONSTANT(SHADOW_DETAIL_VERTICAL);
+	BIND_ENUM_CONSTANT(SHADOW_DETAIL_HORIZONTAL);
 }
 
 OmniLight::OmniLight()

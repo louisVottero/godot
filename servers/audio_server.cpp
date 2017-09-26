@@ -32,6 +32,7 @@
 #include "os/file_access.h"
 #include "os/os.h"
 #include "project_settings.h"
+#include "servers/audio/audio_driver_dummy.h"
 #include "servers/audio/effects/audio_effect_compressor.h"
 #ifdef TOOLS_ENABLED
 
@@ -77,6 +78,28 @@ double AudioDriver::get_mix_time() const {
 	return total;
 }
 
+AudioDriver::SpeakerMode AudioDriver::get_speaker_mode_by_total_channels(int p_channels) const {
+	switch (p_channels) {
+		case 4: return SPEAKER_SURROUND_31;
+		case 6: return SPEAKER_SURROUND_51;
+		case 8: return SPEAKER_SURROUND_71;
+	}
+
+	// Default to STEREO
+	return SPEAKER_MODE_STEREO;
+}
+
+int AudioDriver::get_total_channels_by_speaker_mode(AudioDriver::SpeakerMode p_mode) const {
+	switch (p_mode) {
+		case SPEAKER_MODE_STEREO: return 2;
+		case SPEAKER_SURROUND_31: return 4;
+		case SPEAKER_SURROUND_51: return 6;
+		case SPEAKER_SURROUND_71: return 8;
+	}
+
+	ERR_FAIL_V(2);
+}
+
 AudioDriver::AudioDriver() {
 
 	_last_mix_time = 0;
@@ -85,6 +108,7 @@ AudioDriver::AudioDriver() {
 
 AudioDriver *AudioDriverManager::drivers[MAX_DRIVERS];
 int AudioDriverManager::driver_count = 0;
+AudioDriverDummy AudioDriverManager::dummy_driver;
 
 void AudioDriverManager::add_driver(AudioDriver *p_driver) {
 
@@ -96,6 +120,43 @@ int AudioDriverManager::get_driver_count() {
 
 	return driver_count;
 }
+
+void AudioDriverManager::initialize(int p_driver) {
+	AudioDriver *driver;
+	int failed_driver = -1;
+
+	// Check if there is a selected driver
+	if (p_driver >= 0 && p_driver < driver_count) {
+		if (drivers[p_driver]->init() == OK) {
+			drivers[p_driver]->set_singleton();
+			return;
+		} else {
+			failed_driver = p_driver;
+		}
+	}
+
+	// No selected driver, try them all in order
+	for (int i = 0; i < driver_count; i++) {
+		// Don't re-init the driver if it failed above
+		if (i == failed_driver) {
+			continue;
+		}
+
+		if (drivers[i]->init() == OK) {
+			drivers[i]->set_singleton();
+			return;
+		}
+	}
+
+	// Fallback to our dummy driver
+	if (dummy_driver.init() == OK) {
+		ERR_PRINT("AudioDriverManager: all drivers failed, falling back to dummy driver");
+		dummy_driver.set_singleton();
+	} else {
+		ERR_PRINT("AudioDriverManager: dummy driver faild to init()");
+	}
+}
+
 AudioDriver *AudioDriverManager::get_driver(int p_driver) {
 
 	ERR_FAIL_INDEX_V(p_driver, driver_count, NULL);
@@ -203,8 +264,9 @@ void AudioServer::_mix_step() {
 					if (!bus_map.has(bus->send)) {
 						bus = buses[0]; //send to master
 					} else {
+						int prev_index_cache = bus->index_cache;
 						bus = bus_map[bus->send];
-						if (bus->index_cache >= bus->index_cache) { //invalid, send to master
+						if (prev_index_cache >= bus->index_cache) { //invalid, send to master
 							bus = buses[0];
 						}
 					}
@@ -423,8 +485,8 @@ void AudioServer::set_bus_count(int p_count) {
 		}
 
 		buses[i] = memnew(Bus);
-		buses[i]->channels.resize(_get_channel_count());
-		for (int j = 0; j < _get_channel_count(); j++) {
+		buses[i]->channels.resize(get_channel_count());
+		for (int j = 0; j < get_channel_count(); j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		buses[i]->name = attempt;
@@ -493,8 +555,8 @@ void AudioServer::add_bus(int p_at_pos) {
 	}
 
 	Bus *bus = memnew(Bus);
-	bus->channels.resize(_get_channel_count());
-	for (int j = 0; j < _get_channel_count(); j++) {
+	bus->channels.resize(get_channel_count());
+	for (int j = 0; j < get_channel_count(); j++) {
 		bus->channels[j].buffer.resize(buffer_size);
 	}
 	bus->name = attempt;
@@ -797,17 +859,8 @@ void AudioServer::init() {
 	channel_disable_threshold_db = GLOBAL_DEF("audio/channel_disable_threshold_db", -60.0);
 	channel_disable_frames = float(GLOBAL_DEF("audio/channel_disable_time", 2.0)) * get_mix_rate();
 	buffer_size = 1024; //harcoded for now
-	switch (get_speaker_mode()) {
-		case SPEAKER_MODE_STEREO: {
-			temp_buffer.resize(1);
-		} break;
-		case SPEAKER_SURROUND_51: {
-			temp_buffer.resize(3);
-		} break;
-		case SPEAKER_SURROUND_71: {
-			temp_buffer.resize(4);
-		} break;
-	}
+
+	temp_buffer.resize(get_channel_count());
 
 	for (int i = 0; i < temp_buffer.size(); i++) {
 		temp_buffer[i].resize(buffer_size);
@@ -815,11 +868,11 @@ void AudioServer::init() {
 
 	mix_count = 0;
 	set_bus_count(1);
-	;
 	set_bus_name(0, "Master");
 
 	if (AudioDriver::get_singleton())
 		AudioDriver::get_singleton()->start();
+
 #ifdef TOOLS_ENABLED
 	set_edited(false); //avoid editors from thinking this was edited
 #endif
@@ -991,8 +1044,8 @@ void AudioServer::set_bus_layout(const Ref<AudioBusLayout> &p_bus_layout) {
 		bus_map[bus->name] = bus;
 		buses[i] = bus;
 
-		buses[i]->channels.resize(_get_channel_count());
-		for (int j = 0; j < _get_channel_count(); j++) {
+		buses[i]->channels.resize(get_channel_count());
+		for (int j = 0; j < get_channel_count(); j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		_update_bus_effects(i);
@@ -1035,7 +1088,7 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_bus_count"), &AudioServer::get_bus_count);
 
 	ClassDB::bind_method(D_METHOD("remove_bus", "index"), &AudioServer::remove_bus);
-	ClassDB::bind_method(D_METHOD("add_bus", "at_pos"), &AudioServer::add_bus, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("add_bus", "at_position"), &AudioServer::add_bus, DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("move_bus", "index", "to_index"), &AudioServer::move_bus);
 
 	ClassDB::bind_method(D_METHOD("set_bus_name", "bus_idx", "name"), &AudioServer::set_bus_name);
@@ -1057,7 +1110,7 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bus_bypass_effects", "bus_idx", "enable"), &AudioServer::set_bus_bypass_effects);
 	ClassDB::bind_method(D_METHOD("is_bus_bypassing_effects", "bus_idx"), &AudioServer::is_bus_bypassing_effects);
 
-	ClassDB::bind_method(D_METHOD("add_bus_effect", "bus_idx", "effect", "at_pos"), &AudioServer::add_bus_effect, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("add_bus_effect", "bus_idx", "effect", "at_position"), &AudioServer::add_bus_effect, DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("remove_bus_effect", "bus_idx", "effect_idx"), &AudioServer::remove_bus_effect);
 
 	ClassDB::bind_method(D_METHOD("get_bus_effect_count", "bus_idx"), &AudioServer::get_bus_effect_count);
@@ -1080,6 +1133,10 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("generate_bus_layout"), &AudioServer::generate_bus_layout);
 
 	ADD_SIGNAL(MethodInfo("bus_layout_changed"));
+
+	BIND_ENUM_CONSTANT(SPEAKER_MODE_STEREO);
+	BIND_ENUM_CONSTANT(SPEAKER_SURROUND_51);
+	BIND_ENUM_CONSTANT(SPEAKER_SURROUND_71);
 }
 
 AudioServer::AudioServer() {

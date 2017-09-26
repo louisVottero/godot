@@ -52,7 +52,7 @@ void Polygon2DEditor::_notification(int p_what) {
 			uv_button[UV_MODE_SCALE]->set_icon(get_icon("ToolScale", "EditorIcons"));
 
 			b_snap_grid->set_icon(get_icon("Grid", "EditorIcons"));
-			b_snap_enable->set_icon(get_icon("Snap", "EditorIcons"));
+			b_snap_enable->set_icon(get_icon("SnapGrid", "EditorIcons"));
 			uv_icon_zoom->set_texture(get_icon("Zoom", "EditorIcons"));
 
 			get_tree()->connect("node_removed", this, "_node_removed");
@@ -395,7 +395,7 @@ bool Polygon2DEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (mm.is_valid()) {
 
-		if (edited_point != -1 && (wip_active || mm->get_button_mask() & BUTTON_MASK_LEFT)) {
+		if (edited_point != -1 && (wip_active || (mm->get_button_mask() & BUTTON_MASK_LEFT))) {
 
 			Vector2 gpoint = mm->get_position();
 			Vector2 cpoint = canvas_item_editor->get_canvas_transform().affine_inverse().xform(gpoint);
@@ -554,7 +554,7 @@ void Polygon2DEditor::_uv_input(const Ref<InputEvent> &p_input) {
 
 	if (mm.is_valid()) {
 
-		if (mm->get_button_mask() & BUTTON_MASK_MIDDLE || Input::get_singleton()->is_key_pressed(KEY_SPACE)) {
+		if ((mm->get_button_mask() & BUTTON_MASK_MIDDLE) || Input::get_singleton()->is_key_pressed(KEY_SPACE)) {
 
 			Vector2 drag(mm->get_relative().x, mm->get_relative().y);
 			uv_hscroll->set_value(uv_hscroll->get_value() - drag.x);

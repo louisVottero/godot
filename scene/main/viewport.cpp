@@ -1339,7 +1339,7 @@ Vector2 Viewport::get_mouse_position() const {
 void Viewport::warp_mouse(const Vector2 &p_pos) {
 
 	Vector2 gpos = (get_final_transform().affine_inverse() * _get_input_pre_xform()).affine_inverse().xform(p_pos);
-	Input::get_singleton()->warp_mouse_pos(gpos);
+	Input::get_singleton()->warp_mouse_position(gpos);
 }
 
 void Viewport::_gui_sort_subwindows() {
@@ -2580,14 +2580,13 @@ int Viewport::get_render_info(RenderInfo p_info) {
 
 void Viewport::set_snap_controls_to_pixels(bool p_enable) {
 
-	snap_controls_to_pixels=p_enable;
+	snap_controls_to_pixels = p_enable;
 }
 
 bool Viewport::is_snap_controls_to_pixels_enabled() const {
 
 	return snap_controls_to_pixels;
 }
-
 
 void Viewport::_bind_methods() {
 
@@ -2674,7 +2673,7 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_attach_to_screen_rect", "rect"), &Viewport::set_attach_to_screen_rect);
 
 	ClassDB::bind_method(D_METHOD("get_mouse_position"), &Viewport::get_mouse_position);
-	ClassDB::bind_method(D_METHOD("warp_mouse", "to_pos"), &Viewport::warp_mouse);
+	ClassDB::bind_method(D_METHOD("warp_mouse", "to_position"), &Viewport::warp_mouse);
 
 	ClassDB::bind_method(D_METHOD("gui_has_modal_stack"), &Viewport::gui_has_modal_stack);
 	ClassDB::bind_method(D_METHOD("gui_get_drag_data"), &Viewport::gui_get_drag_data);
@@ -2763,6 +2762,15 @@ void Viewport::_bind_methods() {
 	BIND_ENUM_CONSTANT(MSAA_4X);
 	BIND_ENUM_CONSTANT(MSAA_8X);
 	BIND_ENUM_CONSTANT(MSAA_16X);
+
+	BIND_ENUM_CONSTANT(USAGE_2D);
+	BIND_ENUM_CONSTANT(USAGE_2D_NO_SAMPLING);
+	BIND_ENUM_CONSTANT(USAGE_3D);
+	BIND_ENUM_CONSTANT(USAGE_3D_NO_EFFECTS);
+
+	BIND_ENUM_CONSTANT(CLEAR_MODE_ALWAYS);
+	BIND_ENUM_CONSTANT(CLEAR_MODE_NEVER);
+	BIND_ENUM_CONSTANT(CLEAR_MODE_ONLY_NEXT_FRAME);
 }
 
 Viewport::Viewport() {

@@ -41,7 +41,7 @@ void AudioStreamPlaybackSample::start(float p_from_pos) {
 		ima_adpcm[i].window_ofs = 0;
 	}
 
-	seek_pos(p_from_pos);
+	seek(p_from_pos);
 	sign = 1;
 	active = true;
 }
@@ -61,11 +61,11 @@ int AudioStreamPlaybackSample::get_loop_count() const {
 	return 0;
 }
 
-float AudioStreamPlaybackSample::get_pos() const {
+float AudioStreamPlaybackSample::get_playback_position() const {
 
 	return float(offset >> MIX_FRAC_BITS) / base->mix_rate;
 }
-void AudioStreamPlaybackSample::seek_pos(float p_time) {
+void AudioStreamPlaybackSample::seek(float p_time) {
 
 	if (base->format == AudioStreamSample::FORMAT_IMA_ADPCM)
 		return; //no seeking in ima-adpcm
@@ -536,6 +536,14 @@ void AudioStreamSample::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mix_rate"), "set_mix_rate", "get_mix_rate");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "stereo"), "set_stereo", "is_stereo");
 	ADD_PROPERTY(PropertyInfo(Variant::POOL_BYTE_ARRAY, "data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), "set_data", "get_data");
+
+	BIND_ENUM_CONSTANT(FORMAT_8_BITS);
+	BIND_ENUM_CONSTANT(FORMAT_16_BITS);
+	BIND_ENUM_CONSTANT(FORMAT_IMA_ADPCM);
+
+	BIND_ENUM_CONSTANT(LOOP_DISABLED);
+	BIND_ENUM_CONSTANT(LOOP_FORWARD);
+	BIND_ENUM_CONSTANT(LOOP_PING_PONG);
 }
 
 AudioStreamSample::AudioStreamSample() {

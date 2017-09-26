@@ -414,7 +414,8 @@ void VideoStreamPlaybackTheora::update(float p_delta) {
 			bool buffer_full = false;
 
 			/* if there's pending, decoded audio, grab it */
-			if ((ret = vorbis_synthesis_pcmout(&vd, &pcm)) > 0) {
+			ret = vorbis_synthesis_pcmout(&vd, &pcm);
+			if (ret > 0) {
 
 				const int AUXBUF_LEN = 4096;
 				int to_read = ret;
@@ -633,12 +634,12 @@ int VideoStreamPlaybackTheora::get_loop_count() const {
 	return 0;
 };
 
-float VideoStreamPlaybackTheora::get_pos() const {
+float VideoStreamPlaybackTheora::get_playback_position() const {
 
 	return get_time();
 };
 
-void VideoStreamPlaybackTheora::seek_pos(float p_time){
+void VideoStreamPlaybackTheora::seek(float p_time){
 
 	// no
 };

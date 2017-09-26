@@ -910,6 +910,8 @@ OS::VideoMode OS_OSX::get_default_video_mode() const {
 
 void OS_OSX::initialize_core() {
 
+	crash_handler.initialize();
+
 	OS_Unix::initialize_core();
 
 	DirAccess::make_default<DirAccessOSX>(DirAccess::ACCESS_RESOURCES);
@@ -1086,12 +1088,7 @@ void OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	visual_server->init();
 	//	visual_server->cursor_set_visible(false, 0);
 
-	AudioDriverManager::get_driver(p_audio_driver)->set_singleton();
-
-	if (AudioDriverManager::get_driver(p_audio_driver)->init() != OK) {
-
-		ERR_PRINT("Initializing audio failed.");
-	}
+	AudioDriverManager::initialize(p_audio_driver);
 
 	//
 	physics_server = memnew(PhysicsServerSW);
@@ -1243,7 +1240,7 @@ bool OS_OSX::is_mouse_grab_enabled() const {
 	return mouse_grab;
 }
 
-void OS_OSX::warp_mouse_pos(const Point2 &p_to) {
+void OS_OSX::warp_mouse_position(const Point2 &p_to) {
 
 	//copied from windows impl with osx native calls
 	if (mouse_mode == MOUSE_MODE_CAPTURED) {
@@ -1901,7 +1898,7 @@ String OS_OSX::get_joy_guid(int p_device) const {
 	return input->get_joy_guid_remapped(p_device);
 }
 
-PowerState OS_OSX::get_power_state() {
+OS::PowerState OS_OSX::get_power_state() {
 	return power_manager->get_power_state();
 }
 
@@ -2010,4 +2007,12 @@ OS_OSX::OS_OSX() {
 
 bool OS_OSX::_check_internal_feature_support(const String &p_feature) {
 	return p_feature == "pc" || p_feature == "s3tc";
+}
+
+void OS_OSX::disable_crash_handler() {
+	crash_handler.disable();
+}
+
+bool OS_OSX::is_disable_crash_handler() const {
+	return crash_handler.is_disabled();
 }

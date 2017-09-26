@@ -145,6 +145,7 @@ private:
 
 	bool collapsed; // wont show childs
 	bool disable_folding;
+	int custom_min_height;
 
 	TreeItem *parent; // parent item
 	TreeItem *next; // next in list
@@ -229,6 +230,9 @@ public:
 
 	void set_collapsed(bool p_collapsed);
 	bool is_collapsed();
+
+	void set_custom_minimum_height(int p_height);
+	int get_custom_minimum_height() const;
 
 	TreeItem *get_prev();
 	TreeItem *get_next();
@@ -521,9 +525,9 @@ protected:
 public:
 	virtual String get_tooltip(const Point2 &p_pos) const;
 
-	TreeItem *get_item_at_pos(const Point2 &p_pos) const;
-	int get_column_at_pos(const Point2 &p_pos) const;
-	int get_drop_section_at_pos(const Point2 &p_pos) const;
+	TreeItem *get_item_at_position(const Point2 &p_pos) const;
+	int get_column_at_position(const Point2 &p_pos) const;
+	int get_drop_section_at_position(const Point2 &p_pos) const;
 
 	void clear();
 

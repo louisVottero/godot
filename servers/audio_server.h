@@ -35,6 +35,8 @@
 #include "servers/audio/audio_effect.h"
 #include "variant.h"
 
+class AudioDriverDummy;
+
 class AudioDriver {
 
 	static AudioDriver *singleton;
@@ -50,6 +52,7 @@ public:
 
 	enum SpeakerMode {
 		SPEAKER_MODE_STEREO,
+		SPEAKER_SURROUND_31,
 		SPEAKER_SURROUND_51,
 		SPEAKER_SURROUND_71,
 	};
@@ -72,6 +75,9 @@ public:
 
 	virtual float get_latency() { return 0; }
 
+	SpeakerMode get_speaker_mode_by_total_channels(int p_channels) const;
+	int get_total_channels_by_speaker_mode(SpeakerMode) const;
+
 	AudioDriver();
 	virtual ~AudioDriver() {}
 };
@@ -86,8 +92,11 @@ class AudioDriverManager {
 	static AudioDriver *drivers[MAX_DRIVERS];
 	static int driver_count;
 
+	static AudioDriverDummy dummy_driver;
+
 public:
 	static void add_driver(AudioDriver *p_driver);
+	static void initialize(int p_driver);
 	static int get_driver_count();
 	static AudioDriver *get_driver(int p_driver);
 };
@@ -101,6 +110,7 @@ public:
 	//re-expose this her, as AudioDriver is not exposed to script
 	enum SpeakerMode {
 		SPEAKER_MODE_STEREO,
+		SPEAKER_SURROUND_31,
 		SPEAKER_SURROUND_51,
 		SPEAKER_SURROUND_71,
 	};
@@ -163,15 +173,6 @@ private:
 	Vector<Bus *> buses;
 	Map<StringName, Bus *> bus_map;
 
-	_FORCE_INLINE_ int _get_channel_count() const {
-		switch (AudioDriver::get_singleton()->get_speaker_mode()) {
-			case AudioDriver::SPEAKER_MODE_STEREO: return 1;
-			case AudioDriver::SPEAKER_SURROUND_51: return 3;
-			case AudioDriver::SPEAKER_SURROUND_71: return 4;
-		}
-		ERR_FAIL_V(1);
-	}
-
 	void _update_bus_effects(int p_bus);
 
 	static AudioServer *singleton;
@@ -205,6 +206,16 @@ protected:
 	static void _bind_methods();
 
 public:
+	_FORCE_INLINE_ int get_channel_count() const {
+		switch (get_speaker_mode()) {
+			case SPEAKER_MODE_STEREO: return 1;
+			case SPEAKER_SURROUND_31: return 2;
+			case SPEAKER_SURROUND_51: return 3;
+			case SPEAKER_SURROUND_71: return 4;
+		}
+		ERR_FAIL_V(1);
+	}
+
 	//do not use from outside audio thread
 	AudioFrame *thread_get_channel_mix_buffer(int p_bus, int p_buffer);
 	int thread_get_mix_buffer_size() const;

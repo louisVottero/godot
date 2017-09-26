@@ -90,7 +90,7 @@ public:
 
 	virtual void seek(size_t p_position) = 0; ///< seek to a given position
 	virtual void seek_end(int64_t p_position = 0) = 0; ///< seek from the end of file
-	virtual size_t get_pos() const = 0; ///< get position in the file
+	virtual size_t get_position() const = 0; ///< get position in the file
 	virtual size_t get_len() const = 0; ///< get size of the file
 
 	virtual bool eof_reached() const = 0; ///< reading passed EOF
@@ -140,6 +140,8 @@ public:
 
 	virtual Error reopen(const String &p_path, int p_mode_flags); ///< does not change the AccessType
 
+	virtual Error _chmod(const String &p_path, int p_mod) { return FAILED; }
+
 	static FileAccess *create(AccessType p_access); /// Create a file access (for the current platform) this is the only portable way of accessing files.
 	static FileAccess *create_for_path(const String &p_path);
 	static FileAccess *open(const String &p_path, int p_mode_flags, Error *r_error = NULL); /// Create a file access (for the current platform) this is the only portable way of accessing files.
@@ -174,6 +176,7 @@ struct FileAccessRef {
 
 	operator bool() const { return f != NULL; }
 	FileAccess *f;
+	operator FileAccess *() { return f; }
 	FileAccessRef(FileAccess *fa) { f = fa; }
 	~FileAccessRef() {
 		if (f) memdelete(f);

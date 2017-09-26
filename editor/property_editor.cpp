@@ -53,6 +53,49 @@
 #include "scene/resources/packed_scene.h"
 #include "scene/scene_string_names.h"
 
+void EditorResourceConversionPlugin::_bind_methods() {
+
+	MethodInfo mi;
+	mi.name = "_convert";
+	mi.return_val.type = Variant::OBJECT;
+	mi.return_val.class_name = "Resource";
+	mi.return_val.hint = PROPERTY_HINT_RESOURCE_TYPE;
+	mi.return_val.hint_string = "Resource";
+	mi.arguments.push_back(mi.return_val);
+	mi.arguments[0].name = "resource";
+
+	BIND_VMETHOD(mi)
+
+	mi.name = "_handles";
+	mi.return_val = PropertyInfo(Variant::BOOL, "");
+
+	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_converts_to"));
+}
+
+String EditorResourceConversionPlugin::converts_to() const {
+
+	if (get_script_instance())
+		return get_script_instance()->call("_converts_to");
+
+	return "";
+}
+
+bool EditorResourceConversionPlugin::handles(const Ref<Resource> &p_resource) const {
+
+	if (get_script_instance())
+		return get_script_instance()->call("_handles", p_resource);
+
+	return false;
+}
+
+Ref<Resource> EditorResourceConversionPlugin::convert(const Ref<Resource> &p_resource) {
+
+	if (get_script_instance())
+		return get_script_instance()->call("_convert", p_resource);
+
+	return Ref<Resource>();
+}
+
 void CustomPropertyEditor::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_DRAW) {
@@ -213,6 +256,20 @@ void CustomPropertyEditor::_menu_option(int p_which) {
 				} break;
 				default: {
 
+					if (p_which >= CONVERT_BASE_ID) {
+
+						int to_type = p_which - CONVERT_BASE_ID;
+
+						Vector<Ref<EditorResourceConversionPlugin> > conversions = EditorNode::get_singleton()->find_resource_conversion_plugin(RES(v));
+
+						ERR_FAIL_INDEX(to_type, conversions.size());
+
+						Ref<Resource> new_res = conversions[to_type]->convert(v);
+
+						v = new_res;
+						emit_signal("variant_changed");
+						break;
+					}
 					ERR_FAIL_COND(inheritors_array.empty());
 
 					String intype = inheritors_array[p_which - TYPE_BASE_ID];
@@ -861,13 +918,13 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 					menu->add_separator();
 			}
 
-			menu->add_icon_item(get_icon("Load", "EditorIcons"), "Load", OBJ_MENU_LOAD);
+			menu->add_icon_item(get_icon("Load", "EditorIcons"), TTR("Load"), OBJ_MENU_LOAD);
 
 			if (!RES(v).is_null()) {
 
-				menu->add_icon_item(get_icon("Edit", "EditorIcons"), "Edit", OBJ_MENU_EDIT);
-				menu->add_icon_item(get_icon("Clear", "EditorIcons"), "Clear", OBJ_MENU_CLEAR);
-				menu->add_icon_item(get_icon("Duplicate", "EditorIcons"), "Make Unique", OBJ_MENU_MAKE_UNIQUE);
+				menu->add_icon_item(get_icon("Edit", "EditorIcons"), TTR("Edit"), OBJ_MENU_EDIT);
+				menu->add_icon_item(get_icon("Clear", "EditorIcons"), TTR("Clear"), OBJ_MENU_CLEAR);
+				menu->add_icon_item(get_icon("Duplicate", "EditorIcons"), TTR("Make Unique"), OBJ_MENU_MAKE_UNIQUE);
 				RES r = v;
 				if (r.is_valid() && r->get_path().is_resource_file()) {
 					menu->add_separator();
@@ -900,6 +957,27 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 				if (paste_valid) {
 
 					menu->add_item(TTR("Paste"), OBJ_MENU_PASTE);
+				}
+			}
+
+			if (!RES(v).is_null()) {
+
+				Vector<Ref<EditorResourceConversionPlugin> > conversions = EditorNode::get_singleton()->find_resource_conversion_plugin(RES(v));
+				if (conversions.size()) {
+					menu->add_separator();
+				}
+				for (int i = 0; i < conversions.size(); i++) {
+					String what = conversions[i]->converts_to();
+					Ref<Texture> icon;
+					if (has_icon(what, "EditorIcons")) {
+
+						icon = get_icon(what, "EditorIcons");
+					} else {
+
+						icon = get_icon(what, "Resource");
+					}
+
+					menu->add_icon_item(icon, vformat(TTR("Convert To %s"), what), CONVERT_BASE_ID + i);
 				}
 			}
 
@@ -1811,7 +1889,7 @@ CustomPropertyEditor::CustomPropertyEditor() {
 
 	text_edit = memnew(TextEdit);
 	add_child(text_edit);
-	text_edit->set_area_as_parent_rect(5);
+	text_edit->set_anchors_and_margins_preset(Control::PRESET_WIDE, Control::PRESET_MODE_MINSIZE, 5);
 	text_edit->set_margin(MARGIN_BOTTOM, -30);
 
 	text_edit->hide();
@@ -1870,12 +1948,12 @@ CustomPropertyEditor::CustomPropertyEditor() {
 
 	spinbox = memnew(SpinBox);
 	add_child(spinbox);
-	spinbox->set_area_as_parent_rect(5);
+	spinbox->set_anchors_and_margins_preset(Control::PRESET_WIDE, Control::PRESET_MODE_MINSIZE, 5);
 	spinbox->connect("value_changed", this, "_range_modified");
 
 	slider = memnew(HSlider);
 	add_child(slider);
-	slider->set_area_as_parent_rect(5);
+	slider->set_anchors_and_margins_preset(Control::PRESET_WIDE, Control::PRESET_MODE_MINSIZE, 5);
 	slider->connect("value_changed", this, "_range_modified");
 
 	create_dialog = NULL;
@@ -2275,19 +2353,6 @@ void PropertyEditor::_check_reload_status(const String &p_name, TreeItem *item) 
 		}
 	}
 
-	if (_might_be_in_instance()) {
-
-		Variant vorig;
-		Dictionary d = item->get_metadata(0);
-		int usage = d.has("usage") ? int(int(d["usage"]) & (PROPERTY_USAGE_STORE_IF_NONONE | PROPERTY_USAGE_STORE_IF_NONZERO)) : 0;
-
-		if (_get_instanced_node_original_property(p_name, vorig) || usage) {
-			Variant v = obj->get(p_name);
-
-			bool has_reload = _is_property_different(v, vorig, usage);
-		}
-	}
-
 	if (obj->call("property_can_revert", p_name).operator bool()) {
 
 		has_reload = true;
@@ -2381,7 +2446,7 @@ void PropertyEditor::_mark_drop_fields(TreeItem *p_at) {
 
 Variant PropertyEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
 
-	TreeItem *item = tree->get_item_at_pos(p_point);
+	TreeItem *item = tree->get_item_at_position(p_point);
 	if (!item)
 		return Variant();
 
@@ -2389,7 +2454,7 @@ Variant PropertyEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from)
 	if (!d.has("name"))
 		return Variant();
 
-	int col = tree->get_column_at_pos(p_point);
+	int col = tree->get_column_at_position(p_point);
 	if (col == 0) {
 
 		Dictionary dp;
@@ -2420,11 +2485,11 @@ Variant PropertyEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from)
 
 bool PropertyEditor::can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const {
 
-	TreeItem *item = tree->get_item_at_pos(p_point);
+	TreeItem *item = tree->get_item_at_position(p_point);
 	if (!item)
 		return false;
 
-	int col = tree->get_column_at_pos(p_point);
+	int col = tree->get_column_at_position(p_point);
 	if (col != 1)
 		return false;
 
@@ -2432,11 +2497,11 @@ bool PropertyEditor::can_drop_data_fw(const Point2 &p_point, const Variant &p_da
 }
 void PropertyEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) {
 
-	TreeItem *item = tree->get_item_at_pos(p_point);
+	TreeItem *item = tree->get_item_at_position(p_point);
 	if (!item)
 		return;
 
-	int col = tree->get_column_at_pos(p_point);
+	int col = tree->get_column_at_position(p_point);
 	if (col != 1)
 		return;
 
@@ -2893,7 +2958,7 @@ void PropertyEditor::update_tree() {
 		item->set_metadata(1, p.name);
 
 		if (draw_red)
-			item->set_custom_color(0, Color(0.8, 0.4, 0.20));
+			item->set_custom_color(0, get_color("error_color", "Editor"));
 
 		if (p.name == selected_property) {
 
