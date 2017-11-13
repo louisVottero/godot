@@ -284,9 +284,10 @@ void EditorNode::_notification(int p_what) {
 	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 		scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/editor/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
 		property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/editor/capitalize_properties", true)));
-		Ref<Theme> theme = create_editor_theme(theme_base->get_theme());
+		Ref<Theme> theme = create_custom_theme(theme_base->get_theme());
 
 		theme_base->set_theme(theme);
+		gui_base->set_theme(theme);
 
 		gui_base->add_style_override("panel", gui_base->get_stylebox("Background", "EditorStyles"));
 		play_button_panel->add_style_override("panel", gui_base->get_stylebox("PlayButtonPanel", "EditorStyles"));
@@ -871,7 +872,7 @@ void EditorNode::_find_node_types(Node *p_node, int &count_2d, int &count_3d) {
 		_find_node_types(p_node->get_child(i), count_2d, count_3d);
 }
 
-void EditorNode::_save_scene_with_preview(String p_file) {
+void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 
 	EditorProgress save("save", TTR("Saving Scene"), 4);
 	save.step(TTR("Analyzing"), 0);
@@ -937,7 +938,7 @@ void EditorNode::_save_scene_with_preview(String p_file) {
 	}
 
 	save.step(TTR("Saving Scene"), 4);
-	_save_scene(p_file);
+	_save_scene(p_file, p_idx);
 	EditorResourcePreview::get_singleton()->check_for_invalidation(p_file);
 }
 
@@ -1095,10 +1096,7 @@ void EditorNode::_dialog_action(String p_file) {
 			if (file->get_mode() == EditorFileDialog::MODE_SAVE_FILE) {
 
 				_save_default_environment();
-				if (scene_idx != editor_data.get_edited_scene())
-					_save_scene(p_file, scene_idx);
-				else
-					_save_scene_with_preview(p_file);
+				_save_scene_with_preview(p_file, scene_idx);
 
 				if (scene_idx != -1)
 					_discard_changes();
@@ -1825,7 +1823,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			if (scene && scene->get_filename() != "") {
 
 				if (scene_idx != editor_data.get_edited_scene())
-					_save_scene(scene->get_filename(), scene_idx);
+					_save_scene_with_preview(scene->get_filename(), scene_idx);
 				else
 					_save_scene_with_preview(scene->get_filename());
 
@@ -4691,9 +4689,9 @@ EditorNode::EditorNode() {
 	theme_base->add_child(gui_base);
 	gui_base->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 
-	Ref<Theme> theme = create_editor_theme();
+	Ref<Theme> theme = create_custom_theme();
 	theme_base->set_theme(theme);
-	gui_base->set_theme(create_custom_theme());
+	gui_base->set_theme(theme);
 	gui_base->add_style_override("panel", gui_base->get_stylebox("Background", "EditorStyles"));
 
 	resource_preview = memnew(EditorResourcePreview);
