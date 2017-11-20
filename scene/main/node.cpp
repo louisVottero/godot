@@ -2067,7 +2067,7 @@ int Node::get_position_in_parent() const {
 	return data.pos;
 }
 
-Node *Node::duplicate(int p_flags) const {
+Node *Node::_duplicate(int p_flags, Map<const Node *, Node *> *r_duplimap) const {
 
 	Node *node = NULL;
 
@@ -2084,7 +2084,12 @@ Node *Node::duplicate(int p_flags) const {
 
 		Ref<PackedScene> res = ResourceLoader::load(get_filename());
 		ERR_FAIL_COND_V(res.is_null(), NULL);
-		node = res->instance();
+		PackedScene::GenEditState ges = PackedScene::GEN_EDIT_STATE_DISABLED;
+#ifdef TOOLS_ENABLED
+		if (p_flags & DUPLICATE_FROM_EDITOR)
+			ges = PackedScene::GEN_EDIT_STATE_INSTANCE;
+#endif
+		node = res->instance(ges);
 		ERR_FAIL_COND_V(!node, NULL);
 
 		instanced = true;
@@ -2097,10 +2102,6 @@ Node *Node::duplicate(int p_flags) const {
 		if (!node)
 			memdelete(obj);
 		ERR_FAIL_COND_V(!node, NULL);
-	}
-
-	if (get_filename() != "") { //an instance
-		node->set_filename(get_filename());
 	}
 
 	List<PropertyInfo> plist;
@@ -2138,17 +2139,24 @@ Node *Node::duplicate(int p_flags) const {
 
 	node->set_name(get_name());
 
+#ifdef TOOLS_ENABLED
+	if ((p_flags & DUPLICATE_FROM_EDITOR) && r_duplimap)
+		r_duplimap->insert(this, node);
+#endif
+
 	if (p_flags & DUPLICATE_GROUPS) {
 		List<GroupInfo> gi;
 		get_groups(&gi);
 		for (List<GroupInfo>::Element *E = gi.front(); E; E = E->next()) {
 
+#ifdef TOOLS_ENABLED
+			if ((p_flags & DUPLICATE_FROM_EDITOR) && !E->get().persistent)
+				continue;
+#endif
+
 			node->add_to_group(E->get().name, E->get().persistent);
 		}
 	}
-
-	if (p_flags & DUPLICATE_SIGNALS)
-		_duplicate_signals(this, node);
 
 	for (int i = 0; i < get_child_count(); i++) {
 
@@ -2157,7 +2165,7 @@ Node *Node::duplicate(int p_flags) const {
 		if (instanced && get_child(i)->data.owner == this)
 			continue; //part of instance
 
-		Node *dup = get_child(i)->duplicate(p_flags);
+		Node *dup = get_child(i)->_duplicate(p_flags, r_duplimap);
 		if (!dup) {
 
 			memdelete(node);
@@ -2169,6 +2177,31 @@ Node *Node::duplicate(int p_flags) const {
 
 	return node;
 }
+
+Node *Node::duplicate(int p_flags) const {
+
+	Node *dupe = _duplicate(p_flags);
+
+	if (dupe && (p_flags & DUPLICATE_SIGNALS)) {
+		_duplicate_signals(this, dupe);
+	}
+
+	return dupe;
+}
+
+#ifdef TOOLS_ENABLED
+Node *Node::duplicate_from_editor(Map<const Node *, Node *> &r_duplimap) const {
+
+	Node *dupe = _duplicate(DUPLICATE_SIGNALS | DUPLICATE_GROUPS | DUPLICATE_SCRIPTS | DUPLICATE_USE_INSTANCING | DUPLICATE_FROM_EDITOR, &r_duplimap);
+
+	// Duplication of signals must happen after all the node descendants have been copied,
+	// because re-targeting of connections from some descendant to another is not possible
+	// if the emitter node comes later in tree order than the receiver
+	_duplicate_signals(this, dupe);
+
+	return dupe;
+}
+#endif
 
 void Node::_duplicate_and_reown(Node *p_new_parent, const Map<Node *, Node *> &p_reown_map) const {
 
@@ -2240,6 +2273,9 @@ void Node::_duplicate_and_reown(Node *p_new_parent, const Map<Node *, Node *> &p
 	}
 }
 
+// Duplication of signals must happen after all the node descendants have been copied,
+// because re-targeting of connections from some descendant to another is not possible
+// if the emitter node comes later in tree order than the receiver
 void Node::_duplicate_signals(const Node *p_original, Node *p_copy) const {
 
 	if (this != p_original && (get_owner() != p_original && get_owner() != p_original->get_owner()))
@@ -2261,6 +2297,12 @@ void Node::_duplicate_signals(const Node *p_original, Node *p_copy) const {
 			}
 			NodePath ptarget = p_original->get_path_to(target);
 			Node *copytarget = p_copy->get_node(ptarget);
+
+			// Cannot find a path to the duplicate target, so it seems it's not part
+			// of the duplicated and not yet parented hierarchy, so at least try to connect
+			// to the same target as the original
+			if (!copytarget)
+				copytarget = target;
 
 			if (copy && copytarget) {
 				copy->connect(E->get().signal, copytarget, E->get().method, E->get().binds, CONNECT_PERSIST);
@@ -2308,6 +2350,9 @@ Node *Node::duplicate_and_reown(const Map<Node *, Node *> &p_reown_map) const {
 		get_child(i)->_duplicate_and_reown(node, p_reown_map);
 	}
 
+	// Duplication of signals must happen after all the node descendants have been copied,
+	// because re-targeting of connections from some descendant to another is not possible
+	// if the emitter node comes later in tree order than the receiver
 	_duplicate_signals(this, node);
 	return node;
 }
@@ -2411,7 +2456,9 @@ void Node::_replace_connections_target(Node *p_new_target) {
 
 		if (c.flags & CONNECT_PERSIST) {
 			c.source->disconnect(c.signal, this, c.method);
-			ERR_CONTINUE(!p_new_target->has_method(c.method));
+			bool valid = p_new_target->has_method(c.method) || p_new_target->get_script().is_null() || Ref<Script>(p_new_target->get_script())->has_method(c.method);
+			ERR_EXPLAIN("Attempt to connect signal \'" + c.source->get_class() + "." + c.signal + "\' to nonexistent method \'" + c.target->get_class() + "." + c.method + "\'");
+			ERR_CONTINUE(!valid);
 			c.source->connect(c.signal, p_new_target, c.method, c.binds, c.flags);
 		}
 	}

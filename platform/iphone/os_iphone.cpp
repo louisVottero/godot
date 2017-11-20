@@ -54,7 +54,7 @@ int OSIPhone::get_video_driver_count() const {
 
 const char *OSIPhone::get_video_driver_name(int p_driver) const {
 
-	return "GLES2";
+	return "GLES3";
 };
 
 OSIPhone *OSIPhone::get_singleton() {
@@ -138,28 +138,28 @@ void OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p_
 /*
 #ifdef IOS_SCORELOOP_ENABLED
 	scoreloop = memnew(ScoreloopIOS);
-	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("Scoreloop", scoreloop));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("Scoreloop", scoreloop));
 	scoreloop->connect();
 #endif
 	*/
 
 #ifdef GAME_CENTER_ENABLED
 	game_center = memnew(GameCenter);
-	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("GameCenter", game_center));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("GameCenter", game_center));
 	game_center->connect();
 #endif
 
 #ifdef STOREKIT_ENABLED
 	store_kit = memnew(InAppStore);
-	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("InAppStore", store_kit));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("InAppStore", store_kit));
 #endif
 
 #ifdef ICLOUD_ENABLED
 	icloud = memnew(ICloud);
-	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("ICloud", icloud));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("ICloud", icloud));
 //icloud->connect();
 #endif
-	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("iOS", memnew(iOS)));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("iOS", memnew(iOS)));
 };
 
 MainLoop *OSIPhone::get_main_loop() const {
@@ -470,7 +470,7 @@ void OSIPhone::set_cursor_shape(CursorShape p_shape){
 
 };
 
-String OSIPhone::get_data_dir() const {
+String OSIPhone::get_user_data_dir() const {
 
 	return data_dir;
 };
@@ -509,7 +509,7 @@ Error OSIPhone::native_video_play(String p_path, float p_volume, String p_audio_
 	FileAccess *f = FileAccess::open(p_path, FileAccess::READ);
 	bool exists = f && f->is_open();
 
-	String tempFile = get_data_dir();
+	String tempFile = get_user_data_dir();
 	if (!exists)
 		return FAILED;
 
@@ -521,7 +521,7 @@ Error OSIPhone::native_video_play(String p_path, float p_volume, String p_audio_
 			p_path = p_path.replace("res:/", ProjectSettings::get_singleton()->get_resource_path());
 		}
 	} else if (p_path.begins_with("user://"))
-		p_path = p_path.replace("user:/", get_data_dir());
+		p_path = p_path.replace("user:/", get_user_data_dir());
 
 	memdelete(f);
 

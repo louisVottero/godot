@@ -29,6 +29,7 @@
 /*************************************************************************/
 #include "doc_data.h"
 
+#include "engine.h"
 #include "global_constants.h"
 #include "io/compression.h"
 #include "io/marshalls.h"
@@ -529,7 +530,7 @@ void DocData::generate(bool p_basic_types) {
 
 	{
 
-		String cname = "@Global Scope";
+		String cname = "@GlobalScope";
 		class_list[cname] = ClassDoc();
 		ClassDoc &c = class_list[cname];
 		c.name = cname;
@@ -543,14 +544,14 @@ void DocData::generate(bool p_basic_types) {
 			c.constants.push_back(cd);
 		}
 
-		List<ProjectSettings::Singleton> singletons;
-		ProjectSettings::get_singleton()->get_singletons(&singletons);
+		List<Engine::Singleton> singletons;
+		Engine::get_singleton()->get_singletons(&singletons);
 
 		//servers (this is kind of hackish)
-		for (List<ProjectSettings::Singleton>::Element *E = singletons.front(); E; E = E->next()) {
+		for (List<Engine::Singleton>::Element *E = singletons.front(); E; E = E->next()) {
 
 			PropertyDoc pd;
-			ProjectSettings::Singleton &s = E->get();
+			Engine::Singleton &s = E->get();
 			pd.name = s.name;
 			pd.type = s.ptr->get_class();
 			while (String(ClassDB::get_parent_class(pd.type)) != "Object")
@@ -950,7 +951,7 @@ Error DocData::save_classes(const String &p_default_path, const Map<String, Stri
 		if (c.category == "")
 			category = "Core";
 		header += " category=\"" + category + "\"";
-		header += " version=\"" + String(VERSION_MKSTRING) + "\"";
+		header += String(" version=\"") + itos(VERSION_MAJOR) + "." + itos(VERSION_MINOR) + "-" + VERSION_STATUS + "\"";
 		header += ">";
 		_write_string(f, 0, header);
 		_write_string(f, 1, "<brief_description>");

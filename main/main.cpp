@@ -35,6 +35,7 @@
 #include "message_queue.h"
 #include "modules/register_module_types.h"
 #include "os/os.h"
+#include "platform/register_platform_apis.h"
 #include "project_settings.h"
 #include "scene/register_scene_types.h"
 #include "script_debugger_local.h"
@@ -176,7 +177,7 @@ static String get_full_version_string() {
 
 void Main::print_help(const char *p_binary) {
 
-	print_line(String(_MKSTR(VERSION_NAME)) + " v" + get_full_version_string() + " - https://godotengine.org");
+	print_line(String(VERSION_NAME) + " v" + get_full_version_string() + " - https://godotengine.org");
 	OS::get_singleton()->print("(c) 2007-2017 Juan Linietsky, Ariel Manzur.\n");
 	OS::get_singleton()->print("(c) 2014-2017 Godot Engine contributors.\n");
 	OS::get_singleton()->print("\n");
@@ -294,7 +295,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	translation_server = memnew(TranslationServer);
 	performance = memnew(Performance);
 	ClassDB::register_class<Performance>();
-	globals->add_singleton(ProjectSettings::Singleton("Performance", performance));
+	engine->add_singleton(Engine::Singleton("Performance", performance));
 
 	GLOBAL_DEF("debug/settings/crash_handler/message", String("Please include this when reporting the bug on https://github.com/godotengine/godot/issues"));
 
@@ -426,6 +427,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		} else if (I->get() == "-m" || I->get() == "--maximized") { // force maximized window
 
 			init_maximized = true;
+			video_mode.maximized = true;
 		} else if (I->get() == "-w" || I->get() == "--windowed") { // force windowed window
 
 			init_windowed = true;
@@ -747,6 +749,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		Engine::get_singleton()->set_editor_hint(true);
 		main_args.push_back("--editor");
 		init_maximized = true;
+		video_mode.maximized = true;
 		use_custom_res = false;
 	}
 
@@ -1108,6 +1111,7 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 
 	MAIN_PRINT("Main: Load Modules, Physics, Drivers, Scripts");
 
+	register_platform_apis();
 	register_module_types();
 
 	initialize_physics();
@@ -1825,6 +1829,7 @@ void Main::cleanup() {
 
 	unregister_driver_types();
 	unregister_module_types();
+	unregister_platform_apis();
 	unregister_scene_types();
 	unregister_server_types();
 
