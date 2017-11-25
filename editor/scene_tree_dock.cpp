@@ -290,6 +290,7 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 
 			if (!scene) {
 				EditorNode::get_singleton()->new_inherited_scene();
+				break;
 			}
 
 			file->set_mode(EditorFileDialog::MODE_OPEN_FILE);
@@ -986,7 +987,7 @@ void SceneTreeDock::perform_node_renames(Node *p_base, List<Pair<NodePath, NodeP
 									//will be renamed
 									NodePath rel_path = new_root_path.rel_path_to(E->get().second);
 
-									NodePath new_path = NodePath(rel_path.get_names(), track_np.get_subnames(), false, track_np.get_property());
+									NodePath new_path = NodePath(rel_path.get_names(), track_np.get_subnames(), false);
 									if (new_path == track_np)
 										continue; //bleh
 									editor_data->get_undo_redo().add_do_method(anim.ptr(), "track_set_path", i, new_path);
@@ -1358,7 +1359,7 @@ void SceneTreeDock::_create() {
 
 		editor_data->get_undo_redo().commit_action();
 		editor->push_item(c);
-
+		editor_selection->clear();
 		if (Object::cast_to<Control>(c)) {
 			//make editor more comfortable, so some controls don't appear super shrunk
 			Control *ct = Object::cast_to<Control>(c);
@@ -1827,14 +1828,22 @@ void SceneTreeDock::add_remote_tree_editor(Control *p_remote) {
 
 void SceneTreeDock::show_remote_tree() {
 
-	button_hb->show();
 	_remote_tree_selected();
 }
 
 void SceneTreeDock::hide_remote_tree() {
 
-	button_hb->hide();
 	_local_tree_selected();
+}
+
+void SceneTreeDock::show_tab_buttons() {
+
+	button_hb->show();
+}
+
+void SceneTreeDock::hide_tab_buttons() {
+
+	button_hb->hide();
 }
 
 void SceneTreeDock::_remote_tree_selected() {
@@ -1844,6 +1853,8 @@ void SceneTreeDock::_remote_tree_selected() {
 		remote_tree->show();
 	edit_remote->set_pressed(true);
 	edit_local->set_pressed(false);
+
+	emit_signal("remote_tree_selected");
 }
 
 void SceneTreeDock::_local_tree_selected() {
@@ -1886,6 +1897,8 @@ void SceneTreeDock::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_local_tree_selected"), &SceneTreeDock::_local_tree_selected);
 
 	ClassDB::bind_method(D_METHOD("instance"), &SceneTreeDock::instance);
+
+	ADD_SIGNAL(MethodInfo("remote_tree_selected"));
 }
 
 SceneTreeDock::SceneTreeDock(EditorNode *p_editor, Node *p_scene_root, EditorSelection *p_editor_selection, EditorData &p_editor_data) {

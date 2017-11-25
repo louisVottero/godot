@@ -170,6 +170,11 @@ private:
 	void _select_region();
 	bool _gizmo_select(const Vector2 &p_screenpos, bool p_highlight_only = false);
 
+	void _nav_pan(Ref<InputEventWithModifiers> p_event, const Vector2 &p_relative);
+	void _nav_zoom(Ref<InputEventWithModifiers> p_event, const Vector2 &p_relative);
+	void _nav_orbit(Ref<InputEventWithModifiers> p_event, const Vector2 &p_relative);
+	void _nav_look(Ref<InputEventWithModifiers> p_event, const Vector2 &p_relative);
+
 	float get_znear() const;
 	float get_zfar() const;
 	float get_fov() const;
@@ -407,6 +412,7 @@ private:
 	SpatialEditorViewport *viewports[VIEWPORTS_COUNT];
 	VSplitContainer *shader_split;
 	HSplitContainer *palette_split;
+	HBoxContainer *palette_split_container;
 
 	/////
 
@@ -601,7 +607,7 @@ public:
 	void add_control_to_menu_panel(Control *p_control);
 
 	VSplitContainer *get_shader_split();
-	HSplitContainer *get_palette_split();
+	HBoxContainer *get_palette_split();
 
 	Spatial *get_selected() { return selected; }
 

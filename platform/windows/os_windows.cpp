@@ -201,15 +201,6 @@ void OS_Windows::initialize_core() {
 	cursor_shape = CURSOR_ARROW;
 }
 
-void OS_Windows::initialize_logger() {
-	Vector<Logger *> loggers;
-	loggers.push_back(memnew(WindowsTerminalLogger));
-	// FIXME: Reenable once we figure out how to get this properly in user://
-	// instead of littering the user's working dirs (res:// + pwd) with log files (GH-12277)
-	//loggers.push_back(memnew(RotatedFileLogger("user://logs/log.txt")));
-	_set_logger(memnew(CompositeLogger(loggers)));
-}
-
 bool OS_Windows::can_draw() const {
 
 	return !minimized;
@@ -1852,7 +1843,7 @@ Error OS_Windows::execute(const String &p_path, const List<String> &p_arguments,
 	modstr.resize(cmdline.size());
 	for (int i = 0; i < cmdline.size(); i++)
 		modstr[i] = cmdline[i];
-	int ret = CreateProcessW(NULL, modstr.ptr(), NULL, NULL, 0, NORMAL_PRIORITY_CLASS, NULL, NULL, si_w, &pi.pi);
+	int ret = CreateProcessW(NULL, modstr.ptrw(), NULL, NULL, 0, NORMAL_PRIORITY_CLASS, NULL, NULL, si_w, &pi.pi);
 	ERR_FAIL_COND_V(ret == 0, ERR_CANT_FORK);
 
 	if (p_blocking) {
@@ -2326,7 +2317,9 @@ OS_Windows::OS_Windows(HINSTANCE _hInstance) {
 	AudioDriverManager::add_driver(&driver_xaudio2);
 #endif
 
-	_set_logger(memnew(WindowsTerminalLogger));
+	Vector<Logger *> loggers;
+	loggers.push_back(memnew(WindowsTerminalLogger));
+	_set_logger(memnew(CompositeLogger(loggers)));
 }
 
 OS_Windows::~OS_Windows() {

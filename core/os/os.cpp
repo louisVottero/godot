@@ -63,15 +63,21 @@ void OS::debug_break(){
 	// something
 };
 
-void OS::_set_logger(Logger *p_logger) {
+void OS::_set_logger(CompositeLogger *p_logger) {
 	if (_logger) {
 		memdelete(_logger);
 	}
 	_logger = p_logger;
 }
 
-void OS::initialize_logger() {
-	_set_logger(memnew(StdLogger));
+void OS::add_logger(Logger *p_logger) {
+	if (!_logger) {
+		Vector<Logger *> loggers;
+		loggers.push_back(p_logger);
+		_logger = memnew(CompositeLogger(loggers));
+	} else {
+		_logger->add_logger(p_logger);
+	}
 }
 
 void OS::print_error(const char *p_function, const char *p_file, int p_line, const char *p_code, const char *p_rationale, Logger::ErrorType p_type) {
@@ -114,6 +120,16 @@ void OS::set_low_processor_usage_mode(bool p_enabled) {
 bool OS::is_in_low_processor_usage_mode() const {
 
 	return low_processor_usage_mode;
+}
+
+void OS::set_low_processor_usage_mode_sleep_usec(int p_usec) {
+
+	low_processor_usage_mode_sleep_usec = p_usec;
+}
+
+int OS::get_low_processor_usage_mode_sleep_usec() const {
+
+	return low_processor_usage_mode_sleep_usec;
 }
 
 void OS::set_clipboard(const String &p_text) {
@@ -548,7 +564,7 @@ bool OS::has_feature(const String &p_feature) {
 	if (sizeof(void *) == 4 && p_feature == "32") {
 		return true;
 	}
-#if defined(__x86_64) || defined(__x86_64__)
+#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64__)
 	if (p_feature == "x86_64") {
 		return true;
 	}
@@ -593,6 +609,7 @@ OS::OS() {
 	singleton = this;
 	_keep_screen_on = true; // set default value to true, because this had been true before godot 2.0.
 	low_processor_usage_mode = false;
+	low_processor_usage_mode_sleep_usec = 10000;
 	_verbose_stdout = false;
 	_no_window = false;
 	_exit_code = 0;
@@ -604,7 +621,10 @@ OS::OS() {
 	_stack_bottom = (void *)(&stack_bottom);
 
 	_logger = NULL;
-	_set_logger(memnew(StdLogger));
+
+	Vector<Logger *> loggers;
+	loggers.push_back(memnew(StdLogger));
+	_set_logger(memnew(CompositeLogger(loggers)));
 }
 
 OS::~OS() {

@@ -50,6 +50,7 @@ class OS {
 	List<String> _cmdline;
 	bool _keep_screen_on;
 	bool low_processor_usage_mode;
+	int low_processor_usage_mode_sleep_usec;
 	bool _verbose_stdout;
 	String _local_clipboard;
 	uint64_t _msec_splash;
@@ -62,10 +63,10 @@ class OS {
 
 	void *_stack_bottom;
 
-	Logger *_logger;
+	CompositeLogger *_logger;
 
 protected:
-	void _set_logger(Logger *p_logger);
+	void _set_logger(CompositeLogger *p_logger);
 
 public:
 	typedef void (*ImeCallback)(void *p_inp, String p_text, Point2 p_selection);
@@ -114,7 +115,8 @@ protected:
 	virtual int get_audio_driver_count() const = 0;
 	virtual const char *get_audio_driver_name(int p_driver) const = 0;
 
-	virtual void initialize_logger();
+	void add_logger(Logger *p_logger);
+
 	virtual void initialize_core() = 0;
 	virtual void initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) = 0;
 
@@ -201,6 +203,8 @@ public:
 	virtual bool is_keep_screen_on() const;
 	virtual void set_low_processor_usage_mode(bool p_enabled);
 	virtual bool is_in_low_processor_usage_mode() const;
+	virtual void set_low_processor_usage_mode_sleep_usec(int p_usec);
+	virtual int get_low_processor_usage_mode_sleep_usec() const;
 
 	virtual String get_executable_path() const;
 	virtual Error execute(const String &p_path, const List<String> &p_arguments, bool p_blocking, ProcessID *r_child_id = NULL, String *r_pipe = NULL, int *r_exitcode = NULL, bool read_stderr = false) = 0;

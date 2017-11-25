@@ -1198,7 +1198,7 @@ void Node::_validate_child_name(Node *p_child, bool p_force_human_readable) {
 			unique = false;
 		} else {
 			//check if exists
-			Node **childs = data.children.ptr();
+			Node **childs = data.children.ptrw();
 			int cc = data.children.size();
 
 			for (int i = 0; i < cc; i++) {
@@ -2104,37 +2104,59 @@ Node *Node::_duplicate(int p_flags, Map<const Node *, Node *> *r_duplimap) const
 		ERR_FAIL_COND_V(!node, NULL);
 	}
 
-	List<PropertyInfo> plist;
-
-	get_property_list(&plist);
+	if (get_filename() != "") { //an instance
+		node->set_filename(get_filename());
+	}
 
 	StringName script_property_name = CoreStringNames::get_singleton()->_script;
 
-	if (p_flags & DUPLICATE_SCRIPTS) {
-		bool is_valid = false;
-		Variant script = get(script_property_name, &is_valid);
-		if (is_valid) {
-			node->set(script_property_name, script);
+	List<const Node *> node_tree;
+	node_tree.push_front(this);
+
+	if (instanced) {
+		for (List<const Node *>::Element *N = node_tree.front(); N; N = N->next()) {
+			for (int i = 0; i < N->get()->get_child_count(); ++i) {
+				node_tree.push_back(N->get()->get_child(i));
+			}
 		}
 	}
 
-	for (List<PropertyInfo>::Element *E = plist.front(); E; E = E->next()) {
+	for (List<const Node *>::Element *N = node_tree.front(); N; N = N->next()) {
 
-		if (!(E->get().usage & PROPERTY_USAGE_STORAGE))
-			continue;
-		String name = E->get().name;
-		if (name == script_property_name)
-			continue;
+		Node *current_node = node->get_node(get_path_to(N->get()));
 
-		Variant value = get(name);
-		// Duplicate dictionaries and arrays, mainly needed for __meta__
-		if (value.get_type() == Variant::DICTIONARY) {
-			value = Dictionary(value).copy();
-		} else if (value.get_type() == Variant::ARRAY) {
-			value = Array(value).duplicate();
+		if (p_flags & DUPLICATE_SCRIPTS) {
+			bool is_valid = false;
+			Variant script = N->get()->get(script_property_name, &is_valid);
+			if (is_valid) {
+				current_node->set(script_property_name, script);
+			}
 		}
 
-		node->set(name, value);
+		List<PropertyInfo> plist;
+		N->get()->get_property_list(&plist);
+
+		if (!current_node)
+			continue;
+
+		for (List<PropertyInfo>::Element *E = plist.front(); E; E = E->next()) {
+
+			if (!(E->get().usage & PROPERTY_USAGE_STORAGE))
+				continue;
+			String name = E->get().name;
+			if (name == script_property_name)
+				continue;
+
+			Variant value = N->get()->get(name);
+			// Duplicate dictionaries and arrays, mainly needed for __meta__
+			if (value.get_type() == Variant::DICTIONARY) {
+				value = Dictionary(value).copy();
+			} else if (value.get_type() == Variant::ARRAY) {
+				value = Array(value).duplicate();
+			}
+
+			current_node->set(name, value);
+		}
 	}
 
 	node->set_name(get_name());
@@ -2305,7 +2327,7 @@ void Node::_duplicate_signals(const Node *p_original, Node *p_copy) const {
 				copytarget = target;
 
 			if (copy && copytarget) {
-				copy->connect(E->get().signal, copytarget, E->get().method, E->get().binds, CONNECT_PERSIST);
+				copy->connect(E->get().signal, copytarget, E->get().method, E->get().binds, E->get().flags);
 			}
 		}
 	}
@@ -2502,24 +2524,19 @@ bool Node::has_node_and_resource(const NodePath &p_path) const {
 		return false;
 	Node *node = get_node(p_path);
 
-	if (p_path.get_subname_count()) {
+	bool result = false;
 
-		RES r;
-		for (int j = 0; j < p_path.get_subname_count(); j++) {
-			r = j == 0 ? node->get(p_path.get_subname(j)) : r->get(p_path.get_subname(j));
-			if (r.is_null())
-				return false;
-		}
-	}
+	node->get_indexed(p_path.get_subnames(), &result);
 
-	return true;
+	return result;
 }
 
 Array Node::_get_node_and_resource(const NodePath &p_path) {
 
 	Node *node;
 	RES res;
-	node = get_node_and_resource(p_path, res);
+	Vector<StringName> leftover_path;
+	node = get_node_and_resource(p_path, res, leftover_path);
 	Array result;
 
 	if (node)
@@ -2532,21 +2549,35 @@ Array Node::_get_node_and_resource(const NodePath &p_path) {
 	else
 		result.push_back(Variant());
 
+	result.push_back(NodePath(Vector<StringName>(), leftover_path, false));
+
 	return result;
 }
 
-Node *Node::get_node_and_resource(const NodePath &p_path, RES &r_res) const {
+Node *Node::get_node_and_resource(const NodePath &p_path, RES &r_res, Vector<StringName> &r_leftover_subpath, bool p_last_is_property) const {
 
 	Node *node = get_node(p_path);
 	r_res = RES();
+	r_leftover_subpath = Vector<StringName>();
 	if (!node)
 		return NULL;
 
 	if (p_path.get_subname_count()) {
 
-		for (int j = 0; j < p_path.get_subname_count(); j++) {
-			r_res = j == 0 ? node->get(p_path.get_subname(j)) : r_res->get(p_path.get_subname(j));
-			ERR_FAIL_COND_V(r_res.is_null(), node);
+		int j = 0;
+		// If not p_last_is_property, we shouldn't consider the last one as part of the resource
+		for (; j < p_path.get_subname_count() - p_last_is_property; j++) {
+			RES new_res = j == 0 ? node->get(p_path.get_subname(j)) : r_res->get(p_path.get_subname(j));
+
+			if (new_res.is_null()) {
+				break;
+			}
+
+			r_res = new_res;
+		}
+		for (; j < p_path.get_subname_count(); j++) {
+			// Put the rest of the subpath in the leftover path
+			r_leftover_subpath.push_back(p_path.get_subname(j));
 		}
 	}
 

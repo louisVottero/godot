@@ -1417,17 +1417,17 @@ void FileSystemDock::_files_list_rmb_select(int p_item, const Vector2 &p_pos) {
 		if (all_files_scenes) {
 			file_options->add_item(TTR("Instance"), FILE_INSTANCE);
 		}
+		file_options->add_separator();
 
 		if (filenames.size() == 1) {
-			file_options->add_separator();
 			file_options->add_item(TTR("Edit Dependencies.."), FILE_DEPENDENCIES);
 			file_options->add_item(TTR("View Owners.."), FILE_OWNERS);
+			file_options->add_separator();
 		}
 	} else if (all_folders && foldernames.size() > 0) {
 		file_options->add_item(TTR("Open"), FILE_OPEN);
+		file_options->add_separator();
 	}
-
-	file_options->add_separator();
 
 	int num_items = filenames.size() + foldernames.size();
 	if (num_items >= 1) {
@@ -1448,12 +1448,13 @@ void FileSystemDock::_files_list_rmb_select(int p_item, const Vector2 &p_pos) {
 }
 
 void FileSystemDock::_rmb_pressed(const Vector2 &p_pos) {
-	folder_options->clear();
-	folder_options->set_size(Size2(1, 1));
+	file_options->clear();
+	file_options->set_size(Size2(1, 1));
 
-	folder_options->add_item(TTR("New Folder.."), FOLDER_NEW_FOLDER);
-	folder_options->set_position(files->get_global_position() + p_pos);
-	folder_options->popup();
+	file_options->add_item(TTR("New Folder.."), FILE_NEW_FOLDER);
+	file_options->add_item(TTR("Show In File Manager"), FILE_SHOW_IN_EXPLORER);
+	file_options->set_position(files->get_global_position() + p_pos);
+	file_options->popup();
 }
 
 void FileSystemDock::select_file(const String &p_file) {
