@@ -69,7 +69,25 @@ __attribute__((visibility("default"))) DWORD NvOptimusEnablement = 0x00000001;
 #define WM_TOUCH 576
 #endif
 
+static String format_error_message(DWORD id) {
+
+	LPWSTR messageBuffer = NULL;
+	size_t size = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				       NULL, id, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL);
+
+	String msg = "Error "+itos(id)+": "+String(messageBuffer,size);
+
+	LocalFree(messageBuffer);
+
+	return msg;
+
+}
+
+
+
 extern HINSTANCE godot_hinstance;
+
+
 
 void RedirectIOToConsole() {
 
@@ -1044,12 +1062,6 @@ void OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int 
 		visual_server = memnew(VisualServerWrapMT(visual_server, get_render_thread_mode() == RENDER_SEPARATE_THREAD));
 	}
 
-	if (!is_no_window_mode_enabled()) {
-		ShowWindow(hWnd, SW_SHOW); // Show The Window
-		SetForegroundWindow(hWnd); // Slightly Higher Priority
-		SetFocus(hWnd); // Sets Keyboard Focus To
-	}
-
 	/*
 		DEVMODE dmScreenSettings;					// Device Mode
 		memset(&dmScreenSettings,0,sizeof(dmScreenSettings));		// Makes Sure Memory's Cleared
@@ -1087,6 +1099,12 @@ void OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int 
 	DragAcceptFiles(hWnd, true);
 
 	move_timer_id = 1;
+
+	if (!is_no_window_mode_enabled()) {
+		ShowWindow(hWnd, SW_SHOW); // Show The Window
+		SetForegroundWindow(hWnd); // Slightly Higher Priority
+		SetFocus(hWnd); // Sets Keyboard Focus To
+	}
 }
 
 void OS_Windows::set_clipboard(const String &p_text) {
@@ -1588,10 +1606,23 @@ void OS_Windows::_update_window_style(bool repaint) {
 	}
 }
 
-Error OS_Windows::open_dynamic_library(const String p_path, void *&p_library_handle) {
-	p_library_handle = (void *)LoadLibrary(p_path.utf8().get_data());
+Error OS_Windows::open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path) {
+
+
+	DLL_DIRECTORY_COOKIE cookie;
+
+	if (p_also_set_library_path) {
+		cookie = AddDllDirectory(p_path.get_base_dir().c_str());
+	}
+
+	p_library_handle = (void *)LoadLibraryExW(p_path.c_str(), NULL, p_also_set_library_path ? LOAD_LIBRARY_SEARCH_DEFAULT_DIRS : 0);
+
+	if (p_also_set_library_path) {
+		RemoveDllDirectory(cookie);
+	}
+
 	if (!p_library_handle) {
-		ERR_EXPLAIN("Can't open dynamic library: " + p_path + ". Error: " + String::num(GetLastError()));
+		ERR_EXPLAIN("Can't open dynamic library: " + p_path + ". Error: " + format_error_message(GetLastError()));
 		ERR_FAIL_V(ERR_CANT_OPEN);
 	}
 	return OK;
@@ -1954,7 +1985,7 @@ void OS_Windows::set_icon(const Ref<Image> &p_icon) {
 
 bool OS_Windows::has_environment(const String &p_var) const {
 
-	return getenv(p_var.utf8().get_data()) != NULL;
+	return _wgetenv(p_var.c_str()) != NULL;
 };
 
 String OS_Windows::get_environment(const String &p_var) const {
@@ -2199,14 +2230,17 @@ String OS_Windows::get_system_dir(SystemDir p_dir) const {
 
 String OS_Windows::get_user_data_dir() const {
 
-	String appname = get_safe_application_name();
+	String appname = get_safe_dir_name(ProjectSettings::get_singleton()->get("application/config/name"));
 	if (appname != "") {
-
-		bool use_godot_dir = ProjectSettings::get_singleton()->get("application/config/use_shared_user_dir");
-		if (use_godot_dir) {
-			return get_data_path().plus_file(get_godot_dir_name()).plus_file("app_userdata").plus_file(appname).replace("\\", "/");
+		bool use_custom_dir = ProjectSettings::get_singleton()->get("application/config/use_custom_user_dir");
+		if (use_custom_dir) {
+			String custom_dir = get_safe_dir_name(ProjectSettings::get_singleton()->get("application/config/custom_user_dir_name"), true);
+			if (custom_dir == "") {
+				custom_dir = appname;
+			}
+			return get_data_path().plus_file(custom_dir).replace("\\", "/");
 		} else {
-			return get_data_path().plus_file(appname).replace("\\", "/");
+			return get_data_path().plus_file(get_godot_dir_name()).plus_file("app_userdata").plus_file(appname).replace("\\", "/");
 		}
 	}
 

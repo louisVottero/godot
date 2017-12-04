@@ -215,6 +215,9 @@ void TileMap::_fix_cell_transform(Transform2D &xform, const Cell &p_cell, const 
 
 	if (tile_origin == TILE_ORIGIN_BOTTOM_LEFT)
 		offset.y += cell_size.y;
+	else if (tile_origin == TILE_ORIGIN_CENTER) {
+		offset += cell_size / 2;
+	}
 
 	if (s.y > s.x) {
 		if ((p_cell.flip_h && (p_cell.flip_v || p_cell.transpose)) || (p_cell.flip_v && !p_cell.transpose))
@@ -235,6 +238,8 @@ void TileMap::_fix_cell_transform(Transform2D &xform, const Cell &p_cell, const 
 		xform.elements[1].x = -xform.elements[1].x;
 		if (tile_origin == TILE_ORIGIN_TOP_LEFT || tile_origin == TILE_ORIGIN_BOTTOM_LEFT)
 			offset.x = s.x - offset.x;
+		else if (tile_origin == TILE_ORIGIN_CENTER)
+			offset.x = s.x - offset.x / 2;
 	}
 	if (p_cell.flip_v) {
 		xform.elements[0].y = -xform.elements[0].y;
@@ -242,10 +247,9 @@ void TileMap::_fix_cell_transform(Transform2D &xform, const Cell &p_cell, const 
 		if (tile_origin == TILE_ORIGIN_TOP_LEFT)
 			offset.y = s.y - offset.y;
 		else if (tile_origin == TILE_ORIGIN_BOTTOM_LEFT) {
-			if (p_cell.transpose)
-				offset.y += s.y;
-			else
-				offset.y -= s.y;
+			offset.y += s.y;
+		} else if (tile_origin == TILE_ORIGIN_CENTER) {
+			offset.y += s.y;
 		}
 	}
 	xform.elements[2].x += offset.x;
@@ -429,20 +433,18 @@ void TileMap::_update_dirty_quadrants() {
 				}
 
 			} else if (tile_origin == TILE_ORIGIN_CENTER) {
-				rect.position += tcenter;
 
-				Vector2 center = (s / 2) - tile_ofs;
-				center_ofs = tcenter - (s / 2);
+				rect.position += tile_ofs;
 
 				if (c.flip_h)
-					rect.position.x -= s.x - center.x;
+					rect.position.x -= cell_size.x / 2;
 				else
-					rect.position.x -= center.x;
+					rect.position.x += cell_size.x / 2;
 
 				if (c.flip_v)
-					rect.position.y -= s.y - center.y;
+					rect.position.y -= cell_size.y / 2;
 				else
-					rect.position.y -= center.y;
+					rect.position.y += cell_size.y / 2;
 			}
 
 			Ref<Texture> normal_map = tile_set->tile_get_normal_map(c.id);
@@ -714,7 +716,7 @@ void TileMap::set_cell(int p_x, int p_y, int p_tile, bool p_flip_x, bool p_flip_
 	} else {
 		ERR_FAIL_COND(!Q); // quadrant should exist...
 
-		if (E->get().id == p_tile && E->get().flip_h == p_flip_x && E->get().flip_v == p_flip_y && E->get().transpose == p_transpose)
+		if (E->get().id == p_tile && E->get().flip_h == p_flip_x && E->get().flip_v == p_flip_y && E->get().transpose == p_transpose && E->get().autotile_coord_x == (uint16_t)p_autotile_coord.x && E->get().autotile_coord_y == (uint16_t)p_autotile_coord.y)
 			return; //nothing changed
 	}
 
@@ -739,7 +741,7 @@ int TileMap::get_cellv(const Vector2 &p_pos) const {
 void TileMap::make_bitmask_area_dirty(const Vector2 &p_pos) {
 
 	for (int x = p_pos.x - 1; x <= p_pos.x + 1; x++) {
-		for (int y = p_pos.y - 1; x <= p_pos.y + 1; y++) {
+		for (int y = p_pos.y - 1; y <= p_pos.y + 1; y++) {
 			PosKey p(x, y);
 			if (dirty_bitmask.find(p) == NULL) {
 				dirty_bitmask.push_back(p);
@@ -808,6 +810,10 @@ void TileMap::update_cell_bitmask(int p_x, int p_y) {
 			Vector2 coord = tile_set->autotile_get_subtile_for_bitmask(id, mask, this, Vector2(p_x, p_y));
 			E->get().autotile_coord_x = (int)coord.x;
 			E->get().autotile_coord_y = (int)coord.y;
+
+			PosKey qk(p_x / _get_quadrant_size(), p_y / _get_quadrant_size());
+			Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
+			_make_quadrant_dirty(Q);
 		} else {
 			E->get().autotile_coord_x = 0;
 			E->get().autotile_coord_y = 0;
@@ -868,28 +874,31 @@ bool TileMap::is_cell_transposed(int p_x, int p_y) const {
 	return E->get().transpose;
 }
 
-int TileMap::get_cell_autotile_coord_x(int p_x, int p_y) const {
+void TileMap::set_cell_autotile_coord(int p_x, int p_y, const Vector2 &p_coord) {
 
 	PosKey pk(p_x, p_y);
 
 	const Map<PosKey, Cell>::Element *E = tile_map.find(pk);
 
 	if (!E)
-		return 0;
+		return;
 
-	return E->get().autotile_coord_x;
+	Cell c = E->get();
+	c.autotile_coord_x = p_coord.x;
+	c.autotile_coord_y = p_coord.y;
+	tile_map[pk] = c;
 }
 
-int TileMap::get_cell_autotile_coord_y(int p_x, int p_y) const {
+Vector2 TileMap::get_cell_autotile_coord(int p_x, int p_y) const {
 
 	PosKey pk(p_x, p_y);
 
 	const Map<PosKey, Cell>::Element *E = tile_map.find(pk);
 
 	if (!E)
-		return 0;
+		return Vector2();
 
-	return E->get().autotile_coord_y;
+	return Vector2(E->get().autotile_coord_x, E->get().autotile_coord_y);
 }
 
 void TileMap::_recreate_quadrants() {
@@ -961,6 +970,7 @@ void TileMap::_set_tile_data(const PoolVector<int> &p_data) {
 
 	int offset = (format == FORMAT_2_1_5) ? 3 : 2;
 
+	clear();
 	for (int i = 0; i < c; i += offset) {
 
 		const uint8_t *ptr = (const uint8_t *)&r[i];

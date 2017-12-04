@@ -75,10 +75,9 @@ bool EditorSettings::_set(const StringName &p_name, const Variant &p_value, bool
 		return true;
 	}
 
-	if (p_value.get_type() == Variant::NIL)
+	if (p_value.get_type() == Variant::NIL) {
 		props.erase(p_name);
-	else {
-
+	} else {
 		if (props.has(p_name))
 			props[p_name].variant = p_value;
 		else
@@ -370,8 +369,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("editors/3d/grid_color", Color::html("808080"));
 	hints["editors/3d/grid_color"] = PropertyInfo(Variant::COLOR, "editors/3d/grid_color", PROPERTY_HINT_COLOR_NO_ALPHA, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
-	_initial_set("editors/3d/default_fov", 55.0);
-	_initial_set("editors/3d/default_z_near", 0.1);
+	_initial_set("editors/3d/default_fov", 70.0);
+	_initial_set("editors/3d/default_z_near", 0.05);
 	_initial_set("editors/3d/default_z_far", 500.0);
 
 	// navigation
@@ -462,6 +461,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	_initial_set("editors/animation/autorename_animation_tracks", true);
 	_initial_set("editors/animation/confirm_insert_track", true);
+	_initial_set("editors/animation/onion_layers_past_color", Color(1, 0, 0));
+	_initial_set("editors/animation/onion_layers_future_color", Color(0, 1, 0));
 
 	_initial_set("docks/property_editor/texture_preview_width", 48);
 	_initial_set("docks/property_editor/auto_refresh_interval", 0.3);
@@ -965,6 +966,8 @@ void EditorSettings::raise_order(const String &p_setting) {
 
 void EditorSettings::set_initial_value(const StringName &p_setting, const Variant &p_value) {
 
+	_THREAD_SAFE_METHOD_
+
 	if (!props.has(p_setting))
 		return;
 	props[p_setting].initial = p_value;
@@ -977,7 +980,8 @@ Variant _EDITOR_DEF(const String &p_setting, const Variant &p_default) {
 	if (EditorSettings::get_singleton()->has_setting(p_setting))
 		ret = EditorSettings::get_singleton()->get(p_setting);
 	else
-		EditorSettings::get_singleton()->set(p_setting, p_default);
+		EditorSettings::get_singleton()->set_manually(p_setting, p_default);
+
 	if (!EditorSettings::get_singleton()->has_default_value(p_setting))
 		EditorSettings::get_singleton()->set_initial_value(p_setting, p_default);
 
@@ -995,12 +999,15 @@ bool EditorSettings::property_can_revert(const String &p_setting) {
 	if (!props.has(p_setting))
 		return false;
 
+	if (!props[p_setting].has_default_value)
+		return false;
+
 	return props[p_setting].initial != props[p_setting].variant;
 }
 
 Variant EditorSettings::property_get_revert(const String &p_setting) {
 
-	if (!props.has(p_setting))
+	if (!props.has(p_setting) || !props[p_setting].has_default_value)
 		return Variant();
 
 	return props[p_setting].initial;

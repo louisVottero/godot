@@ -311,6 +311,7 @@ protected:
 	static void _bind_methods();
 
 public:
+	void update_surface() { surface->update(); }
 	void update_transform_gizmo_view();
 
 	void set_can_preview(Camera *p_preview);
@@ -389,6 +390,8 @@ class SpatialEditor : public VBoxContainer {
 	GDCLASS(SpatialEditor, VBoxContainer);
 
 public:
+	static const unsigned int VIEWPORTS_COUNT = 4;
+
 	enum ToolMode {
 
 		TOOL_MODE_SELECT,
@@ -403,8 +406,6 @@ public:
 	};
 
 private:
-	static const unsigned int VIEWPORTS_COUNT = 4;
-
 	EditorNode *editor;
 	EditorSelection *editor_selection;
 
@@ -412,7 +413,6 @@ private:
 	SpatialEditorViewport *viewports[VIEWPORTS_COUNT];
 	VSplitContainer *shader_split;
 	HSplitContainer *palette_split;
-	HBoxContainer *palette_split_container;
 
 	/////
 
@@ -607,7 +607,7 @@ public:
 	void add_control_to_menu_panel(Control *p_control);
 
 	VSplitContainer *get_shader_split();
-	HBoxContainer *get_palette_split();
+	HSplitContainer *get_palette_split();
 
 	Spatial *get_selected() { return selected; }
 

@@ -213,7 +213,7 @@ private:
 		}
 		String sp = p.simplify_path();
 		project_path->set_text(sp);
-		set_message(TTR(" ")); // just so it does not disappear
+		set_message(" "); // just so it does not disappear
 		get_ok()->call_deferred("grab_focus");
 	}
 
@@ -654,6 +654,12 @@ void ProjectManager::_notification(int p_what) {
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
 		Engine::get_singleton()->set_editor_hint(false);
+
+	} else if (p_what == NOTIFICATION_READY) {
+
+		if (scroll_childs->get_child_count() == 0) {
+			open_templates->popup_centered_minsize();
+		}
 
 	} else if (p_what == NOTIFICATION_VISIBILITY_CHANGED) {
 
@@ -1432,7 +1438,13 @@ void ProjectManager::_bind_methods() {
 	ClassDB::bind_method("_favorite_pressed", &ProjectManager::_favorite_pressed);
 	ClassDB::bind_method("_install_project", &ProjectManager::_install_project);
 	ClassDB::bind_method("_files_dropped", &ProjectManager::_files_dropped);
+	ClassDB::bind_method("_open_asset_library", &ProjectManager::_open_asset_library);
 	ClassDB::bind_method(D_METHOD("_scan_multiple_folders", "files"), &ProjectManager::_scan_multiple_folders);
+}
+
+void ProjectManager::_open_asset_library() {
+	asset_library->disable_community_support();
+	tabs->set_current_tab(1);
 }
 
 ProjectManager::ProjectManager() {
@@ -1705,6 +1717,12 @@ ProjectManager::ProjectManager() {
 
 	dialog_error = memnew(AcceptDialog);
 	gui_base->add_child(dialog_error);
+
+	open_templates = memnew(ConfirmationDialog);
+	open_templates->set_text(TTR("You don't currently have any projects.\nWould you like to explore the official example projects in the Asset Library?"));
+	open_templates->get_ok()->set_text(TTR("Open Asset Library"));
+	open_templates->connect("confirmed", this, "_open_asset_library");
+	add_child(open_templates);
 }
 
 ProjectManager::~ProjectManager() {
@@ -1756,6 +1774,7 @@ void ProjectListFilter::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
 			clear_search_button->set_icon(get_icon("Close", "EditorIcons"));
+
 		} break;
 	}
 }
