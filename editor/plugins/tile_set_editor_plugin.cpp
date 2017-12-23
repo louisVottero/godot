@@ -244,7 +244,7 @@ TileSetEditor::TileSetEditor(EditorNode *p_editor) {
 	MenuButton *options = memnew(MenuButton);
 	panel->add_child(options);
 	options->set_position(Point2(1, 1));
-	options->set_text("Theme");
+	options->set_text(TTR("Tile Set"));
 	options->get_popup()->add_item(TTR("Add Item"), MENU_OPTION_ADD_ITEM);
 	options->get_popup()->add_item(TTR("Remove Item"), MENU_OPTION_REMOVE_ITEM);
 	options->get_popup()->add_separator();
@@ -343,7 +343,7 @@ AutotileEditor::AutotileEditor(EditorNode *p_editor) {
 	split->add_child(property_editor);
 
 	helper = memnew(AutotileEditorHelper(this));
-	property_editor->edit(helper);
+	property_editor->call_deferred("edit", helper);
 
 	// Editor
 
@@ -1435,13 +1435,13 @@ bool AutotileEditorHelper::_get(const StringName &p_name, Variant &r_ret) const 
 		return false;
 
 	String name = p_name.operator String();
+	bool v = false;
 	if (name == "bitmask_mode") {
-		r_ret = tile_set->get(String::num(autotile_editor->get_current_tile(), 0) + "/autotile/bitmask_mode");
+		r_ret = tile_set->get(String::num(autotile_editor->get_current_tile(), 0) + "/autotile/bitmask_mode", &v);
 	} else if (name.left(7) == "layout/") {
-		bool v;
 		r_ret = tile_set->get(String::num(autotile_editor->get_current_tile(), 0) + "/autotile" + name.right(6), &v);
-		return v;
 	}
+	return v;
 }
 
 void AutotileEditorHelper::_get_property_list(List<PropertyInfo> *p_list) const {
