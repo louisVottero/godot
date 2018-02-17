@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "tween.h"
 #include "method_bind_ext.gen.inc"
 
@@ -222,7 +223,9 @@ void Tween::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("tween_step", PropertyInfo(Variant::OBJECT, "object"), PropertyInfo(Variant::STRING, "key"), PropertyInfo(Variant::REAL, "elapsed"), PropertyInfo(Variant::OBJECT, "value")));
 	ADD_SIGNAL(MethodInfo("tween_completed", PropertyInfo(Variant::OBJECT, "object"), PropertyInfo(Variant::STRING, "key")));
 
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "repeat"), "set_repeat", "is_repeat");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "playback_process_mode", PROPERTY_HINT_ENUM, "Physics,Idle"), "set_tween_process_mode", "get_tween_process_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "playback_speed", PROPERTY_HINT_RANGE, "-64,64,0.01"), "set_speed_scale", "get_speed_scale");
 
 	BIND_ENUM_CONSTANT(TWEEN_PROCESS_PHYSICS);
 	BIND_ENUM_CONSTANT(TWEEN_PROCESS_IDLE);
@@ -561,57 +564,50 @@ void Tween::_tween_process(float p_delta) {
 			data.finish = true;
 		}
 
-		switch (data.type) {
-			case INTER_PROPERTY:
-			case INTER_METHOD: {
-				Variant result = _run_equation(data);
-				emit_signal("tween_step", object, NodePath(Vector<StringName>(), data.key, false), data.elapsed, result);
-				_apply_tween_value(data, result);
-				if (data.finish)
-					_apply_tween_value(data, data.final_val);
-			} break;
+		if (data.type == INTER_CALLBACK) {
+			if (data.finish) {
+				if (data.call_deferred) {
 
-			case INTER_CALLBACK:
-				if (data.finish) {
-					if (data.call_deferred) {
-
-						switch (data.args) {
-							case 0:
-								object->call_deferred(data.key[0]);
-								break;
-							case 1:
-								object->call_deferred(data.key[0], data.arg[0]);
-								break;
-							case 2:
-								object->call_deferred(data.key[0], data.arg[0], data.arg[1]);
-								break;
-							case 3:
-								object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2]);
-								break;
-							case 4:
-								object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2], data.arg[3]);
-								break;
-							case 5:
-								object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2], data.arg[3], data.arg[4]);
-								break;
-						}
-					} else {
-						Variant::CallError error;
-						Variant *arg[5] = {
-							&data.arg[0],
-							&data.arg[1],
-							&data.arg[2],
-							&data.arg[3],
-							&data.arg[4],
-						};
-						object->call(data.key[0], (const Variant **)arg, data.args, error);
+					switch (data.args) {
+						case 0:
+							object->call_deferred(data.key[0]);
+							break;
+						case 1:
+							object->call_deferred(data.key[0], data.arg[0]);
+							break;
+						case 2:
+							object->call_deferred(data.key[0], data.arg[0], data.arg[1]);
+							break;
+						case 3:
+							object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2]);
+							break;
+						case 4:
+							object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2], data.arg[3]);
+							break;
+						case 5:
+							object->call_deferred(data.key[0], data.arg[0], data.arg[1], data.arg[2], data.arg[3], data.arg[4]);
+							break;
 					}
+				} else {
+					Variant::CallError error;
+					Variant *arg[5] = {
+						&data.arg[0],
+						&data.arg[1],
+						&data.arg[2],
+						&data.arg[3],
+						&data.arg[4],
+					};
+					object->call(data.key[0], (const Variant **)arg, data.args, error);
 				}
-				break;
-			default: {}
+			}
+		} else {
+			Variant result = _run_equation(data);
+			emit_signal("tween_step", object, NodePath(Vector<StringName>(), data.key, false), data.elapsed, result);
+			_apply_tween_value(data, result);
 		}
 
 		if (data.finish) {
+			_apply_tween_value(data, data.final_val);
 			emit_signal("tween_completed", object, NodePath(Vector<StringName>(), data.key, false));
 			// not repeat mode, remove completed action
 			if (!repeat)

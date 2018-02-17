@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #ifndef TEXT_EDIT_H
 #define TEXT_EDIT_H
 
@@ -209,6 +210,7 @@ class TextEdit : public Control {
 
 	//syntax coloring
 	HashMap<String, Color> keywords;
+	HashMap<String, Color> member_keywords;
 
 	Vector<ColorRegion> color_regions;
 
@@ -433,6 +435,7 @@ public:
 	void fold_all_lines();
 	void unhide_all_lines();
 	int num_lines_from(int p_line_from, int unhidden_amount) const;
+	bool is_last_visible_line(int p_line) const;
 	bool can_fold(int p_line) const;
 	bool is_folded(int p_line) const;
 	void fold_line(int p_line);
@@ -489,7 +492,10 @@ public:
 	bool is_readonly() const;
 
 	void set_max_chars(int p_max_chars);
+	int get_max_chars() const;
+
 	void set_wrap(bool p_wrap);
+	bool is_wrapping() const;
 
 	void clear();
 
@@ -540,6 +546,9 @@ public:
 	void add_keyword_color(const String &p_keyword, const Color &p_color);
 	void add_color_region(const String &p_begin_key = String(), const String &p_end_key = String(), const Color &p_color = Color(), bool p_line_only = false);
 	void clear_colors();
+
+	void add_member_keyword(const String &p_keyword, const Color &p_color);
+	void clear_member_keywords();
 
 	int get_v_scroll() const;
 	void set_v_scroll(int p_scroll);

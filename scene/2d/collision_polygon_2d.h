@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #ifndef COLLISION_POLYGON_2D_H
 #define COLLISION_POLYGON_2D_H
 
@@ -58,6 +59,8 @@ protected:
 
 	void _build_polygon();
 
+	void _update_in_shape_owner(bool p_xform_only = false);
+
 protected:
 	void _notification(int p_what);
 	static void _bind_methods();
@@ -70,6 +73,7 @@ public:
 	Vector<Point2> get_polygon() const;
 
 	virtual Rect2 _edit_get_rect() const;
+	virtual bool _edit_is_selected_on_click(const Point2 &p_point, double p_tolerance) const;
 
 	virtual String get_configuration_warning() const;
 

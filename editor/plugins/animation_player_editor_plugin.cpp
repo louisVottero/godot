@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "animation_player_editor_plugin.h"
 
 #include "editor/animation_editor.h"
@@ -298,7 +299,7 @@ void AnimationPlayerEditor::_animation_selected(int p_which) {
 
 	if (current != "") {
 
-		player->set_current_animation(current);
+		// player->set_current_animation(current, false);
 
 		Ref<Animation> anim = player->get_animation(current);
 		{
@@ -653,7 +654,9 @@ Dictionary AnimationPlayerEditor::get_state() const {
 	d["visible"] = is_visible_in_tree();
 	if (EditorNode::get_singleton()->get_edited_scene() && is_visible_in_tree() && player) {
 		d["player"] = EditorNode::get_singleton()->get_edited_scene()->get_path_to(player);
-		d["animation"] = player->get_current_animation();
+	}
+	if (animation->get_selected() >= 0 && animation->get_selected() < animation->get_item_count()) {
+		d["animation"] = animation->get_item_text(animation->get_selected());
 	}
 
 	return d;

@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "ustring.h"
 
 #include "color.h"
@@ -1097,9 +1098,8 @@ String String::num(double p_num, int p_decimals) {
 String String::num_int64(int64_t p_num, int base, bool capitalize_hex) {
 
 	bool sign = p_num < 0;
-	int64_t num = ABS(p_num);
 
-	int64_t n = num;
+	int64_t n = p_num;
 
 	int chars = 0;
 	do {
@@ -1113,9 +1113,9 @@ String String::num_int64(int64_t p_num, int base, bool capitalize_hex) {
 	s.resize(chars + 1);
 	CharType *c = s.ptrw();
 	c[chars] = 0;
-	n = num;
+	n = p_num;
 	do {
-		int mod = n % base;
+		int mod = ABS(n % base);
 		if (mod >= 10) {
 			char a = (capitalize_hex ? 'A' : 'a');
 			c[--chars] = a + (mod - 10);

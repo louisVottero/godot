@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "gd_mono.h"
 
 #include <mono/metadata/exception.h>
@@ -52,8 +53,7 @@ void gdmono_unhandled_exception_hook(MonoObject *exc, void *user_data) {
 
 	(void)user_data; // UNUSED
 
-	ERR_PRINT(GDMonoUtils::get_exception_name_and_message(exc).utf8());
-	mono_print_unhandled_exception(exc);
+	GDMonoUtils::print_unhandled_exception(exc);
 	abort();
 }
 
@@ -226,7 +226,7 @@ void GDMono::initialize() {
 
 	mono_install_unhandled_exception_hook(gdmono_unhandled_exception_hook, NULL);
 
-	OS::get_singleton()->print("Mono: ALL IS GOOD\n");
+	OS::get_singleton()->print("Mono: INITIALIZED\n");
 }
 
 #ifndef MONO_GLUE_DISABLED

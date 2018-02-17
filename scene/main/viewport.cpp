@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "viewport.h"
 
 #include "os/input.h"
@@ -677,6 +678,20 @@ void Viewport::_notification(int p_what) {
 				}
 			}
 
+		} break;
+		case SceneTree::NOTIFICATION_WM_FOCUS_OUT: {
+			if (gui.mouse_focus) {
+				//if mouse is being pressed, send a release event
+				Ref<InputEventMouseButton> mb;
+				mb.instance();
+				mb->set_position(gui.mouse_focus->get_local_mouse_position());
+				mb->set_global_position(gui.mouse_focus->get_local_mouse_position());
+				mb->set_button_index(gui.mouse_focus_button);
+				mb->set_pressed(false);
+				Control *c = gui.mouse_focus;
+				gui.mouse_focus = NULL;
+				c->call_multilevel(SceneStringNames::get_singleton()->_gui_input, mb);
+			}
 		} break;
 	}
 }
@@ -2376,12 +2391,9 @@ List<Control *>::Element *Viewport::_gui_show_modal(Control *p_control) {
 		mb->set_global_position(gui.mouse_focus->get_local_mouse_position());
 		mb->set_button_index(gui.mouse_focus_button);
 		mb->set_pressed(false);
-		gui.mouse_focus->call_multilevel(SceneStringNames::get_singleton()->_gui_input, mb);
-
-		//if (gui.mouse_over == gui.mouse_focus) {
-		//	gui.mouse_focus->notification(Control::NOTIFICATION_MOUSE_EXIT);
-		//}
+		Control *c = gui.mouse_focus;
 		gui.mouse_focus = NULL;
+		c->call_multilevel(SceneStringNames::get_singleton()->_gui_input, mb);
 	}
 
 	return gui.modal_stack.back();
@@ -2760,7 +2772,7 @@ void Viewport::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "size"), "set_size", "get_size");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "own_world"), "set_use_own_world", "is_using_own_world");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "world", PROPERTY_HINT_RESOURCE_TYPE, "World"), "set_world", "get_world");
-	//ADD_PROPERTY( PropertyInfo(Variant::OBJECT,"world_2d",PROPERTY_HINT_RESOURCE_TYPE,"World2D"), "set_world_2d", "get_world_2d") ;
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "world_2d", PROPERTY_HINT_RESOURCE_TYPE, "World2D", 0), "set_world_2d", "get_world_2d");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "transparent_bg"), "set_transparent_background", "has_transparent_background");
 	ADD_GROUP("Rendering", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "msaa", PROPERTY_HINT_ENUM, "Disabled,2x,4x,8x,16x"), "set_msaa", "get_msaa");
@@ -2786,6 +2798,8 @@ void Viewport::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::INT, "shadow_atlas_quad_1", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"), "set_shadow_atlas_quadrant_subdiv", "get_shadow_atlas_quadrant_subdiv", 1);
 	ADD_PROPERTYI(PropertyInfo(Variant::INT, "shadow_atlas_quad_2", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"), "set_shadow_atlas_quadrant_subdiv", "get_shadow_atlas_quadrant_subdiv", 2);
 	ADD_PROPERTYI(PropertyInfo(Variant::INT, "shadow_atlas_quad_3", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"), "set_shadow_atlas_quadrant_subdiv", "get_shadow_atlas_quadrant_subdiv", 3);
+	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "canvas_transform", PROPERTY_HINT_NONE, "", 0), "set_canvas_transform", "get_canvas_transform");
+	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "global_canvas_transform", PROPERTY_HINT_NONE, "", 0), "set_global_canvas_transform", "get_global_canvas_transform");
 
 	ADD_SIGNAL(MethodInfo("size_changed"));
 

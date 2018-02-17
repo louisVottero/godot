@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "rich_text_label.h"
 #include "os/keyboard.h"
 #include "os/os.h"
@@ -371,18 +372,19 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 									cw = tab_size * font->get_char_size(' ').width;
 								}
 
-								if (underline) {
-									Color uc = color;
-									uc.a *= 0.5;
-									int uy = y + lh - fh + ascent + 2;
-									float underline_width = 1.0;
-#ifdef TOOLS_ENABLED
-									underline_width *= EDSCALE;
-#endif
-									VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + pofs, uy), p_ofs + Point2(align_ofs + pofs + cw, uy), uc, underline_width);
-								}
 								ofs += cw;
 							}
+						}
+
+						if (underline) {
+							Color uc = color;
+							uc.a *= 0.5;
+							int uy = y + lh - fh + ascent + 2;
+							float underline_width = 1.0;
+#ifdef TOOLS_ENABLED
+							underline_width *= EDSCALE;
+#endif
+							VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + wofs, uy), p_ofs + Point2(align_ofs + wofs + w, uy), uc, underline_width);
 						}
 					}
 
@@ -451,6 +453,8 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 						table->columns[i].width = 0;
 					}
 					//compute minimum width for each cell
+					const int available_width = p_width - hseparation * (table->columns.size() - 1) - wofs;
+
 					for (List<Item *>::Element *E = table->subitems.front(); E; E = E->next()) {
 						ERR_CONTINUE(E->get()->type != ITEM_FRAME); //children should all be frames
 						ItemFrame *frame = static_cast<ItemFrame *>(E->get());
@@ -461,7 +465,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 						for (int i = 0; i < frame->lines.size(); i++) {
 
-							_process_line(frame, Point2(), ly, p_width, i, PROCESS_CACHE, cfont, Color());
+							_process_line(frame, Point2(), ly, available_width, i, PROCESS_CACHE, cfont, Color());
 							table->columns[column].min_width = MAX(table->columns[column].min_width, frame->lines[i].minimum_width);
 						}
 						idx++;
@@ -470,11 +474,11 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 					//compute available width and total ratio (for expanders)
 
 					int total_ratio = 0;
-					int available_width = p_width - hseparation * (table->columns.size() - 1);
+					int remaining_width = available_width;
 					table->total_width = hseparation;
 
 					for (int i = 0; i < table->columns.size(); i++) {
-						available_width -= table->columns[i].min_width;
+						remaining_width -= table->columns[i].min_width;
 						if (table->columns[i].expand)
 							total_ratio += table->columns[i].expand_ratio;
 					}
@@ -484,7 +488,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 					for (int i = 0; i < table->columns.size(); i++) {
 						table->columns[i].width = table->columns[i].min_width;
 						if (table->columns[i].expand)
-							table->columns[i].width += table->columns[i].expand_ratio * available_width / total_ratio;
+							table->columns[i].width += table->columns[i].expand_ratio * remaining_width / total_ratio;
 						table->total_width += table->columns[i].width + hseparation;
 					}
 
@@ -2041,6 +2045,15 @@ void RichTextLabel::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "visible_characters", PROPERTY_HINT_RANGE, "-1,128000,1"), "set_visible_characters", "get_visible_characters");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "percent_visible", PROPERTY_HINT_RANGE, "0,1,0.001"), "set_percent_visible", "get_percent_visible");
+
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "meta_underlined"), "set_meta_underline", "is_meta_underlined");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "tab_size", PROPERTY_HINT_RANGE, "0,24,1"), "set_tab_size", "get_tab_size");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "text"), "set_text", "get_text");
+
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_active"), "set_scroll_active", "is_scroll_active");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_following"), "set_scroll_follow", "is_scroll_following");
+
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "selection_enabled"), "set_selection_enabled", "is_selection_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "override_selected_font_color"), "set_override_selected_font_color", "is_overriding_selected_font_color");
 
 	ADD_SIGNAL(MethodInfo("meta_clicked", PropertyInfo(Variant::NIL, "meta", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NIL_IS_VARIANT)));

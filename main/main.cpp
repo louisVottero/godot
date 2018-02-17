@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "main.h"
 
 #include "app_icon.gen.h"
@@ -664,6 +665,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 	GLOBAL_DEF("memory/limits/multithreaded_server/rid_pool_prealloc", 60);
 	GLOBAL_DEF("network/limits/debugger_stdout/max_chars_per_second", 2048);
+	GLOBAL_DEF("network/limits/debugger_stdout/max_messages_per_frame", 10);
+	GLOBAL_DEF("network/limits/debugger_stdout/max_errors_per_frame", 10);
 
 	if (debug_mode == "remote") {
 
@@ -983,7 +986,10 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 		Thread::_main_thread_id = p_main_tid_override;
 	}
 
-	OS::get_singleton()->initialize(video_mode, video_driver_idx, audio_driver_idx);
+	Error err = OS::get_singleton()->initialize(video_mode, video_driver_idx, audio_driver_idx);
+	if (err != OK) {
+		return err;
+	}
 	if (init_use_custom_pos) {
 		OS::get_singleton()->set_window_position(init_custom_pos);
 	}
@@ -1107,7 +1113,7 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 		if (cursor.is_valid()) {
 			//print_line("loaded ok");
 			Vector2 hotspot = ProjectSettings::get_singleton()->get("display/mouse_cursor/custom_image_hotspot");
-			Input::get_singleton()->set_custom_mouse_cursor(cursor, hotspot);
+			Input::get_singleton()->set_custom_mouse_cursor(cursor, Input::CURSOR_ARROW, hotspot);
 		}
 	}
 #ifdef TOOLS_ENABLED
@@ -1839,11 +1845,6 @@ void Main::cleanup() {
 	EditorNode::unregister_editor_types();
 #endif
 
-	if (audio_server) {
-		audio_server->finish();
-		memdelete(audio_server);
-	}
-
 	if (arvr_server) {
 		// cleanup now before we pull the rug from underneath...
 		memdelete(arvr_server);
@@ -1854,6 +1855,11 @@ void Main::cleanup() {
 	unregister_platform_apis();
 	unregister_scene_types();
 	unregister_server_types();
+
+	if (audio_server) {
+		audio_server->finish();
+		memdelete(audio_server);
+	}
 
 	OS::get_singleton()->finalize();
 	finalize_physics();

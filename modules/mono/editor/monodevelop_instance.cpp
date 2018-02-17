@@ -27,12 +27,15 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "monodevelop_instance.h"
 
 #include "../mono_gd/gd_mono.h"
 #include "../mono_gd/gd_mono_class.h"
 
 void MonoDevelopInstance::execute(const Vector<String> &p_files) {
+
+	_GDMONO_SCOPE_DOMAIN_(TOOLS_DOMAIN)
 
 	ERR_FAIL_NULL(execute_method);
 	ERR_FAIL_COND(gc_handle.is_null());
@@ -62,7 +65,7 @@ MonoDevelopInstance::MonoDevelopInstance(const String &p_solution) {
 
 	GDMonoClass *klass = GDMono::get_singleton()->get_editor_tools_assembly()->get_class("GodotSharpTools.Editor", "MonoDevelopInstance");
 
-	MonoObject *obj = mono_object_new(TOOLS_DOMAIN, klass->get_raw());
+	MonoObject *obj = mono_object_new(TOOLS_DOMAIN, klass->get_mono_ptr());
 
 	GDMonoMethod *ctor = klass->get_method(".ctor", 1);
 	MonoObject *ex = NULL;

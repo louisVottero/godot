@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "rasterizer_storage_gles3.h"
 #include "project_settings.h"
 #include "rasterizer_canvas_gles3.h"
@@ -1618,6 +1619,7 @@ void RasterizerStorageGLES3::_update_shader(Shader *p_shader) const {
 			p_shader->spatial.uses_time = false;
 			p_shader->spatial.uses_vertex_lighting = false;
 			p_shader->spatial.uses_screen_texture = false;
+			p_shader->spatial.uses_depth_texture = false;
 			p_shader->spatial.uses_vertex = false;
 			p_shader->spatial.writes_modelview_or_projection = false;
 			p_shader->spatial.uses_world_coordinates = false;
@@ -1649,6 +1651,7 @@ void RasterizerStorageGLES3::_update_shader(Shader *p_shader) const {
 			shaders.actions_scene.usage_flag_pointers["SSS_STRENGTH"] = &p_shader->spatial.uses_sss;
 			shaders.actions_scene.usage_flag_pointers["DISCARD"] = &p_shader->spatial.uses_discard;
 			shaders.actions_scene.usage_flag_pointers["SCREEN_TEXTURE"] = &p_shader->spatial.uses_screen_texture;
+			shaders.actions_scene.usage_flag_pointers["DEPTH_TEXTURE"] = &p_shader->spatial.uses_depth_texture;
 			shaders.actions_scene.usage_flag_pointers["TIME"] = &p_shader->spatial.uses_time;
 
 			shaders.actions_scene.write_flag_pointers["MODELVIEW_MATRIX"] = &p_shader->spatial.writes_modelview_or_projection;
@@ -2181,10 +2184,15 @@ _FORCE_INLINE_ static void _fill_std140_variant_ubo_value(ShaderLanguage::DataTy
 			Transform2D v = value;
 			GLfloat *gui = (GLfloat *)data;
 
+			//in std140 members of mat2 are treated as vec4s
 			gui[0] = v.elements[0][0];
 			gui[1] = v.elements[0][1];
-			gui[2] = v.elements[1][0];
-			gui[3] = v.elements[1][1];
+			gui[2] = 0;
+			gui[3] = 0;
+			gui[4] = v.elements[1][0];
+			gui[5] = v.elements[1][1];
+			gui[6] = 0;
+			gui[7] = 0;
 		} break;
 		case ShaderLanguage::TYPE_MAT3: {
 
@@ -2359,9 +2367,15 @@ _FORCE_INLINE_ static void _fill_std140_ubo_value(ShaderLanguage::DataType type,
 		case ShaderLanguage::TYPE_MAT2: {
 			GLfloat *gui = (GLfloat *)data;
 
-			for (int i = 0; i < 2; i++) {
-				gui[i] = value[i].real;
-			}
+			//in std140 members of mat2 are treated as vec4s
+			gui[0] = value[0].real;
+			gui[1] = value[1].real;
+			gui[2] = 0;
+			gui[3] = 0;
+			gui[4] = value[2].real;
+			gui[5] = value[3].real;
+			gui[6] = 0;
+			gui[7] = 0;
 		} break;
 		case ShaderLanguage::TYPE_MAT3: {
 
@@ -2415,10 +2429,13 @@ _FORCE_INLINE_ static void _fill_std140_ubo_empty(ShaderLanguage::DataType type,
 		case ShaderLanguage::TYPE_BVEC4:
 		case ShaderLanguage::TYPE_IVEC4:
 		case ShaderLanguage::TYPE_UVEC4:
-		case ShaderLanguage::TYPE_VEC4:
-		case ShaderLanguage::TYPE_MAT2: {
+		case ShaderLanguage::TYPE_VEC4: {
 
 			zeromem(data, 16);
+		} break;
+		case ShaderLanguage::TYPE_MAT2: {
+
+			zeromem(data, 32);
 		} break;
 		case ShaderLanguage::TYPE_MAT3: {
 
@@ -6903,6 +6920,7 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 
 		// delete the texture
 		GIProbe *gi_probe = gi_probe_owner.get(p_rid);
+		gi_probe->instance_remove_deps();
 
 		gi_probe_owner.free(p_rid);
 		memdelete(gi_probe);
@@ -6918,6 +6936,7 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 
 		// delete the texture
 		LightmapCapture *lightmap_capture = lightmap_capture_data_owner.get(p_rid);
+		lightmap_capture->instance_remove_deps();
 
 		gi_probe_owner.free(p_rid);
 		memdelete(lightmap_capture);
@@ -6943,6 +6962,11 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 		glDeleteTextures(1, &cls->distance);
 		canvas_light_shadow_owner.free(p_rid);
 		memdelete(cls);
+	} else if (particles_owner.owns(p_rid)) {
+		Particles *particles = particles_owner.get(p_rid);
+		particles->instance_remove_deps();
+		particles_owner.free(p_rid);
+		memdelete(particles);
 	} else {
 		return false;
 	}
@@ -7241,8 +7265,6 @@ void RasterizerStorageGLES3::initialize() {
 	config.use_texture_array_environment = GLOBAL_GET("rendering/quality/reflections/texture_array_reflections");
 
 	config.force_vertex_shading = GLOBAL_GET("rendering/quality/shading/force_vertex_shading");
-
-	GLOBAL_DEF("rendering/quality/depth_prepass/disable", false);
 
 	String renderer = (const char *)glGetString(GL_RENDERER);
 
