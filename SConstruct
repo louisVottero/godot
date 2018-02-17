@@ -90,6 +90,7 @@ env_base.android_appattributes_chunk = ""
 env_base.disabled_modules = []
 env_base.use_ptrcall = False
 env_base.split_drivers = False
+env_base.split_modules = False
 env_base.module_version_string = ""
 
 # To decide whether to rebuild a file, use the MD5 sum only if the timestamp has changed.
@@ -160,11 +161,11 @@ opts.Add(BoolVariable('xml', "XML format support for resources", True))
 
 # Advanced options
 opts.Add(BoolVariable('disable_3d', "Disable 3D nodes for smaller executable", False))
-opts.Add(BoolVariable('disable_advanced_gui', "Disable advance 3D gui nodes and behaviors", False))
+opts.Add(BoolVariable('disable_advanced_gui', "Disable advanced 3D gui nodes and behaviors", False))
 opts.Add('extra_suffix', "Custom extra suffix added to the base filename of all generated binary files", '')
 opts.Add('unix_global_settings_path', "UNIX-specific path to system-wide settings. Currently only used for templates", '')
 opts.Add(BoolVariable('verbose', "Enable verbose output for the compilation", False))
-opts.Add(BoolVariable('vsproj', "Generate Visual Studio Project.", False))
+opts.Add(BoolVariable('vsproj', "Generate Visual Studio Project", False))
 opts.Add(EnumVariable('warnings', "Set the level of warnings emitted during compilation", 'no', ('extra', 'all', 'moderate', 'no')))
 opts.Add(BoolVariable('progress', "Show a progress indicator during build", True))
 opts.Add(BoolVariable('dev', "If yes, alias for verbose=yes warnings=all", False))
@@ -180,7 +181,7 @@ opts.Add(BoolVariable('builtin_libtheora', "Use the builtin libtheora library", 
 opts.Add(BoolVariable('builtin_libvorbis', "Use the builtin libvorbis library", True))
 opts.Add(BoolVariable('builtin_libvpx', "Use the builtin libvpx library", True))
 opts.Add(BoolVariable('builtin_libwebp', "Use the builtin libwebp library", True))
-opts.Add(BoolVariable('builtin_openssl', "Use the builtin openssl library", True))
+opts.Add(BoolVariable('builtin_mbedtls', "Use the builtin mbedTLS library", True))
 opts.Add(BoolVariable('builtin_opus', "Use the builtin opus library", True))
 opts.Add(BoolVariable('builtin_pcre2', "Use the builtin pcre2 library)", True))
 opts.Add(BoolVariable('builtin_recast', "Use the builtin recast library", True))
@@ -289,6 +290,8 @@ if selected_platform in platform_list:
                     basename = basename.replace('\\\\', '/')
                     if os.path.isfile(basename + ".h"):
                         env.vs_incs = env.vs_incs + [basename + ".h"]
+                    elif os.path.isfile(basename + ".hpp"):
+                        env.vs_incs = env.vs_incs + [basename + ".hpp"]
                     if os.path.isfile(basename + ".c"):
                         env.vs_srcs = env.vs_srcs + [basename + ".c"]
                     elif os.path.isfile(basename + ".cpp"):
@@ -442,7 +445,7 @@ if selected_platform in platform_list:
     if not env['verbose']:
         methods.no_verbose(sys, env)
 
-    if (True): # FIXME: detect GLES3
+    if (not env["platform"] == "server"): # FIXME: detect GLES3
         env.Append( BUILDERS = { 'GLES3_GLSL' : env.Builder(action = methods.build_gles3_headers, suffix = 'glsl.gen.h',src_suffix = '.glsl') } )
 
     scons_cache_path = os.environ.get("SCONS_CACHE")
@@ -498,7 +501,12 @@ node_count_interval = 1
 node_pruning = 8 # Number of nodes to process before prunning the cache
 if ('env' in locals()):
     node_count_fname = str(env.Dir('#')) + '/.scons_node_count'
-show_progress = env['progress']
+# Progress reporting is not available in non-TTY environments since it
+# messes with the output (for example, when writing to a file)
+if sys.stdout.isatty():
+    show_progress = env['progress']
+else:
+    show_progress = False
 
 import time, math
 

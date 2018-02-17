@@ -318,7 +318,8 @@ protected:
 		}
 		p_list->push_back(PropertyInfo(Variant::INT, "type", PROPERTY_HINT_ENUM, argt));
 		p_list->push_back(PropertyInfo(script->get_variable_info(var).type, "value", script->get_variable_info(var).hint, script->get_variable_info(var).hint_string, PROPERTY_USAGE_DEFAULT));
-		p_list->push_back(PropertyInfo(Variant::INT, "hint", PROPERTY_HINT_ENUM, "None,Range,ExpRange,Enum,ExpEasing,Length,SpriteFrame,KeyAccel,BitFlags,AllFlags,File,Dir,GlobalFile,GlobalDir,ResourceType,MultilineText"));
+		// Update this when PropertyHint changes
+		p_list->push_back(PropertyInfo(Variant::INT, "hint", PROPERTY_HINT_ENUM, "None,Range,ExpRange,Enum,ExpEasing,Length,SpriteFrame,KeyAccel,Flags,Layers2dRender,Layers2dPhysics,Layer3dRender,Layer3dPhysics,File,Dir,GlobalFile,GlobalDir,ResourceType,MultilineText,ColorNoAlpha,ImageCompressLossy,ImageCompressLossLess,ObjectId,String,NodePathToEditedNode,MethodOfVariantType,MethodOfBaseType,MethodOfInstance,MethodOfScript,PropertyOfVariantType,PropertyOfBaseType,PropertyOfInstance,PropertyOfScript,ObjectTooBig"));
 		p_list->push_back(PropertyInfo(Variant::STRING, "hint_string"));
 		p_list->push_back(PropertyInfo(Variant::BOOL, "export"));
 	}
@@ -1304,6 +1305,35 @@ void VisualScriptEditor::_input(const Ref<InputEvent> &p_event) {
 
 	if (mb.is_valid() && !mb->is_pressed() && mb->get_button_index() == BUTTON_LEFT) {
 		revert_on_drag = String(); //so we can still drag functions
+	}
+}
+
+void VisualScriptEditor::_members_gui_input(const Ref<InputEvent> &p_event) {
+
+	Ref<InputEventKey> key = p_event;
+	if (key.is_valid() && key->is_pressed() && !key->is_echo()) {
+		if (members->has_focus()) {
+			TreeItem *ti = members->get_selected();
+			if (ti) {
+				TreeItem *root = members->get_root();
+				if (ti->get_parent() == root->get_children()) {
+					member_type = MEMBER_FUNCTION;
+				}
+				if (ti->get_parent() == root->get_children()->get_next()) {
+					member_type = MEMBER_VARIABLE;
+				}
+				if (ti->get_parent() == root->get_children()->get_next()->get_next()) {
+					member_type = MEMBER_SIGNAL;
+				}
+				member_name = ti->get_text(0);
+			}
+			if (ED_IS_SHORTCUT("visual_script_editor/delete_selected", p_event)) {
+				_member_option(MEMBER_REMOVE);
+			}
+			if (ED_IS_SHORTCUT("visual_script_editor/edit_member", p_event)) {
+				_member_option(MEMBER_EDIT);
+			}
+		}
 	}
 }
 
@@ -3089,7 +3119,7 @@ void VisualScriptEditor::_member_rmb_selected(const Vector2 &p_pos) {
 
 		member_type = MEMBER_FUNCTION;
 		member_name = ti->get_text(0);
-		member_popup->add_icon_item(del_icon, TTR("Remove Function"), MEMBER_REMOVE);
+		member_popup->add_icon_shortcut(del_icon, ED_GET_SHORTCUT("visual_script_editor/delete_selected"), MEMBER_REMOVE);
 		member_popup->popup();
 		return;
 	}
@@ -3098,9 +3128,9 @@ void VisualScriptEditor::_member_rmb_selected(const Vector2 &p_pos) {
 
 		member_type = MEMBER_VARIABLE;
 		member_name = ti->get_text(0);
-		member_popup->add_icon_item(edit_icon, TTR("Edit Variable"), MEMBER_EDIT);
+		member_popup->add_icon_shortcut(edit_icon, ED_GET_SHORTCUT("visual_script_editor/edit_member"), MEMBER_EDIT);
 		member_popup->add_separator();
-		member_popup->add_icon_item(del_icon, TTR("Remove Variable"), MEMBER_REMOVE);
+		member_popup->add_icon_shortcut(del_icon, ED_GET_SHORTCUT("visual_script_editor/delete_selected"), MEMBER_REMOVE);
 		member_popup->popup();
 		return;
 	}
@@ -3109,9 +3139,9 @@ void VisualScriptEditor::_member_rmb_selected(const Vector2 &p_pos) {
 
 		member_type = MEMBER_SIGNAL;
 		member_name = ti->get_text(0);
-		member_popup->add_icon_item(edit_icon, TTR("Edit Signal"), MEMBER_EDIT);
+		member_popup->add_icon_shortcut(edit_icon, ED_GET_SHORTCUT("visual_script_editor/edit_member"), MEMBER_EDIT);
 		member_popup->add_separator();
-		member_popup->add_icon_item(del_icon, TTR("Remove Signal"), MEMBER_REMOVE);
+		member_popup->add_icon_shortcut(del_icon, ED_GET_SHORTCUT("visual_script_editor/delete_selected"), MEMBER_REMOVE);
 		member_popup->popup();
 		return;
 	}
@@ -3242,6 +3272,7 @@ void VisualScriptEditor::_bind_methods() {
 	ClassDB::bind_method("drop_data_fw", &VisualScriptEditor::drop_data_fw);
 
 	ClassDB::bind_method("_input", &VisualScriptEditor::_input);
+	ClassDB::bind_method("_members_gui_input", &VisualScriptEditor::_members_gui_input);
 	ClassDB::bind_method("_on_nodes_delete", &VisualScriptEditor::_on_nodes_delete);
 	ClassDB::bind_method("_on_nodes_duplicate", &VisualScriptEditor::_on_nodes_duplicate);
 
@@ -3304,6 +3335,7 @@ VisualScriptEditor::VisualScriptEditor() {
 	members->connect("button_pressed", this, "_member_button");
 	members->connect("item_edited", this, "_member_edited");
 	members->connect("cell_selected", this, "_member_selected", varray(), CONNECT_DEFERRED);
+	members->connect("gui_input", this, "_members_gui_input");
 	members->set_allow_reselect(true);
 	members->set_hide_folding(true);
 	members->set_drag_forwarding(this);
@@ -3477,12 +3509,13 @@ static void register_editor_callback() {
 
 	ScriptEditor::register_create_script_editor_function(create_editor);
 
-	ED_SHORTCUT("visual_script_editor/delete_selected", TTR("Delete Selected"));
+	ED_SHORTCUT("visual_script_editor/delete_selected", TTR("Delete Selected"), KEY_DELETE);
 	ED_SHORTCUT("visual_script_editor/toggle_breakpoint", TTR("Toggle Breakpoint"), KEY_F9);
 	ED_SHORTCUT("visual_script_editor/find_node_type", TTR("Find Node Type"), KEY_MASK_CMD + KEY_F);
 	ED_SHORTCUT("visual_script_editor/copy_nodes", TTR("Copy Nodes"), KEY_MASK_CMD + KEY_C);
 	ED_SHORTCUT("visual_script_editor/cut_nodes", TTR("Cut Nodes"), KEY_MASK_CMD + KEY_X);
 	ED_SHORTCUT("visual_script_editor/paste_nodes", TTR("Paste Nodes"), KEY_MASK_CMD + KEY_V);
+	ED_SHORTCUT("visual_script_editor/edit_member", TTR("Edit Member"), KEY_MASK_CMD + KEY_E);
 }
 
 void VisualScriptEditor::register_editor() {

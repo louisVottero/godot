@@ -52,10 +52,6 @@
 
 class OS_OSX : public OS_Unix {
 public:
-	enum {
-		KEY_EVENT_BUFFER_SIZE = 512
-	};
-
 	struct KeyEvent {
 		unsigned int osx_state;
 		bool pressed;
@@ -64,7 +60,7 @@ public:
 		uint32_t unicode;
 	};
 
-	KeyEvent key_event_buffer[KEY_EVENT_BUFFER_SIZE];
+	Vector<KeyEvent> key_event_buffer;
 	int key_event_pos;
 
 	bool force_quit;
@@ -171,6 +167,7 @@ public:
 	virtual void set_window_title(const String &p_title);
 
 	virtual Size2 get_window_size() const;
+	virtual Size2 get_real_window_size() const;
 
 	virtual void set_icon(const Ref<Image> &p_icon);
 
@@ -225,6 +222,8 @@ public:
 	virtual bool is_window_minimized() const;
 	virtual void set_window_maximized(bool p_enabled);
 	virtual bool is_window_maximized() const;
+	virtual void set_window_always_on_top(bool p_enabled);
+	virtual bool is_window_always_on_top() const;
 	virtual void request_attention();
 	virtual String get_joy_guid(int p_device) const;
 
@@ -232,6 +231,8 @@ public:
 	virtual bool get_borderless_window();
 	virtual void set_ime_position(const Point2 &p_pos);
 	virtual void set_ime_intermediate_text_callback(ImeCallback p_callback, void *p_inp);
+
+	virtual String get_unique_id() const;
 
 	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();

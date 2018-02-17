@@ -217,7 +217,7 @@ void TextEdit::Text::_update_line_cache(int p_line) const {
 	}
 }
 
-const Map<int, TextEdit::Text::ColorRegionInfo> &TextEdit::Text::get_color_region_info(int p_line) {
+const Map<int, TextEdit::Text::ColorRegionInfo> &TextEdit::Text::get_color_region_info(int p_line) const {
 
 	static Map<int, ColorRegionInfo> cri;
 	ERR_FAIL_INDEX_V(p_line, text.size(), cri);
@@ -455,7 +455,7 @@ void TextEdit::_update_selection_mode_word() {
 		end += 1;
 	}
 
-	// inital selection
+	// initial selection
 	if (!selection.active) {
 		select(row, beg, row, end);
 		selection.selecting_column = beg;
@@ -888,9 +888,9 @@ void TextEdit::_notification(int p_what) {
 						VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg + ofs_x, ofs_y, char_w, get_row_height()), cache.selection_color);
 					}
 				} else {
-					// if it has text, then draw current line marker in the margin, as line number ect will draw over it, draw the rest of line marker later.
+					// if it has text, then draw current line marker in the margin, as line number etc will draw over it, draw the rest of line marker later.
 					if (line == cursor.line && highlight_current_line) {
-						VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(0, ofs_y, xmargin_beg, get_row_height()), cache.current_line_color);
+						VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(0, ofs_y, xmargin_beg + ofs_x, get_row_height()), cache.current_line_color);
 					}
 				}
 
@@ -937,7 +937,7 @@ void TextEdit::_notification(int p_what) {
 
 					cache.font->draw(ci, Point2(cache.style_normal->get_margin(MARGIN_LEFT) + cache.breakpoint_gutter_width + ofs_x, ofs_y + cache.font->get_ascent()), fc, cache.line_number_color);
 				}
-				//loop through charcters in one line
+				//loop through characters in one line
 				for (int j = 0; j < str.length(); j++) {
 
 					//look for keyword
@@ -1119,6 +1119,19 @@ void TextEdit::_notification(int p_what) {
 
 					if ((char_ofs + char_margin) < xmargin_beg) {
 						char_ofs += char_w;
+
+						// line highlighting handle horizontal clipping
+						if (line == cursor.line && highlight_current_line) {
+
+							if (j == str.length() - 1) {
+								// end of line when last char is skipped
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg + ofs_x, ofs_y, xmargin_end - (xmargin_beg + ofs_x), get_row_height()), cache.current_line_color);
+
+							} else if ((char_ofs + char_margin) > xmargin_beg) {
+								// char next to margin is skipped
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg + ofs_x, ofs_y, (char_ofs + char_margin) - xmargin_beg, get_row_height()), cache.current_line_color);
+							}
+						}
 						continue;
 					}
 
@@ -1762,15 +1775,16 @@ void TextEdit::indent_left() {
 void TextEdit::_get_mouse_pos(const Point2i &p_mouse, int &r_row, int &r_col) const {
 
 	float rows = p_mouse.y;
+	rows -= cache.style_normal->get_margin(MARGIN_TOP);
+	rows += (CLAMP(v_scroll->get_value() - get_line_scroll_pos(true), 0, 1) * get_row_height());
 	rows /= get_row_height();
-	rows += v_scroll->get_value();
-	int row = Math::floor(rows);
+	int first_vis_line = CLAMP(cursor.line_ofs, 0, text.size() - 1);
+	int row = first_vis_line + Math::floor(rows);
 
 	if (is_hiding_enabled()) {
 		// row will be offset by the hidden rows
-		int lsp = get_line_scroll_pos(true);
-		int f_ofs = num_lines_from(CLAMP(cursor.line_ofs, 0, text.size() - 1), MIN(row + 1 - cursor.line_ofs, text.size() - cursor.line_ofs)) - 1;
-		row = cursor.line_ofs + f_ofs;
+		int f_ofs = num_lines_from(first_vis_line, rows + 1) - 1;
+		row = first_vis_line + f_ofs;
 		row = CLAMP(row, 0, text.size() - num_lines_from(text.size() - 1, -1));
 	}
 
@@ -3117,7 +3131,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 			return;
 		}
 
-		if (!scancode_handled && !k->get_command()) { //for german kbds
+		if (!scancode_handled && !k->get_command()) { //for German kbds
 
 			if (k->get_unicode() >= 32) {
 
@@ -4696,13 +4710,36 @@ int TextEdit::get_indent_level(int p_line) const {
 			tab_count++;
 		} else if (text[p_line][i] == ' ') {
 			whitespace_count++;
-		} else if (text[p_line][i] == '#') {
-			break;
 		} else {
 			break;
 		}
 	}
 	return tab_count + whitespace_count / indent_size;
+}
+
+bool TextEdit::is_line_comment(int p_line) const {
+
+	// checks to see if this line is the start of a comment
+	ERR_FAIL_INDEX_V(p_line, text.size(), false);
+
+	const Map<int, Text::ColorRegionInfo> &cri_map = text.get_color_region_info(p_line);
+
+	int line_length = text[p_line].size();
+	for (int i = 0; i < line_length - 1; i++) {
+		if (_is_symbol(text[p_line][i]) && cri_map.has(i)) {
+			const Text::ColorRegionInfo &cri = cri_map[i];
+			if (color_regions[cri.region].begin_key == "#" || color_regions[cri.region].begin_key == "//") {
+				return true;
+			} else {
+				return false;
+			}
+		} else if (_is_whitespace(text[p_line][i])) {
+			continue;
+		} else {
+			break;
+		}
+	}
+	return false;
 }
 
 bool TextEdit::can_fold(int p_line) const {
@@ -4718,6 +4755,8 @@ bool TextEdit::can_fold(int p_line) const {
 		return false;
 	if (is_line_hidden(p_line))
 		return false;
+	if (is_line_comment(p_line))
+		return false;
 
 	int start_indent = get_indent_level(p_line);
 
@@ -4725,10 +4764,13 @@ bool TextEdit::can_fold(int p_line) const {
 		if (text[i].size() == 0)
 			continue;
 		int next_indent = get_indent_level(i);
-		if (next_indent > start_indent)
+		if (is_line_comment(i)) {
+			continue;
+		} else if (next_indent > start_indent) {
 			return true;
-		else
+		} else {
 			return false;
+		}
 	}
 
 	return false;
@@ -4757,7 +4799,9 @@ void TextEdit::fold_line(int p_line) {
 	int last_line = start_indent;
 	for (int i = p_line + 1; i < text.size(); i++) {
 		if (text[i].strip_edges().size() != 0) {
-			if (get_indent_level(i) > start_indent) {
+			if (is_line_comment(i)) {
+				continue;
+			} else if (get_indent_level(i) > start_indent) {
 				last_line = i;
 			} else {
 				break;

@@ -53,7 +53,7 @@ private:
 	bool _tool;
 	bool _valid;
 
-	Ref<PluginScript> _ref_base_parent;
+	Ref<Script> _ref_base_parent;
 	StringName _native_parent;
 	SelfList<PluginScript> _script_list;
 
@@ -112,7 +112,7 @@ public:
 
 	virtual void update_exports();
 	virtual void get_script_method_list(List<MethodInfo> *r_methods) const;
-	virtual void get_script_property_list(List<PropertyInfo> *r_propertieslist) const;
+	virtual void get_script_property_list(List<PropertyInfo> *r_properties) const;
 
 	virtual int get_member_line(const StringName &p_member) const;
 

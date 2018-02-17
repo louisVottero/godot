@@ -95,8 +95,6 @@ bool GDScriptParser::_enter_indent_block(BlockNode *p_block) {
 			int indent = tokenizer->get_token_line_indent();
 			int current = tab_level.back()->get();
 			if (indent <= current) {
-				print_line("current: " + itos(current) + " indent: " + itos(indent));
-				print_line("less than current");
 				return false;
 			}
 
@@ -458,9 +456,9 @@ GDScriptParser::Node *GDScriptParser::_parse_expression(Node *p_parent, bool p_s
 			if (!validating) {
 
 				//this can be too slow for just validating code
-				if (for_completion && ScriptCodeCompletionCache::get_sigleton()) {
-					res = ScriptCodeCompletionCache::get_sigleton()->get_cached_resource(path);
-				} else {
+				if (for_completion && ScriptCodeCompletionCache::get_singleton()) {
+					res = ScriptCodeCompletionCache::get_singleton()->get_cached_resource(path);
+				} else { // essential; see issue 15902
 					res = ResourceLoader::load(path);
 				}
 				if (!res.is_valid()) {

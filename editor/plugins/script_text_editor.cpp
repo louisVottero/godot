@@ -231,6 +231,7 @@ void ScriptTextEditor::_set_theme_for_script() {
 
 		text_edit->add_keyword_color(n, colors_cache.type_color);
 	}
+	_update_member_keywords();
 
 	//colorize comments
 	List<String> comments;
@@ -518,6 +519,7 @@ void ScriptTextEditor::tag_saved_version() {
 
 void ScriptTextEditor::goto_line(int p_line, bool p_with_error) {
 	TextEdit *tx = code_editor->get_text_edit();
+	tx->deselect();
 	tx->unfold_line(p_line);
 	tx->call_deferred("cursor_set_line", p_line);
 }
@@ -1282,12 +1284,9 @@ Variant ScriptTextEditor::get_drag_data_fw(const Point2 &p_point, Control *p_fro
 bool ScriptTextEditor::can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const {
 
 	Dictionary d = p_data;
-	if (d.has("type") &&
-			(
-
-					String(d["type"]) == "resource" ||
-					String(d["type"]) == "files" ||
-					String(d["type"]) == "nodes")) {
+	if (d.has("type") && (String(d["type"]) == "resource" ||
+								 String(d["type"]) == "files" ||
+								 String(d["type"]) == "nodes")) {
 
 		return true;
 	}
@@ -1328,6 +1327,10 @@ void ScriptTextEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data
 
 	Dictionary d = p_data;
 
+	TextEdit *te = code_editor->get_text_edit();
+	int row, col;
+	te->_get_mouse_pos(p_point, row, col);
+
 	if (d.has("type") && String(d["type"]) == "resource") {
 
 		Ref<Resource> res = d["resource"];
@@ -1340,7 +1343,9 @@ void ScriptTextEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data
 			return;
 		}
 
-		code_editor->get_text_edit()->insert_text_at_cursor(res->get_path());
+		te->cursor_set_line(row);
+		te->cursor_set_column(col);
+		te->insert_text_at_cursor(res->get_path());
 	}
 
 	if (d.has("type") && String(d["type"]) == "files") {
@@ -1355,7 +1360,9 @@ void ScriptTextEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data
 			text_to_drop += "\"" + String(files[i]).c_escape() + "\"";
 		}
 
-		code_editor->get_text_edit()->insert_text_at_cursor(text_to_drop);
+		te->cursor_set_line(row);
+		te->cursor_set_column(col);
+		te->insert_text_at_cursor(text_to_drop);
 	}
 
 	if (d.has("type") && String(d["type"]) == "nodes") {
@@ -1384,7 +1391,9 @@ void ScriptTextEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data
 			text_to_drop += "\"" + path.c_escape() + "\"";
 		}
 
-		code_editor->get_text_edit()->insert_text_at_cursor(text_to_drop);
+		te->cursor_set_line(row);
+		te->cursor_set_column(col);
+		te->insert_text_at_cursor(text_to_drop);
 	}
 }
 
@@ -1564,16 +1573,12 @@ ScriptTextEditor::ScriptTextEditor() {
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/indent_right"), EDIT_INDENT_RIGHT);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/delete_line"), EDIT_DELETE_LINE);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/toggle_comment"), EDIT_TOGGLE_COMMENT);
-	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/clone_down"), EDIT_CLONE_DOWN);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/toggle_fold_line"), EDIT_TOGGLE_FOLD_LINE);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/fold_all_lines"), EDIT_FOLD_ALL_LINES);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/unfold_all_lines"), EDIT_UNFOLD_ALL_LINES);
 	edit_menu->get_popup()->add_separator();
-#ifdef OSX_ENABLED
+	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/clone_down"), EDIT_CLONE_DOWN);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/complete_symbol"), EDIT_COMPLETE);
-#else
-	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/complete_symbol"), EDIT_COMPLETE);
-#endif
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/trim_trailing_whitespace"), EDIT_TRIM_TRAILING_WHITESAPCE);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/convert_indent_to_spaces"), EDIT_CONVERT_INDENT_TO_SPACES);
 	edit_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/convert_indent_to_tabs"), EDIT_CONVERT_INDENT_TO_TABS);
@@ -1644,13 +1649,14 @@ void ScriptTextEditor::register_editor() {
 	ED_SHORTCUT("script_text_editor/indent_left", TTR("Indent Left"), 0);
 	ED_SHORTCUT("script_text_editor/indent_right", TTR("Indent Right"), 0);
 	ED_SHORTCUT("script_text_editor/toggle_comment", TTR("Toggle Comment"), KEY_MASK_CMD | KEY_K);
-	ED_SHORTCUT("script_text_editor/clone_down", TTR("Clone Down"), KEY_MASK_CMD | KEY_B);
 	ED_SHORTCUT("script_text_editor/toggle_fold_line", TTR("Fold/Unfold Line"), KEY_MASK_ALT | KEY_F);
 	ED_SHORTCUT("script_text_editor/fold_all_lines", TTR("Fold All Lines"), 0);
 	ED_SHORTCUT("script_text_editor/unfold_all_lines", TTR("Unfold All Lines"), 0);
 #ifdef OSX_ENABLED
+	ED_SHORTCUT("script_text_editor/clone_down", TTR("Clone Down"), KEY_MASK_SHIFT | KEY_MASK_CMD | KEY_C);
 	ED_SHORTCUT("script_text_editor/complete_symbol", TTR("Complete Symbol"), KEY_MASK_CTRL | KEY_SPACE);
 #else
+	ED_SHORTCUT("script_text_editor/clone_down", TTR("Clone Down"), KEY_MASK_CMD | KEY_B);
 	ED_SHORTCUT("script_text_editor/complete_symbol", TTR("Complete Symbol"), KEY_MASK_CMD | KEY_SPACE);
 #endif
 	ED_SHORTCUT("script_text_editor/trim_trailing_whitespace", TTR("Trim Trailing Whitespace"), KEY_MASK_CTRL | KEY_MASK_ALT | KEY_T);

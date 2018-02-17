@@ -88,6 +88,15 @@ static void get_key_modifier_state(unsigned int p_osx_state, Ref<InputEventWithM
 	state->set_metakey((p_osx_state & NSEventModifierFlagCommand));
 }
 
+static void push_to_key_event_buffer(const OS_OSX::KeyEvent &p_event) {
+
+	Vector<OS_OSX::KeyEvent> &buffer = OS_OSX::singleton->key_event_buffer;
+	if (OS_OSX::singleton->key_event_pos >= buffer.size()) {
+		buffer.resize(1 + OS_OSX::singleton->key_event_pos);
+	}
+	buffer[OS_OSX::singleton->key_event_pos++] = p_event;
+}
+
 static int mouse_x = 0;
 static int mouse_y = 0;
 static int prev_mouse_x = 0;
@@ -446,7 +455,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 		ke.scancode = 0;
 		ke.unicode = codepoint;
 
-		OS_OSX::singleton->key_event_buffer[OS_OSX::singleton->key_event_pos++] = ke;
+		push_to_key_event_buffer(ke);
 	}
 	[self cancelComposition];
 }
@@ -805,7 +814,7 @@ static int translateKey(unsigned int key) {
 		ke.scancode = latin_keyboard_keycode_convert(translateKey([event keyCode]));
 		ke.unicode = 0;
 
-		OS_OSX::singleton->key_event_buffer[OS_OSX::singleton->key_event_pos++] = ke;
+		push_to_key_event_buffer(ke);
 	}
 
 	if ((OS_OSX::singleton->im_position.x != 0) && (OS_OSX::singleton->im_position.y != 0))
@@ -858,7 +867,7 @@ static int translateKey(unsigned int key) {
 		ke.scancode = latin_keyboard_keycode_convert(translateKey(key));
 		ke.unicode = 0;
 
-		OS_OSX::singleton->key_event_buffer[OS_OSX::singleton->key_event_pos++] = ke;
+		push_to_key_event_buffer(ke);
 	}
 }
 
@@ -874,7 +883,7 @@ static int translateKey(unsigned int key) {
 		ke.scancode = latin_keyboard_keycode_convert(translateKey([event keyCode]));
 		ke.unicode = 0;
 
-		OS_OSX::singleton->key_event_buffer[OS_OSX::singleton->key_event_pos++] = ke;
+		push_to_key_event_buffer(ke);
 	}
 }
 
@@ -952,6 +961,30 @@ void OS_OSX::set_ime_intermediate_text_callback(ImeCallback p_callback, void *p_
 	if (!im_callback) {
 		[window_view cancelComposition];
 	}
+}
+
+String OS_OSX::get_unique_id() const {
+
+	static String serial_number;
+
+	if (serial_number.empty()) {
+		io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+		CFStringRef serialNumberAsCFString = NULL;
+		if (platformExpert) {
+			serialNumberAsCFString = (CFStringRef)IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
+			IOObjectRelease(platformExpert);
+		}
+
+		NSString *serialNumberAsNSString = nil;
+		if (serialNumberAsCFString) {
+			serialNumberAsNSString = [NSString stringWithString:(NSString *)serialNumberAsCFString];
+			CFRelease(serialNumberAsCFString);
+		}
+
+		serial_number = [serialNumberAsNSString UTF8String];
+	}
+
+	return serial_number;
 }
 
 void OS_OSX::set_ime_position(const Point2 &p_pos) {
@@ -1836,6 +1869,12 @@ Size2 OS_OSX::get_window_size() const {
 	return window_size;
 };
 
+Size2 OS_OSX::get_real_window_size() const {
+
+	NSRect frame = [window_object frame];
+	return Size2(frame.size.width, frame.size.height);
+}
+
 void OS_OSX::set_window_size(const Size2 p_size) {
 
 	Size2 size = p_size;
@@ -1925,6 +1964,20 @@ bool OS_OSX::is_window_maximized() const {
 void OS_OSX::move_window_to_foreground() {
 
 	[window_object orderFrontRegardless];
+}
+
+void OS_OSX::set_window_always_on_top(bool p_enabled) {
+	if (is_window_always_on_top() == p_enabled)
+		return;
+
+	if (p_enabled)
+		[window_object setLevel:NSFloatingWindowLevel];
+	else
+		[window_object setLevel:NSNormalWindowLevel];
+}
+
+bool OS_OSX::is_window_always_on_top() const {
+	return [window_object level] == NSFloatingWindowLevel;
 }
 
 void OS_OSX::request_attention() {

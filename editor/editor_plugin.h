@@ -90,6 +90,9 @@ public:
 
 	Control *get_base_control();
 
+	void set_plugin_enabled(const String &p_plugin, bool p_enabled);
+	bool is_plugin_enabled(const String &p_plugin) const;
+
 	Error save_scene();
 	void save_scene_as(const String &p_scene, bool p_with_preview = true);
 
@@ -145,6 +148,7 @@ public:
 	//TODO: send a resource for editing to the editor node?
 
 	void add_control_to_container(CustomControlContainer p_location, Control *p_control);
+	void remove_control_from_container(CustomControlContainer p_location, Control *p_control);
 	ToolButton *add_control_to_bottom_panel(Control *p_control, const String &p_title);
 	void add_control_to_dock(DockSlot p_slot, Control *p_control);
 	void remove_control_from_docks(Control *p_control);
@@ -178,7 +182,7 @@ public:
 	virtual bool handles(Object *p_object) const;
 	virtual Dictionary get_state() const; //save editor state so it can't be reloaded when reloading scene
 	virtual void set_state(const Dictionary &p_state); //restore editor state (likely was saved with the scene)
-	virtual void clear(); // clear any temporary data in te editor, reset it (likely new scene or load another scene)
+	virtual void clear(); // clear any temporary data in the editor, reset it (likely new scene or load another scene)
 	virtual void save_external_data(); // if editor references external resources/scenes, save them
 	virtual void apply_changes(); // if changes are pending in editor, apply them
 	virtual void get_breakpoints(List<String> *p_breakpoints);

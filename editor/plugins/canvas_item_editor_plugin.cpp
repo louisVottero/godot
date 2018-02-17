@@ -1238,7 +1238,7 @@ void CanvasItemEditor::_gui_input_viewport_base(const Ref<InputEvent> &p_event) 
 		if (b->get_button_index() == BUTTON_LEFT && b->is_pressed()) {
 			if (show_guides && show_rulers && EditorNode::get_singleton()->get_edited_scene()) {
 				Transform2D xform = viewport_scrollable->get_transform() * transform;
-				// Retreive the guide lists
+				// Retrieve the guide lists
 				Array vguides;
 				if (EditorNode::get_singleton()->get_edited_scene()->has_meta("_edit_vertical_guides_")) {
 					vguides = EditorNode::get_singleton()->get_edited_scene()->get_meta("_edit_vertical_guides_");
@@ -1296,7 +1296,7 @@ void CanvasItemEditor::_gui_input_viewport_base(const Ref<InputEvent> &p_event) 
 			if (show_guides && EditorNode::get_singleton()->get_edited_scene()) {
 				Transform2D xform = viewport_scrollable->get_transform() * transform;
 
-				// Retreive the guide lists
+				// Retrieve the guide lists
 				Array vguides;
 				if (EditorNode::get_singleton()->get_edited_scene()->has_meta("_edit_vertical_guides_")) {
 					vguides = EditorNode::get_singleton()->get_edited_scene()->get_meta("_edit_vertical_guides_");
@@ -1953,9 +1953,9 @@ void CanvasItemEditor::_gui_input_viewport(const Ref<InputEvent> &p_event) {
 
 					if (node) {
 						real_t angle = node->get_rotation();
-						node->set_rotation(snap_angle(angle + (dfrom - center).angle_to(dto - center), angle));
 						display_rotate_to = dto;
-						display_rotate_from = center;
+						display_rotate_from = center + node->get_pivot_offset().rotated(angle);
+						node->set_rotation(snap_angle(angle + (dfrom - display_rotate_from).angle_to(display_rotate_to - display_rotate_from), angle));
 						viewport->update();
 					}
 				}
@@ -1999,29 +1999,29 @@ void CanvasItemEditor::_gui_input_viewport(const Ref<InputEvent> &p_event) {
 
 				switch (drag) {
 					case DRAG_ANCHOR_TOP_LEFT:
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y, false);
 						continue;
 						break;
 					case DRAG_ANCHOR_TOP_RIGHT:
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y, false);
 						continue;
 						break;
 					case DRAG_ANCHOR_BOTTOM_RIGHT:
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y, false);
 						break;
 					case DRAG_ANCHOR_BOTTOM_LEFT:
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y, false);
 						continue;
 						break;
 					case DRAG_ANCHOR_ALL:
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x);
-						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y);
-						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_LEFT, anchor_snapped.x, false);
+						if (!uniform || (uniform && !use_y)) control->set_anchor(MARGIN_RIGHT, anchor_snapped.x, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_TOP, anchor_snapped.y, false);
+						if (!uniform || (uniform && use_y)) control->set_anchor(MARGIN_BOTTOM, anchor_snapped.y, false);
 						continue;
 						break;
 				}
@@ -4002,6 +4002,11 @@ void CanvasItemEditor::add_control_to_menu_panel(Control *p_control) {
 	hb->add_child(p_control);
 }
 
+void CanvasItemEditor::remove_control_from_menu_panel(Control *p_control) {
+
+	hb->remove_child(p_control);
+}
+
 HSplitContainer *CanvasItemEditor::get_palette_split() {
 
 	return palette_split;
@@ -4225,9 +4230,9 @@ CanvasItemEditor::CanvasItemEditor(EditorNode *p_editor) {
 
 	p = view_menu->get_popup();
 	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_grid", TTR("Show Grid"), KEY_G), SHOW_GRID);
-	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_helpers", TTR("Show helpers"), KEY_H), SHOW_HELPERS);
-	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_rulers", TTR("Show rulers"), KEY_R), SHOW_RULERS);
-	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_guides", TTR("Show guides"), KEY_Y), SHOW_GUIDES);
+	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_helpers", TTR("Show Helpers"), KEY_H), SHOW_HELPERS);
+	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_rulers", TTR("Show Rulers"), KEY_R), SHOW_RULERS);
+	p->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/show_guides", TTR("Show Guides"), KEY_Y), SHOW_GUIDES);
 	p->add_separator();
 	p->add_shortcut(ED_SHORTCUT("canvas_item_editor/center_selection", TTR("Center Selection"), KEY_F), VIEW_CENTER_TO_SELECTION);
 	p->add_shortcut(ED_SHORTCUT("canvas_item_editor/frame_selection", TTR("Frame Selection"), KEY_MASK_SHIFT | KEY_F), VIEW_FRAME_TO_SELECTION);

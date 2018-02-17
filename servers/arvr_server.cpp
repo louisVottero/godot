@@ -143,8 +143,6 @@ void ARVRServer::add_interface(const Ref<ARVRInterface> &p_interface) {
 		};
 	};
 
-	print_line("ARVR: Registered interface: " + p_interface->get_name());
-
 	interfaces.push_back(p_interface);
 	emit_signal("interface_added", p_interface->get_name());
 };
@@ -212,7 +210,7 @@ Array ARVRServer::get_interfaces() const {
 };
 
 /*
-	A little extra info on the tracker ids, these are unique per tracker type so we get soem consistency in recognising our trackers, specifically controllers.
+	A little extra info on the tracker ids, these are unique per tracker type so we get some consistency in recognising our trackers, specifically controllers.
 
 	The first controller that is turned of will get ID 1, the second will get ID 2, etc.
 	The magic happens when one of the controllers is turned off, say controller 1 turns off, controller 2 will remain controller 2, controller 3 will remain controller 3.
