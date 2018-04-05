@@ -146,6 +146,12 @@ public:
 	bool is_video_mode_resizable(int p_screen = 0) const;
 	Array get_fullscreen_mode_list(int p_screen = 0) const;
 
+	virtual int get_video_driver_count() const;
+	virtual String get_video_driver_name(int p_driver) const;
+
+	virtual int get_audio_driver_count() const;
+	virtual String get_audio_driver_name(int p_driver) const;
+
 	virtual int get_screen_count() const;
 	virtual int get_current_screen() const;
 	virtual void set_current_screen(int p_screen);
@@ -408,6 +414,9 @@ public:
 	Error open(const String &p_path, int p_mode_flags); ///< open a file
 	void close(); ///< close a file
 	bool is_open() const; ///< true when file is open
+
+	String get_path() const; /// returns the path for the current open file
+	String get_path_absolute() const; /// returns the absolute path for the current open file
 
 	void seek(int64_t p_position); ///< seek to a given position
 	void seek_end(int64_t p_position = 0); ///< seek from the end of file

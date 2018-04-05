@@ -312,7 +312,7 @@ void ScriptEditor::_goto_script_line2(int p_line) {
 void ScriptEditor::_goto_script_line(REF p_script, int p_line) {
 
 	Ref<Script> script = Object::cast_to<Script>(*p_script);
-	if (!script.is_null() && script->get_path().is_resource_file()) {
+	if (!script.is_null() && script->has_source_code()) {
 		if (edit(p_script, p_line, 0)) {
 			editor->push_item(p_script.ptr());
 
@@ -505,7 +505,7 @@ void ScriptEditor::_show_error_dialog(String p_path) {
 	error_dialog->popup_centered_minsize();
 }
 
-void ScriptEditor::_close_tab(int p_idx, bool p_save) {
+void ScriptEditor::_close_tab(int p_idx, bool p_save, bool p_history_back) {
 
 	int selected = p_idx;
 	if (selected < 0 || selected >= tab_container->get_child_count())
@@ -521,7 +521,9 @@ void ScriptEditor::_close_tab(int p_idx, bool p_save) {
 	}
 
 	// roll back to previous tab
-	_history_back();
+	if (p_history_back) {
+		_history_back();
+	}
 
 	//remove from history
 	history.resize(history_pos + 1);
@@ -579,7 +581,7 @@ void ScriptEditor::_close_docs_tab() {
 		EditorHelp *se = Object::cast_to<EditorHelp>(tab_container->get_child(i));
 
 		if (se) {
-			_close_tab(i);
+			_close_tab(i, true, false);
 		}
 	}
 }
@@ -1576,6 +1578,9 @@ void ScriptEditor::_update_script_names() {
 				case SORT_BY_PATH: {
 					sd.sort_key = path;
 				} break;
+				case SORT_BY_NONE: {
+					sd.sort_key = "";
+				} break;
 			}
 
 			switch (display_as) {
@@ -1772,6 +1777,20 @@ bool ScriptEditor::edit(const Ref<Script> &p_script, int p_line, int p_col, bool
 			break;
 	}
 	ERR_FAIL_COND_V(!se, false);
+
+	bool highlighter_set = false;
+	for (int i = 0; i < syntax_highlighters_func_count; i++) {
+		SyntaxHighlighter *highlighter = syntax_highlighters_funcs[i]();
+		se->add_syntax_highlighter(highlighter);
+
+		if (!highlighter_set) {
+			List<String> languages = highlighter->get_supported_languages();
+			if (languages.find(p_script->get_language()->get_name())) {
+				se->set_syntax_highlighter(highlighter);
+				highlighter_set = true;
+			}
+		}
+	}
 
 	tab_container->add_child(se);
 	se->set_edited_script(p_script);
@@ -2489,6 +2508,14 @@ void ScriptEditor::_open_script_request(const String &p_path) {
 	}
 }
 
+int ScriptEditor::syntax_highlighters_func_count = 0;
+CreateSyntaxHighlighterFunc ScriptEditor::syntax_highlighters_funcs[ScriptEditor::SYNTAX_HIGHLIGHTER_FUNC_MAX];
+
+void ScriptEditor::register_create_syntax_highlighter_function(CreateSyntaxHighlighterFunc p_func) {
+	ERR_FAIL_COND(syntax_highlighters_func_count == SYNTAX_HIGHLIGHTER_FUNC_MAX);
+	syntax_highlighters_funcs[syntax_highlighters_func_count++] = p_func;
+}
+
 int ScriptEditor::script_editor_func_count = 0;
 CreateScriptEditorFunc ScriptEditor::script_editor_funcs[ScriptEditor::SCRIPT_EDITOR_FUNC_MAX];
 
@@ -2572,8 +2599,8 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	waiting_update_names = false;
 	pending_auto_reload = false;
 	auto_reload_running_scripts = false;
-	members_overview_enabled = true;
-	help_overview_enabled = true;
+	members_overview_enabled = EditorSettings::get_singleton()->get("text_editor/open_scripts/show_members_overview");
+	help_overview_enabled = EditorSettings::get_singleton()->get("text_editor/help/show_help_index");
 	editor = p_editor;
 
 	VBoxContainer *main_container = memnew(VBoxContainer);
@@ -2815,9 +2842,9 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	//debugger_gui->hide();
 
 	edit_pass = 0;
-	trim_trailing_whitespace_on_save = false;
-	convert_indent_on_save = false;
-	use_space_indentation = false;
+	trim_trailing_whitespace_on_save = EditorSettings::get_singleton()->get("text_editor/files/trim_trailing_whitespace_on_save");
+	convert_indent_on_save = EditorSettings::get_singleton()->get("text_editor/indent/convert_indent_on_save");
+	use_space_indentation = EditorSettings::get_singleton()->get("text_editor/indent/type");
 
 	ScriptServer::edit_request_func = _open_script_request;
 
@@ -2926,7 +2953,7 @@ ScriptEditorPlugin::ScriptEditorPlugin(EditorNode *p_node) {
 	EDITOR_DEF("text_editor/open_scripts/script_temperature_history_size", 15);
 	EDITOR_DEF("text_editor/open_scripts/current_script_background_color", Color(1, 1, 1, 0.3));
 	EDITOR_DEF("text_editor/open_scripts/group_help_pages", true);
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/open_scripts/sort_scripts_by", PROPERTY_HINT_ENUM, "Name,Path"));
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/open_scripts/sort_scripts_by", PROPERTY_HINT_ENUM, "Name,Path,None"));
 	EDITOR_DEF("text_editor/open_scripts/sort_scripts_by", 0);
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/open_scripts/list_script_names_as", PROPERTY_HINT_ENUM, "Name,Parent Directory And Name,Full Path"));
 	EDITOR_DEF("text_editor/open_scripts/list_script_names_as", 0);

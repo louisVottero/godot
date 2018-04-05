@@ -1518,6 +1518,12 @@ void VisualServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("force_sync"), &VisualServer::sync);
 	ClassDB::bind_method(D_METHOD("force_draw", "swap_buffers"), &VisualServer::draw, DEFVAL(true));
 
+	// "draw" and "sync" are deprecated duplicates of "force_draw" and "force_sync"
+	// FIXME: Add deprecation messages using GH-4397 once available, and retire
+	// once the warnings have been enabled for a full release cycle
+	ClassDB::bind_method(D_METHOD("sync"), &VisualServer::sync);
+	ClassDB::bind_method(D_METHOD("draw", "swap_buffers"), &VisualServer::draw, DEFVAL(true));
+
 	ClassDB::bind_method(D_METHOD("texture_create"), &VisualServer::texture_create);
 	ClassDB::bind_method(D_METHOD("texture_create_from_image", "image", "flags"), &VisualServer::texture_create_from_image, DEFVAL(TEXTURE_FLAGS_DEFAULT));
 	ClassDB::bind_method(D_METHOD("texture_allocate", "texture", "width", "height", "format", "flags"), &VisualServer::texture_allocate, DEFVAL(TEXTURE_FLAGS_DEFAULT));
@@ -1822,8 +1828,8 @@ void VisualServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("canvas_item_add_primitive", "item", "points", "colors", "uvs", "texture", "width", "normal_map"), &VisualServer::canvas_item_add_primitive, DEFVAL(1.0), DEFVAL(RID()));
 	ClassDB::bind_method(D_METHOD("canvas_item_add_polygon", "item", "points", "colors", "uvs", "texture", "normal_map", "antialiased"), &VisualServer::canvas_item_add_polygon, DEFVAL(Vector<Point2>()), DEFVAL(RID()), DEFVAL(RID()), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("canvas_item_add_triangle_array", "item", "indices", "points", "colors", "uvs", "texture", "count", "normal_map"), &VisualServer::canvas_item_add_triangle_array, DEFVAL(Vector<Point2>()), DEFVAL(RID()), DEFVAL(-1), DEFVAL(RID()));
-	ClassDB::bind_method(D_METHOD("canvas_item_add_mesh", "item", "mesh", "skeleton"), &VisualServer::canvas_item_add_mesh, DEFVAL(RID()));
-	ClassDB::bind_method(D_METHOD("canvas_item_add_multimesh", "item", "mesh", "skeleton"), &VisualServer::canvas_item_add_multimesh, DEFVAL(RID()));
+	ClassDB::bind_method(D_METHOD("canvas_item_add_mesh", "item", "mesh", "texture", "normal_map"), &VisualServer::canvas_item_add_mesh, DEFVAL(RID()));
+	ClassDB::bind_method(D_METHOD("canvas_item_add_multimesh", "item", "mesh", "texture", "normal_map"), &VisualServer::canvas_item_add_multimesh, DEFVAL(RID()));
 	ClassDB::bind_method(D_METHOD("canvas_item_add_particles", "item", "particles", "texture", "normal_map", "h_frames", "v_frames"), &VisualServer::canvas_item_add_particles);
 	ClassDB::bind_method(D_METHOD("canvas_item_add_set_transform", "item", "transform"), &VisualServer::canvas_item_add_set_transform);
 	ClassDB::bind_method(D_METHOD("canvas_item_add_clip_ignore", "item", "ignore"), &VisualServer::canvas_item_add_clip_ignore);

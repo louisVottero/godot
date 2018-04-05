@@ -2085,9 +2085,9 @@ void RasterizerSceneGLES3::_render_list(RenderList::Element **p_elements, int p_
 						case RasterizerStorageGLES3::Shader::Spatial::BLEND_MODE_MUL: {
 							glBlendEquation(GL_FUNC_ADD);
 							if (storage->frame.current_rt && storage->frame.current_rt->flags[RasterizerStorage::RENDER_TARGET_TRANSPARENT]) {
-								glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+								glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_DST_ALPHA, GL_ZERO);
 							} else {
-								glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+								glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_ZERO, GL_ONE);
 							}
 
 						} break;
@@ -2356,8 +2356,7 @@ void RasterizerSceneGLES3::_add_geometry_with_material(RasterizerStorageGLES3::G
 
 void RasterizerSceneGLES3::_draw_sky(RasterizerStorageGLES3::Sky *p_sky, const CameraMatrix &p_projection, const Transform &p_transform, bool p_vflip, float p_custom_fov, float p_energy) {
 
-	if (!p_sky)
-		return;
+	ERR_FAIL_COND(!p_sky);
 
 	RasterizerStorageGLES3::Texture *tex = storage->texture_owner.getornull(p_sky->panorama);
 
@@ -4337,7 +4336,8 @@ void RasterizerSceneGLES3::render_scene(const Transform &p_cam_transform, const 
 			glBindFramebuffer(GL_FRAMEBUFFER,storage->frame.current_rt->buffers.fbo); //switch to alpha fbo for sky, only diffuse/ambient matters
 		*/
 
-		_draw_sky(sky, p_cam_projection, p_cam_transform, false, env->sky_custom_fov, env->bg_energy);
+		if (sky && sky->panorama.is_valid())
+			_draw_sky(sky, p_cam_projection, p_cam_transform, false, env->sky_custom_fov, env->bg_energy);
 	}
 
 	//_render_list_forward(&alpha_render_list,camera_transform,camera_transform_inverse,camera_projection,false,fragment_lighting,true);
@@ -5117,4 +5117,24 @@ void RasterizerSceneGLES3::finalize() {
 }
 
 RasterizerSceneGLES3::RasterizerSceneGLES3() {
+}
+
+RasterizerSceneGLES3::~RasterizerSceneGLES3() {
+
+	memdelete(default_material.get_data());
+	memdelete(default_material_twosided.get_data());
+	memdelete(default_shader.get_data());
+	memdelete(default_shader_twosided.get_data());
+
+	memdelete(default_worldcoord_material.get_data());
+	memdelete(default_worldcoord_material_twosided.get_data());
+	memdelete(default_worldcoord_shader.get_data());
+	memdelete(default_worldcoord_shader_twosided.get_data());
+
+	memdelete(default_overdraw_material.get_data());
+	memdelete(default_overdraw_shader.get_data());
+
+	memfree(state.spot_array_tmp);
+	memfree(state.omni_array_tmp);
+	memfree(state.reflection_array_tmp);
 }

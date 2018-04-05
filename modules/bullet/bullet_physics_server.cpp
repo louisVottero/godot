@@ -89,7 +89,9 @@ BulletPhysicsServer::BulletPhysicsServer() :
 		active(true),
 		active_spaces_count(0) {}
 
-BulletPhysicsServer::~BulletPhysicsServer() {}
+BulletPhysicsServer::~BulletPhysicsServer() {
+	bulletdelete(emptyShape);
+}
 
 RID BulletPhysicsServer::shape_create(ShapeType p_shape) {
 	ShapeBullet *shape = NULL;
@@ -619,11 +621,11 @@ uint32_t BulletPhysicsServer::body_get_collision_mask(RID p_body) const {
 }
 
 void BulletPhysicsServer::body_set_user_flags(RID p_body, uint32_t p_flags) {
-	WARN_PRINT("This function si not currently supported by bullet and Godot");
+	// This function si not currently supported
 }
 
 uint32_t BulletPhysicsServer::body_get_user_flags(RID p_body) const {
-	WARN_PRINT("This function si not currently supported by bullet and Godot");
+	// This function si not currently supported
 	return 0;
 }
 
@@ -783,22 +785,27 @@ int BulletPhysicsServer::body_get_max_contacts_reported(RID p_body) const {
 	return body->get_max_collisions_detection();
 }
 
-void BulletPhysicsServer::body_set_contacts_reported_depth_threshold(RID p_body, float p_treshold) {
-	WARN_PRINT("Not supported by bullet and even Godot");
+void BulletPhysicsServer::body_set_contacts_reported_depth_threshold(RID p_body, float p_threshold) {
+	// Not supported by bullet and even Godot
 }
 
 float BulletPhysicsServer::body_get_contacts_reported_depth_threshold(RID p_body) const {
-	WARN_PRINT("Not supported by bullet and even Godot");
+	// Not supported by bullet and even Godot
 	return 0.;
 }
 
 void BulletPhysicsServer::body_set_omit_force_integration(RID p_body, bool p_omit) {
-	WARN_PRINT("Not supported by bullet");
+	RigidBodyBullet *body = rigid_body_owner.get(p_body);
+	ERR_FAIL_COND(!body);
+
+	body->set_omit_forces_integration(p_omit);
 }
 
 bool BulletPhysicsServer::body_is_omitting_force_integration(RID p_body) const {
-	WARN_PRINT("Not supported by bullet");
-	return false;
+	RigidBodyBullet *body = rigid_body_owner.get(p_body);
+	ERR_FAIL_COND_V(!body, false);
+
+	return body->get_omit_forces_integration();
 }
 
 void BulletPhysicsServer::body_set_force_integration_callback(RID p_body, Object *p_receiver, const StringName &p_method, const Variant &p_udata) {
@@ -825,12 +832,12 @@ PhysicsDirectBodyState *BulletPhysicsServer::body_get_direct_state(RID p_body) {
 	return BulletPhysicsDirectBodyState::get_singleton(body);
 }
 
-bool BulletPhysicsServer::body_test_motion(RID p_body, const Transform &p_from, const Vector3 &p_motion, MotionResult *r_result) {
+bool BulletPhysicsServer::body_test_motion(RID p_body, const Transform &p_from, const Vector3 &p_motion, bool p_infinite_inertia, MotionResult *r_result) {
 	RigidBodyBullet *body = rigid_body_owner.get(p_body);
 	ERR_FAIL_COND_V(!body, false);
 	ERR_FAIL_COND_V(!body->get_space(), false);
 
-	return body->get_space()->test_body_motion(body, p_from, p_motion, r_result);
+	return body->get_space()->test_body_motion(body, p_from, p_motion, p_infinite_inertia, r_result);
 }
 
 RID BulletPhysicsServer::soft_body_create(bool p_init_sleeping) {
@@ -979,11 +986,11 @@ PhysicsServer::JointType BulletPhysicsServer::joint_get_type(RID p_joint) const 
 }
 
 void BulletPhysicsServer::joint_set_solver_priority(RID p_joint, int p_priority) {
-	//WARN_PRINTS("Joint priority not supported by bullet");
+	// Joint priority not supported by bullet
 }
 
 int BulletPhysicsServer::joint_get_solver_priority(RID p_joint) const {
-	//WARN_PRINTS("Joint priority not supported by bullet");
+	// Joint priority not supported by bullet
 	return 0;
 }
 

@@ -295,35 +295,21 @@ int ItemList::get_current() const {
 	return current;
 }
 
-void ItemList::move_item(int p_item, int p_to_pos) {
+void ItemList::move_item(int p_from_idx, int p_to_idx) {
 
-	ERR_FAIL_INDEX(p_item, items.size());
-	ERR_FAIL_INDEX(p_to_pos, items.size() + 1);
+	ERR_FAIL_INDEX(p_from_idx, items.size());
+	ERR_FAIL_INDEX(p_to_idx, items.size());
 
-	Item it = items[p_item];
-	items.remove(p_item);
-
-	if (p_to_pos > p_item) {
-		p_to_pos--;
+	if (is_anything_selected() && get_selected_items()[0] == p_from_idx) {
+		current = p_to_idx;
 	}
 
-	if (p_to_pos >= items.size()) {
-		items.push_back(it);
-	} else {
-		items.insert(p_to_pos, it);
-	}
-
-	if (current < 0) {
-		//do none
-	} else if (p_item == current) {
-		current = p_to_pos;
-	} else if (p_to_pos > p_item && current > p_item && current < p_to_pos) {
-		current--;
-	} else if (p_to_pos < p_item && current < p_item && current > p_to_pos) {
-		current++;
-	}
+	Item item = items[p_from_idx];
+	items.remove(p_from_idx);
+	items.insert(p_to_idx, item);
 
 	update();
+	shape_changed = true;
 }
 
 int ItemList::get_item_count() const {
@@ -961,11 +947,35 @@ void ItemList::_notification(int p_what) {
 		Vector2 base_ofs = bg->get_offset();
 		base_ofs.y -= int(scroll_bar->get_value());
 
-		Rect2 clip(Point2(), size - bg->get_minimum_size() + Vector2(0, scroll_bar->get_value()));
+		const Rect2 clip(-base_ofs, size); // visible frame, don't need to draw outside of there
 
-		for (int i = 0; i < items.size(); i++) {
+		int first_item_visible;
+		{
+			// do a binary search to find the first item whose rect reaches below clip.position.y
+			int lo = 0;
+			int hi = items.size();
+			while (lo < hi) {
+				const int mid = (lo + hi) / 2;
+				const Rect2 &rcache = items[mid].rect_cache;
+				if (rcache.position.y + rcache.size.y < clip.position.y) {
+					lo = mid + 1;
+				} else {
+					hi = mid;
+				}
+			}
+			// we might have ended up with column 2, or 3, ..., so let's find the first column
+			while (lo > 0 && items[lo - 1].rect_cache.position.y == items[lo].rect_cache.position.y) {
+				lo -= 1;
+			}
+			first_item_visible = lo;
+		}
+
+		for (int i = first_item_visible; i < items.size(); i++) {
 
 			Rect2 rcache = items[i].rect_cache;
+
+			if (rcache.position.y > clip.position.y + clip.size.y)
+				break; // done
 
 			if (!clip.intersects(rcache))
 				continue;
@@ -1138,8 +1148,28 @@ void ItemList::_notification(int p_what) {
 			}
 		}
 
-		for (int i = 0; i < separators.size(); i++) {
-			draw_line(Vector2(bg->get_margin(MARGIN_LEFT), base_ofs.y + separators[i]), Vector2(width, base_ofs.y + separators[i]), guide_color);
+		int first_visible_separator = 0;
+		{
+			// do a binary search to find the first separator that is below clip_position.y
+			int lo = 0;
+			int hi = separators.size();
+			while (lo < hi) {
+				const int mid = (lo + hi) / 2;
+				if (separators[mid] < clip.position.y) {
+					lo = mid + 1;
+				} else {
+					hi = mid;
+				}
+			}
+			first_visible_separator = lo;
+		}
+
+		for (int i = first_visible_separator; i < separators.size(); i++) {
+			if (separators[i] > clip.position.y + clip.size.y)
+				break; // done
+
+			const int y = base_ofs.y + separators[i];
+			draw_line(Vector2(bg->get_margin(MARGIN_LEFT), y), Vector2(width, y), guide_color);
 		}
 	}
 }
@@ -1379,8 +1409,12 @@ void ItemList::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("select", "idx", "single"), &ItemList::select, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("unselect", "idx"), &ItemList::unselect);
+	ClassDB::bind_method(D_METHOD("unselect_all"), &ItemList::unselect_all);
+
 	ClassDB::bind_method(D_METHOD("is_selected", "idx"), &ItemList::is_selected);
 	ClassDB::bind_method(D_METHOD("get_selected_items"), &ItemList::get_selected_items);
+
+	ClassDB::bind_method(D_METHOD("move_item", "p_from_idx", "p_to_idx"), &ItemList::move_item);
 
 	ClassDB::bind_method(D_METHOD("get_item_count"), &ItemList::get_item_count);
 	ClassDB::bind_method(D_METHOD("remove_item", "idx"), &ItemList::remove_item);
@@ -1420,6 +1454,8 @@ void ItemList::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_auto_height", "enable"), &ItemList::set_auto_height);
 	ClassDB::bind_method(D_METHOD("has_auto_height"), &ItemList::has_auto_height);
+
+	ClassDB::bind_method(D_METHOD("is_anything_selected"), &ItemList::is_anything_selected);
 
 	ClassDB::bind_method(D_METHOD("get_item_at_position", "position", "exact"), &ItemList::get_item_at_position, DEFVAL(false));
 
