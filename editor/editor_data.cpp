@@ -364,6 +364,14 @@ void EditorData::notify_edited_scene_changed() {
 	}
 }
 
+void EditorData::notify_resource_saved(const Ref<Resource> &p_resource) {
+
+	for (int i = 0; i < editor_plugins.size(); i++) {
+
+		editor_plugins[i]->notify_resource_saved(p_resource);
+	}
+}
+
 void EditorData::clear_editor_states() {
 
 	for (int i = 0; i < editor_plugins.size(); i++) {
@@ -587,8 +595,6 @@ bool EditorData::check_and_update_scene(int p_idx) {
 	Set<String> checked_scenes;
 
 	bool must_reload = _find_updated_instances(edited_scene[p_idx].root, edited_scene[p_idx].root, checked_scenes);
-
-	print_line("MUST RELOAD? " + itos(must_reload));
 
 	if (must_reload) {
 		Ref<PackedScene> pscene;
