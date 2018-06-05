@@ -1625,14 +1625,14 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 	{ "smoothstep", TYPE_VEC4, { TYPE_FLOAT, TYPE_FLOAT, TYPE_VEC4, TYPE_VOID } },
 
 	{ "isnan", TYPE_BOOL, { TYPE_FLOAT, TYPE_VOID } },
-	{ "isnan", TYPE_BOOL, { TYPE_VEC2, TYPE_VOID } },
-	{ "isnan", TYPE_BOOL, { TYPE_VEC3, TYPE_VOID } },
-	{ "isnan", TYPE_BOOL, { TYPE_VEC4, TYPE_VOID } },
+	{ "isnan", TYPE_BVEC2, { TYPE_VEC2, TYPE_VOID } },
+	{ "isnan", TYPE_BVEC3, { TYPE_VEC3, TYPE_VOID } },
+	{ "isnan", TYPE_BVEC4, { TYPE_VEC4, TYPE_VOID } },
 
 	{ "isinf", TYPE_BOOL, { TYPE_FLOAT, TYPE_VOID } },
-	{ "isinf", TYPE_BOOL, { TYPE_VEC2, TYPE_VOID } },
-	{ "isinf", TYPE_BOOL, { TYPE_VEC3, TYPE_VOID } },
-	{ "isinf", TYPE_BOOL, { TYPE_VEC4, TYPE_VOID } },
+	{ "isinf", TYPE_BVEC2, { TYPE_VEC2, TYPE_VOID } },
+	{ "isinf", TYPE_BVEC3, { TYPE_VEC3, TYPE_VOID } },
+	{ "isinf", TYPE_BVEC4, { TYPE_VEC4, TYPE_VOID } },
 
 	{ "floatBitsToInt", TYPE_INT, { TYPE_FLOAT, TYPE_VOID } },
 	{ "floatBitsToInt", TYPE_IVEC2, { TYPE_VEC2, TYPE_VOID } },
@@ -2300,7 +2300,7 @@ bool ShaderLanguage::_validate_assign(Node *p_node, const Map<StringName, BuiltI
 	if (p_node->type == Node::TYPE_OPERATOR) {
 
 		OperatorNode *op = static_cast<OperatorNode *>(p_node);
-		if (op->type == OP_INDEX) {
+		if (op->op == OP_INDEX) {
 			return _validate_assign(op->arguments[0], p_builtin_types);
 		}
 	}

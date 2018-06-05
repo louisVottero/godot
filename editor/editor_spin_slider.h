@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  navigation_mesh_generator.h                                          */
+/*  editor_spin_slider.h                                                 */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,39 +28,60 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef NAVIGATION_MESH_GENERATOR_H
-#define NAVIGATION_MESH_GENERATOR_H
+#ifndef EDITOR_SPIN_SLIDER_H
+#define EDITOR_SPIN_SLIDER_H
 
-#ifdef RECAST_ENABLED
+#include "scene/gui/line_edit.h"
+#include "scene/gui/range.h"
+#include "scene/gui/texture_rect.h"
 
-#include "editor/editor_node.h"
-#include "editor/editor_settings.h"
+class EditorSpinSlider : public Range {
+	GDCLASS(EditorSpinSlider, Range)
 
-#include "scene/3d/mesh_instance.h"
+	String label;
+	int updown_offset;
+	bool hover_updown;
+	bool mouse_hover;
 
-#include "scene/3d/navigation_mesh.h"
+	TextureRect *grabber;
+	int grabber_range;
 
-#include "os/thread.h"
-#include "scene/resources/shape.h"
+	bool mouse_over_spin;
+	bool mouse_over_grabber;
 
-#include <Recast.h>
+	bool grabbing_grabber;
+	int grabbing_from;
+	float grabbing_ratio;
 
-class NavigationMeshGenerator {
+	bool grabbing_spinner_attempt;
+	bool grabbing_spinner;
+	Vector2 grabbing_spinner_mouse_pos;
+
+	LineEdit *value_input;
+
+	void _grabber_gui_input(const Ref<InputEvent> &p_event);
+	void _value_input_closed();
+	void _value_input_entered(const String &);
+
+	bool hide_slider;
+
 protected:
-	static void _add_vertex(const Vector3 &p_vec3, Vector<float> &p_verticies);
-	static void _add_mesh(const Ref<Mesh> &p_mesh, const Transform &p_xform, Vector<float> &p_verticies, Vector<int> &p_indices);
-	static void _parse_geometry(const Transform &p_base_inverse, Node *p_node, Vector<float> &p_verticies, Vector<int> &p_indices);
-
-	static void _convert_detail_mesh_to_native_navigation_mesh(const rcPolyMeshDetail *p_detail_mesh, Ref<NavigationMesh> p_nav_mesh);
-	static void _build_recast_navigation_mesh(Ref<NavigationMesh> p_nav_mesh, EditorProgress *ep,
-			rcHeightfield *hf, rcCompactHeightfield *chf, rcContourSet *cset, rcPolyMesh *poly_mesh,
-			rcPolyMeshDetail *detail_mesh, Vector<float> &vertices, Vector<int> &indices);
+	void _notification(int p_what);
+	void _gui_input(const Ref<InputEvent> &p_event);
+	static void _bind_methods();
+	void _grabber_mouse_entered();
+	void _grabber_mouse_exited();
 
 public:
-	static void bake(Ref<NavigationMesh> p_nav_mesh, Node *p_node);
-	static void clear(Ref<NavigationMesh> p_nav_mesh);
+	String get_text_value() const;
+	void set_label(const String &p_label);
+	String get_label() const;
+
+	void set_hide_slider(bool p_hide);
+	bool is_hiding_slider() const;
+
+	virtual Size2 get_minimum_size() const;
+	EditorSpinSlider();
 };
 
-#endif // RECAST_ENABLED
-
-#endif // NAVIGATION_MESH_GENERATOR_H
+#endif // EDITOR_SPIN_SLIDER_H
