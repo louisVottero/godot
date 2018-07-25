@@ -697,11 +697,21 @@ Variant NativeScriptInstance::call(const StringName &p_method, const Variant **p
 		Map<StringName, NativeScriptDesc::Method>::Element *E = script_data->methods.find(p_method);
 		if (E) {
 			godot_variant result;
+
+#ifdef DEBUG_ENABLED
+			current_method_call = p_method;
+#endif
+
 			result = E->get().method.method((godot_object *)owner,
 					E->get().method.method_data,
 					userdata,
 					p_argcount,
 					(godot_variant **)p_args);
+
+#ifdef DEBUG_ENABLED
+			current_method_call = "";
+#endif
+
 			Variant res = *(Variant *)&result;
 			godot_variant_destroy(&result);
 			r_error.error = Variant::CallError::CALL_OK;
@@ -716,6 +726,15 @@ Variant NativeScriptInstance::call(const StringName &p_method, const Variant **p
 }
 
 void NativeScriptInstance::notification(int p_notification) {
+#ifdef DEBUG_ENABLED
+	if (p_notification == MainLoop::NOTIFICATION_CRASH) {
+		if (current_method_call != StringName("")) {
+			ERR_PRINTS("NativeScriptInstance detected crash on method: " + current_method_call);
+			current_method_call = "";
+		}
+	}
+#endif
+
 	Variant value = p_notification;
 	const Variant *args[1] = { &value };
 	call_multilevel("_notification", args, 1);
@@ -1034,7 +1053,7 @@ Ref<Script> NativeScriptLanguage::get_template(const String &p_class_name, const
 	s->set_class_name(p_class_name);
 	return Ref<NativeScript>(s);
 }
-bool NativeScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions) const {
+bool NativeScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, Set<int> *r_safe_lines) const {
 	return true;
 }
 

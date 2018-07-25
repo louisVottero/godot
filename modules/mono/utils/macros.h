@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  resource_importer_theora.cpp                                         */
+/*  util_macros.h                                                        */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,63 +28,32 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "resource_importer_theora.h"
+#ifndef UTIL_MACROS_H
+#define UTIL_MACROS_H
 
-#include "io/resource_saver.h"
-#include "os/file_access.h"
-#include "scene/resources/texture.h"
+// noreturn
 
-String ResourceImporterTheora::get_importer_name() const {
+#undef _NO_RETURN_
 
-	return "Theora";
-}
+#ifdef __GNUC__
+#define _NO_RETURN_ __attribute__((noreturn))
+#elif _MSC_VER
+#define _NO_RETURN_ __declspec(noreturn)
+#else
+#error Platform or compiler not supported
+#endif
 
-String ResourceImporterTheora::get_visible_name() const {
+// unreachable
 
-	return "Theora";
-}
-void ResourceImporterTheora::get_recognized_extensions(List<String> *p_extensions) const {
+#if defined(_MSC_VER)
+#define _UNREACHABLE_() __assume(0)
+#elif defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__) >= 405
+#define _UNREACHABLE_() __builtin_unreachable()
+#else
+#define _UNREACHABLE_() \
+	CRASH_NOW();        \
+	do {                \
+	} while (true);
+#endif
 
-	p_extensions->push_back("ogv");
-	p_extensions->push_back("ogm");
-}
-
-String ResourceImporterTheora::get_save_extension() const {
-	return "ogvstr";
-}
-
-String ResourceImporterTheora::get_resource_type() const {
-
-	return "VideoStreamTheora";
-}
-
-bool ResourceImporterTheora::get_option_visibility(const String &p_option, const Map<StringName, Variant> &p_options) const {
-
-	return true;
-}
-
-int ResourceImporterTheora::get_preset_count() const {
-	return 0;
-}
-String ResourceImporterTheora::get_preset_name(int p_idx) const {
-
-	return String();
-}
-
-void ResourceImporterTheora::get_import_options(List<ImportOption> *r_options, int p_preset) const {
-
-	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "loop"), true));
-}
-
-Error ResourceImporterTheora::import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files) {
-
-	VideoStreamTheora *stream = memnew(VideoStreamTheora);
-	stream->set_file(p_source_file);
-
-	Ref<VideoStreamTheora> ogv_stream = Ref<VideoStreamTheora>(stream);
-
-	return ResourceSaver::save(p_save_path + ".ogvstr", ogv_stream);
-}
-
-ResourceImporterTheora::ResourceImporterTheora() {
-}
+#endif // UTIL_MACROS_H

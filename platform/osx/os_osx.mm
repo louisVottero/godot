@@ -625,10 +625,18 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 
 - (void)otherMouseDown:(NSEvent *)event {
 
-	if ((int)[event buttonNumber] != 2)
-		return;
+	if ((int)[event buttonNumber] == 2) {
+		_mouseDownEvent(event, BUTTON_MIDDLE, BUTTON_MASK_MIDDLE, true);
 
-	_mouseDownEvent(event, BUTTON_MIDDLE, BUTTON_MASK_MIDDLE, true);
+	} else if ((int)[event buttonNumber] == 3) {
+		_mouseDownEvent(event, BUTTON_XBUTTON1, BUTTON_MASK_XBUTTON1, true);
+
+	} else if ((int)[event buttonNumber] == 4) {
+		_mouseDownEvent(event, BUTTON_XBUTTON2, BUTTON_MASK_XBUTTON2, true);
+
+	} else {
+		return;
+	}
 }
 
 - (void)otherMouseDragged:(NSEvent *)event {
@@ -637,10 +645,18 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 
 - (void)otherMouseUp:(NSEvent *)event {
 
-	if ((int)[event buttonNumber] != 2)
-		return;
+	if ((int)[event buttonNumber] == 2) {
+		_mouseDownEvent(event, BUTTON_MIDDLE, BUTTON_MASK_MIDDLE, false);
 
-	_mouseDownEvent(event, BUTTON_MIDDLE, BUTTON_MASK_MIDDLE, false);
+	} else if ((int)[event buttonNumber] == 3) {
+		_mouseDownEvent(event, BUTTON_XBUTTON1, BUTTON_MASK_XBUTTON1, false);
+
+	} else if ((int)[event buttonNumber] == 4) {
+		_mouseDownEvent(event, BUTTON_XBUTTON2, BUTTON_MASK_XBUTTON2, false);
+
+	} else {
+		return;
+	}
 }
 
 - (void)mouseExited:(NSEvent *)event {
@@ -1160,6 +1176,10 @@ static void displays_arrangement_changed(CGDirectDisplayID display_id, CGDisplay
 	displays_arrangement_dirty = true;
 }
 
+int OS_OSX::get_current_video_driver() const {
+	return video_driver_index;
+}
+
 Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) {
 
 	/*** OSX INITIALIZATION ***/
@@ -1256,6 +1276,8 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 		ADD_ATTR2(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core);
 	}
 
+	video_driver_index = p_video_driver;
+
 	ADD_ATTR2(NSOpenGLPFAColorSize, colorBits);
 
 	/*
@@ -1328,6 +1350,8 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	visual_server->init();
 
 	AudioDriverManager::initialize(p_audio_driver);
+
+	midi_driver.open();
 
 	input = memnew(InputDefault);
 	joypad_osx = memnew(JoypadOSX);

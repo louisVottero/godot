@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  resource_importer_theora.h                                           */
+/*  win_midi.h                                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,31 +28,34 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RESOURCEIMPORTEROGGTHEORA_H
-#define RESOURCEIMPORTEROGGTHEORA_H
+#ifdef WINMIDI_ENABLED
 
-#include "video_stream_theora.h"
+#ifndef WIN_MIDI_H
+#define WIN_MIDI_H
 
-#include "core/io/resource_import.h"
+#include <stdio.h>
+#include <windows.h>
 
-class ResourceImporterTheora : public ResourceImporter {
-	GDCLASS(ResourceImporterTheora, ResourceImporter)
+#include <mmsystem.h>
+
+#include "core/vector.h"
+#include "os/midi_driver.h"
+
+class MIDIDriverWinMidi : public MIDIDriver {
+
+	Vector<HMIDIIN> connected_sources;
+
+	static void CALLBACK read(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
+
 public:
-	virtual String get_importer_name() const;
-	virtual String get_visible_name() const;
-	virtual void get_recognized_extensions(List<String> *p_extensions) const;
-	virtual String get_save_extension() const;
-	virtual String get_resource_type() const;
+	virtual Error open();
+	virtual void close();
 
-	virtual int get_preset_count() const;
-	virtual String get_preset_name(int p_idx) const;
+	virtual PoolStringArray get_connected_inputs();
 
-	virtual void get_import_options(List<ImportOption> *r_options, int p_preset = 0) const;
-	virtual bool get_option_visibility(const String &p_option, const Map<StringName, Variant> &p_options) const;
-
-	virtual Error import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files = NULL);
-
-	ResourceImporterTheora();
+	MIDIDriverWinMidi();
+	virtual ~MIDIDriverWinMidi();
 };
 
-#endif // RESOURCEIMPORTEROGGTHEORA_H
+#endif
+#endif

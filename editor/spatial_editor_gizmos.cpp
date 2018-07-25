@@ -33,9 +33,11 @@
 #include "geometry.h"
 #include "quick_hull.h"
 #include "scene/3d/camera.h"
+#include "scene/3d/soft_body.h"
 #include "scene/resources/box_shape.h"
 #include "scene/resources/capsule_shape.h"
 #include "scene/resources/convex_polygon_shape.h"
+#include "scene/resources/cylinder_shape.h"
 #include "scene/resources/plane_shape.h"
 #include "scene/resources/primitive_meshes.h"
 #include "scene/resources/ray_shape.h"
@@ -202,7 +204,7 @@ void EditorSpatialGizmo::add_unscaled_billboard(const Ref<Material> &p_material,
 	}
 
 	selectable_icon_size = p_scale;
-	mesh->set_custom_aabb(AABB(Vector3(-selectable_icon_size, -selectable_icon_size, -selectable_icon_size) * 40.0f, Vector3(selectable_icon_size, selectable_icon_size, selectable_icon_size) * 80.0f));
+	mesh->set_custom_aabb(AABB(Vector3(-selectable_icon_size, -selectable_icon_size, -selectable_icon_size) * 100.0f, Vector3(selectable_icon_size, selectable_icon_size, selectable_icon_size) * 200.0f));
 
 	ins.mesh = mesh;
 	ins.unscaled = true;
@@ -212,7 +214,7 @@ void EditorSpatialGizmo::add_unscaled_billboard(const Ref<Material> &p_material,
 		VS::get_singleton()->instance_set_transform(ins.instance, spatial_node->get_global_transform());
 	}
 
-	selectable_icon_size = p_scale * 2.0;
+	selectable_icon_size = p_scale;
 
 	instances.push_back(ins);
 }
@@ -255,8 +257,12 @@ void EditorSpatialGizmo::add_handles(const Vector<Vector3> &p_handles, bool p_bi
 		for (int i = 0; i < p_handles.size(); i++) {
 
 			Color col(1, 1, 1, 1);
+			if (is_gizmo_handle_highlighted(i))
+				col = Color(0, 0, 1, 0.9);
+
 			if (SpatialEditor::get_singleton()->get_over_gizmo_handle() != i)
-				col = Color(0.9, 0.9, 0.9, 0.9);
+				col.a = 0.8;
+
 			w[i] = col;
 		}
 	}
@@ -475,8 +481,9 @@ bool EditorSpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, 
 		float scale = t.origin.distance_to(p_camera->get_camera_transform().origin);
 
 		if (p_camera->get_projection() == Camera::PROJECTION_ORTHOGONAL) {
-			float h = Math::abs(p_camera->get_size());
-			scale = (h * 2.0);
+			float aspect = p_camera->get_viewport()->get_visible_rect().size.aspect();
+			float size = p_camera->get_size();
+			scale = size / aspect;
 		}
 
 		Point2 center = p_camera->unproject_position(t.origin);
@@ -1912,6 +1919,100 @@ VehicleWheelSpatialGizmo::VehicleWheelSpatialGizmo(VehicleWheel *p_car_wheel) {
 
 ///////////
 
+void SoftBodySpatialGizmo::redraw() {
+	clear();
+
+	if (!soft_body || soft_body->get_mesh().is_null()) {
+		return;
+	}
+
+	// find mesh
+
+	Vector<Vector3> lines;
+
+	soft_body->get_mesh()->generate_debug_mesh_lines(lines);
+
+	if (!lines.size()) {
+		return;
+	}
+
+	Vector<Vector3> points;
+	soft_body->get_mesh()->generate_debug_mesh_indices(points);
+
+	soft_body->get_mesh()->clear_cache();
+
+	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
+	Ref<Material> material = create_material("shape_material", gizmo_color);
+
+	add_lines(lines, material);
+	add_collision_segments(lines);
+	add_handles(points);
+}
+
+bool SoftBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle, bool p_sec_first) {
+	return EditorSpatialGizmo::intersect_ray(p_camera, p_point, r_pos, r_normal, r_gizmo_handle, p_sec_first);
+
+	/* Perform a shape cast but doesn't work with softbody
+	PhysicsDirectSpaceState *space_state = PhysicsServer::get_singleton()->space_get_direct_state(SceneTree::get_singleton()->get_root()->get_world()->get_space());
+	if (!physics_sphere_shape.is_valid()) {
+		physics_sphere_shape = PhysicsServer::get_singleton()->shape_create(PhysicsServer::SHAPE_SPHERE);
+		real_t radius = 0.02;
+		PhysicsServer::get_singleton()->shape_set_data(physics_sphere_shape, radius);
+	}
+
+	Vector3 sphere_motion(p_camera->project_ray_normal(p_point));
+	real_t closest_safe;
+	real_t closest_unsafe;
+	PhysicsDirectSpaceState::ShapeRestInfo result;
+	bool collided = space_state->cast_motion(
+			physics_sphere_shape,
+			p_camera->get_transform(),
+			sphere_motion * Vector3(1000, 1000, 1000),
+			0.f,
+			closest_safe,
+			closest_unsafe,
+			Set<RID>(),
+			0xFFFFFFFF,
+			0xFFFFFFFF,
+			&result);
+
+	if (collided) {
+
+		if (result.collider_id == soft_body->get_instance_id()) {
+			print_line("Collided");
+		} else {
+			print_line("Collided but with wrong object: " + itos(result.collider_id));
+		}
+	} else {
+		print_line("Not collided, motion: x: " + rtos(sphere_motion[0]) + " y: " + rtos(sphere_motion[1]) + " z: " + rtos(sphere_motion[2]));
+	}
+	return false;
+	*/
+}
+
+void SoftBodySpatialGizmo::commit_handle(int p_idx, const Variant &p_restore, bool p_cancel) {
+	soft_body->pin_point_toggle(p_idx);
+	redraw();
+}
+
+bool SoftBodySpatialGizmo::is_gizmo_handle_highlighted(int idx) const {
+	return soft_body->is_point_pinned(idx);
+}
+
+SoftBodySpatialGizmo::SoftBodySpatialGizmo(SoftBody *p_soft_physics_body) :
+		EditorSpatialGizmo(),
+		soft_body(p_soft_physics_body) {
+	set_spatial_node(p_soft_physics_body);
+}
+
+SoftBodySpatialGizmo::~SoftBodySpatialGizmo() {
+	//if (!physics_sphere_shape.is_valid()) {
+	//	PhysicsServer::get_singleton()->free(physics_sphere_shape);
+	//}
+}
+
+///////////
+
 String CollisionShapeSpatialGizmo::get_handle_name(int p_idx) const {
 
 	Ref<Shape> s = cs->get_shape();
@@ -1929,6 +2030,11 @@ String CollisionShapeSpatialGizmo::get_handle_name(int p_idx) const {
 	}
 
 	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		return p_idx == 0 ? "Radius" : "Height";
+	}
+
+	if (Object::cast_to<CylinderShape>(*s)) {
 
 		return p_idx == 0 ? "Radius" : "Height";
 	}
@@ -1961,6 +2067,12 @@ Variant CollisionShapeSpatialGizmo::get_handle_value(int p_idx) const {
 	if (Object::cast_to<CapsuleShape>(*s)) {
 
 		Ref<CapsuleShape> cs = s;
+		return p_idx == 0 ? cs->get_radius() : cs->get_height();
+	}
+
+	if (Object::cast_to<CylinderShape>(*s)) {
+
+		Ref<CylinderShape> cs = s;
 		return p_idx == 0 ? cs->get_radius() : cs->get_height();
 	}
 
@@ -2044,6 +2156,24 @@ void CollisionShapeSpatialGizmo::set_handle(int p_idx, Camera *p_camera, const P
 		else if (p_idx == 1)
 			cs->set_height(d * 2.0);
 	}
+
+	if (Object::cast_to<CylinderShape>(*s)) {
+
+		Vector3 axis;
+		axis[p_idx == 0 ? 0 : 1] = 1.0;
+		Ref<CylinderShape> cs = s;
+		Vector3 ra, rb;
+		Geometry::get_closest_points_between_segments(Vector3(), axis * 4096, sg[0], sg[1], ra, rb);
+		float d = axis.dot(ra);
+
+		if (d < 0.001)
+			d = 0.001;
+
+		if (p_idx == 0)
+			cs->set_radius(d);
+		else if (p_idx == 1)
+			cs->set_height(d * 2.0);
+	}
 }
 void CollisionShapeSpatialGizmo::commit_handle(int p_idx, const Variant &p_restore, bool p_cancel) {
 	Ref<Shape> s = cs->get_shape();
@@ -2098,6 +2228,31 @@ void CollisionShapeSpatialGizmo::commit_handle(int p_idx, const Variant &p_resto
 			ur->add_undo_method(ss.ptr(), "set_radius", p_restore);
 		} else {
 			ur->create_action(TTR("Change Capsule Shape Height"));
+			ur->add_do_method(ss.ptr(), "set_height", ss->get_height());
+			ur->add_undo_method(ss.ptr(), "set_height", p_restore);
+		}
+
+		ur->commit_action();
+	}
+
+	if (Object::cast_to<CylinderShape>(*s)) {
+
+		Ref<CylinderShape> ss = s;
+		if (p_cancel) {
+			if (p_idx == 0)
+				ss->set_radius(p_restore);
+			else
+				ss->set_height(p_restore);
+			return;
+		}
+
+		UndoRedo *ur = SpatialEditor::get_singleton()->get_undo_redo();
+		if (p_idx == 0) {
+			ur->create_action(TTR("Change Cylinder Shape Radius"));
+			ur->add_do_method(ss.ptr(), "set_radius", ss->get_radius());
+			ur->add_undo_method(ss.ptr(), "set_radius", p_restore);
+		} else {
+			ur->create_action(TTR("Change Cylinder Shape Height"));
 			ur->add_do_method(ss.ptr(), "set_height", ss->get_height());
 			ur->add_undo_method(ss.ptr(), "set_height", p_restore);
 		}
@@ -2278,6 +2433,67 @@ void CollisionShapeSpatialGizmo::redraw() {
 		Vector<Vector3> handles;
 		handles.push_back(Vector3(cs->get_radius(), 0, 0));
 		handles.push_back(Vector3(0, 0, cs->get_height() * 0.5 + cs->get_radius()));
+		add_handles(handles);
+	}
+
+	if (Object::cast_to<CylinderShape>(*s)) {
+
+		Ref<CylinderShape> cs = s;
+		float radius = cs->get_radius();
+		float height = cs->get_height();
+
+		Vector<Vector3> points;
+
+		Vector3 d(0, height * 0.5, 0);
+		for (int i = 0; i < 360; i++) {
+
+			float ra = Math::deg2rad((float)i);
+			float rb = Math::deg2rad((float)i + 1);
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * radius;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * radius;
+
+			points.push_back(Vector3(a.x, 0, a.y) + d);
+			points.push_back(Vector3(b.x, 0, b.y) + d);
+
+			points.push_back(Vector3(a.x, 0, a.y) - d);
+			points.push_back(Vector3(b.x, 0, b.y) - d);
+
+			if (i % 90 == 0) {
+
+				points.push_back(Vector3(a.x, 0, a.y) + d);
+				points.push_back(Vector3(a.x, 0, a.y) - d);
+			}
+		}
+
+		add_lines(points, material);
+
+		Vector<Vector3> collision_segments;
+
+		for (int i = 0; i < 64; i++) {
+
+			float ra = i * Math_PI * 2.0 / 64.0;
+			float rb = (i + 1) * Math_PI * 2.0 / 64.0;
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * radius;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * radius;
+
+			collision_segments.push_back(Vector3(a.x, 0, a.y) + d);
+			collision_segments.push_back(Vector3(b.x, 0, b.y) + d);
+
+			collision_segments.push_back(Vector3(a.x, 0, a.y) - d);
+			collision_segments.push_back(Vector3(b.x, 0, b.y) - d);
+
+			if (i % 16 == 0) {
+
+				collision_segments.push_back(Vector3(a.x, 0, a.y) + d);
+				collision_segments.push_back(Vector3(a.x, 0, a.y) - d);
+			}
+		}
+
+		add_collision_segments(collision_segments);
+
+		Vector<Vector3> handles;
+		handles.push_back(Vector3(cs->get_radius(), 0, 0));
+		handles.push_back(Vector3(0, cs->get_height() * 0.5, 0));
 		add_handles(handles);
 	}
 
@@ -3155,10 +3371,10 @@ NavigationMeshSpatialGizmo::NavigationMeshSpatialGizmo(NavigationMeshInstance *p
 	navmesh = p_navmesh;
 }
 
-	//////
-	///
-	///
-	///
+//////
+///
+///
+///
 
 #define BODY_A_RADIUS 0.25
 #define BODY_B_RADIUS 0.27
@@ -3934,6 +4150,12 @@ Ref<SpatialEditorGizmo> SpatialEditorGizmos::get_gizmo(Spatial *p_spatial) {
 		return lsg;
 	}
 
+	if (Object::cast_to<SoftBody>(p_spatial)) {
+
+		Ref<SoftBodySpatialGizmo> misg = memnew(SoftBodySpatialGizmo(Object::cast_to<SoftBody>(p_spatial)));
+		return misg;
+	}
+
 	if (Object::cast_to<MeshInstance>(p_spatial)) {
 
 		Ref<MeshInstanceSpatialGizmo> misg = memnew(MeshInstanceSpatialGizmo(Object::cast_to<MeshInstance>(p_spatial)));
@@ -3964,6 +4186,7 @@ Ref<SpatialEditorGizmo> SpatialEditorGizmos::get_gizmo(Spatial *p_spatial) {
 		return misg;
 	}
 */
+
 	if (Object::cast_to<CollisionShape>(p_spatial)) {
 
 		Ref<CollisionShapeSpatialGizmo> misg = memnew(CollisionShapeSpatialGizmo(Object::cast_to<CollisionShape>(p_spatial)));

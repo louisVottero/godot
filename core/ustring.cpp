@@ -161,14 +161,21 @@ void String::copy_from(const CharType *p_cstr, int p_clip_to) {
 		return;
 	}
 
-	resize(len + 1);
-	set(len, 0);
+	copy_from_unchecked(p_cstr, len);
+}
+
+// assumes the following have already been validated:
+// p_char != NULL
+// p_length > 0
+// p_length <= p_char strlen
+void String::copy_from_unchecked(const CharType *p_char, int p_length) {
+	resize(p_length + 1);
+	set(p_length, 0);
 
 	CharType *dst = &operator[](0);
 
-	for (int i = 0; i < len; i++) {
-
-		dst[i] = p_cstr[i];
+	for (int i = 0; i < p_length; i++) {
+		dst[i] = p_char[i];
 	}
 }
 
@@ -757,36 +764,32 @@ Vector<String> String::rsplit(const String &p_splitter, bool p_allow_empty, int 
 
 	Vector<String> ret;
 	const int len = length();
-	int from = len;
+	int remaining_len = len;
 
 	while (true) {
 
-		int end = rfind(p_splitter, from);
-		if (end < 0)
-			end = 0;
-
-		if (p_allow_empty || (end < from)) {
-			const String str = substr(end > 0 ? end + p_splitter.length() : end, end > 0 ? from - end : from + 2);
-
-			if (p_maxsplit <= 0) {
-				ret.push_back(str);
-			} else if (p_maxsplit > 0) {
-
-				// Put rest of the string and leave cycle.
-				if (p_maxsplit == ret.size()) {
-					ret.push_back(substr(0, from + 2));
-					break;
-				}
-
-				// Otherwise, push items until positive limit is reached.
-				ret.push_back(str);
+		if (remaining_len < p_splitter.length() || (p_maxsplit > 0 && p_maxsplit == ret.size())) {
+			// no room for another splitter or hit max splits, push what's left and we're done
+			if (p_allow_empty || remaining_len > 0) {
+				ret.push_back(substr(0, remaining_len));
 			}
+			break;
 		}
 
-		if (end == 0)
-			break;
+		int left_edge = rfind(p_splitter, remaining_len - p_splitter.length());
 
-		from = end - p_splitter.length();
+		if (left_edge < 0) {
+			// no more splitters, we're done
+			ret.push_back(substr(0, remaining_len));
+			break;
+		}
+
+		int substr_start = left_edge + p_splitter.length();
+		if (p_allow_empty || substr_start < remaining_len) {
+			ret.push_back(substr(substr_start, remaining_len - substr_start));
+		}
+
+		remaining_len = left_edge;
 	}
 
 	ret.invert();
@@ -925,8 +928,8 @@ String String::to_upper() const {
 
 	for (int i = 0; i < upper.size(); i++) {
 
-		const char s = upper[i];
-		const char t = _find_upper(s);
+		const CharType s = upper[i];
+		const CharType t = _find_upper(s);
 		if (s != t) // avoid copy on write
 			upper[i] = t;
 	}
@@ -940,8 +943,8 @@ String String::to_lower() const {
 
 	for (int i = 0; i < lower.size(); i++) {
 
-		const char s = lower[i];
-		const char t = _find_lower(s);
+		const CharType s = lower[i];
+		const CharType t = _find_lower(s);
 		if (s != t) // avoid copy on write
 			lower[i] = t;
 	}
@@ -2250,7 +2253,9 @@ String String::substr(int p_from, int p_chars) const {
 		return String(*this);
 	}
 
-	return String(&c_str()[p_from], p_chars);
+	String s = String();
+	s.copy_from_unchecked(&c_str()[p_from], p_chars);
+	return s;
 }
 
 int String::find_last(const String &p_str) const {

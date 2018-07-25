@@ -288,8 +288,8 @@ void AnimationNodeOneShot::_bind_methods() {
 	ADD_GROUP("", "");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "sync"), "set_use_sync", "is_using_sync");
 
-	BIND_CONSTANT(MIX_MODE_BLEND)
-	BIND_CONSTANT(MIX_MODE_ADD)
+	BIND_ENUM_CONSTANT(MIX_MODE_BLEND)
+	BIND_ENUM_CONSTANT(MIX_MODE_ADD)
 }
 
 AnimationNodeOneShot::AnimationNodeOneShot() {
@@ -1036,6 +1036,7 @@ bool AnimationNodeBlendTree::_set(const StringName &p_name, const Variant &p_val
 
 	String name = p_name;
 	if (name.begins_with("nodes/")) {
+
 		String node_name = name.get_slicec('/', 1);
 		String what = name.get_slicec('/', 2);
 

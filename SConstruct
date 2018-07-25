@@ -74,6 +74,7 @@ env_base.android_gradle_plugins = []
 env_base.android_gradle_classpath = []
 env_base.android_java_dirs = []
 env_base.android_res_dirs = []
+env_base.android_asset_dirs = []
 env_base.android_aidl_dirs = []
 env_base.android_jni_dirs = []
 env_base.android_default_config = []
@@ -99,6 +100,7 @@ env_base.__class__.android_add_flat_dir = methods.android_add_flat_dir
 env_base.__class__.android_add_dependency = methods.android_add_dependency
 env_base.__class__.android_add_java_dir = methods.android_add_java_dir
 env_base.__class__.android_add_res_dir = methods.android_add_res_dir
+env_base.__class__.android_add_asset_dir = methods.android_add_asset_dir
 env_base.__class__.android_add_aidl_dir = methods.android_add_aidl_dir
 env_base.__class__.android_add_jni_dir = methods.android_add_jni_dir
 env_base.__class__.android_add_default_config = methods.android_add_default_config
@@ -143,6 +145,7 @@ opts.Add(EnumVariable('bits', "Target platform bits", 'default', ('default', '32
 opts.Add('p', "Platform (alias for 'platform')", '')
 opts.Add('platform', "Target platform (%s)" % ('|'.join(platform_list), ), '')
 opts.Add(EnumVariable('target', "Compilation target", 'debug', ('debug', 'release_debug', 'release')))
+opts.Add(EnumVariable('optimize', "Optimization type", 'speed', ('speed', 'size')))
 opts.Add(BoolVariable('tools', "Build the tools (a.k.a. the Godot editor)", True))
 opts.Add(BoolVariable('use_lto', 'Use link-time optimization', False))
 
@@ -406,6 +409,11 @@ if selected_platform in platform_list:
 
     env["PROGSUFFIX"] = suffix + env.module_version_string + env["PROGSUFFIX"]
     env["OBJSUFFIX"] = suffix + env["OBJSUFFIX"]
+    # (SH)LIBSUFFIX will be used for our own built libraries
+    # LIBSUFFIXES contains LIBSUFFIX and SHLIBSUFFIX by default,
+    # so we need to append the default suffixes to keep the ability
+    # to link against thirdparty libraries (.a, .so, .dll, etc.).
+    env["LIBSUFFIXES"] += [env["LIBSUFFIX"], env["SHLIBSUFFIX"]]
     env["LIBSUFFIX"] = suffix + env["LIBSUFFIX"]
     env["SHLIBSUFFIX"] = suffix + env["SHLIBSUFFIX"]
 
@@ -414,11 +422,19 @@ if selected_platform in platform_list:
     if env['tools']:
         env.Append(CPPDEFINES=['TOOLS_ENABLED'])
     if env['disable_3d']:
-        env.Append(CPPDEFINES=['_3D_DISABLED'])
+        if env['tools']:
+            print("Build option 'disable_3d=yes' cannot be used with 'tools=yes' (editor), only with 'tools=no' (export template).")
+            sys.exit(255)
+        else:
+            env.Append(CPPDEFINES=['_3D_DISABLED'])
     if env['gdscript']:
         env.Append(CPPDEFINES=['GDSCRIPT_ENABLED'])
     if env['disable_advanced_gui']:
-        env.Append(CPPDEFINES=['ADVANCED_GUI_DISABLED'])
+        if env['tools']:
+            print("Build option 'disable_advanced_gui=yes' cannot be used with 'tools=yes' (editor), only with 'tools=no' (export template).")
+            sys.exit(255)
+        else:
+            env.Append(CPPDEFINES=['ADVANCED_GUI_DISABLED'])
     if env['minizip']:
         env.Append(CPPDEFINES=['MINIZIP_ENABLED'])
     if env['xml']:

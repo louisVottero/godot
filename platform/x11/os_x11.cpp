@@ -84,6 +84,10 @@ void OS_X11::initialize_core() {
 	OS_Unix::initialize_core();
 }
 
+int OS_X11::get_current_video_driver() const {
+	return video_driver_index;
+}
+
 Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) {
 
 	long im_event_mask = 0;
@@ -285,6 +289,8 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 		} break;
 	}
 
+	video_driver_index = p_video_driver; // FIXME TODO - FIX IF DRIVER DETECTION HAPPENS AND GLES2 MUST BE USED
+
 	context_gl->set_use_vsync(current_videomode.use_vsync);
 
 #endif
@@ -335,6 +341,10 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	}
 
 	AudioDriverManager::initialize(p_audio_driver);
+
+#ifdef ALSAMIDI_ENABLED
+	driver_alsamidi.open();
+#endif
 
 	ERR_FAIL_COND_V(!visual_server, ERR_UNAVAILABLE);
 	ERR_FAIL_COND_V(x11_window == 0, ERR_UNAVAILABLE);
@@ -600,6 +610,9 @@ void OS_X11::finalize() {
 		memdelete(debugger_connection_console);
 	}
 	*/
+#ifdef ALSAMIDI_ENABLED
+	driver_alsamidi.close();
+#endif
 
 #ifdef JOYDEV_ENABLED
 	memdelete(joypad);

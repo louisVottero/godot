@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  resource_importer_webm.h                                             */
+/*  midi_driver.h                                                        */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,29 +28,32 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef RESOURCEIMPORTERWEBM_H
-#define RESOURCEIMPORTERWEBM_H
+#ifndef MIDI_DRIVER_H
+#define MIDI_DRIVER_H
 
-#include "io/resource_import.h"
+#include "core/variant.h"
+#include "typedefs.h"
+/**
+ * Multi-Platform abstraction for accessing to MIDI.
+ */
 
-class ResourceImporterWebm : public ResourceImporter {
-	GDCLASS(ResourceImporterWebm, ResourceImporter)
+class MIDIDriver {
+
+	static MIDIDriver *singleton;
+
 public:
-	virtual String get_importer_name() const;
-	virtual String get_visible_name() const;
-	virtual void get_recognized_extensions(List<String> *p_extensions) const;
-	virtual String get_save_extension() const;
-	virtual String get_resource_type() const;
+	static MIDIDriver *get_singleton();
+	void set_singleton();
 
-	virtual int get_preset_count() const;
-	virtual String get_preset_name(int p_idx) const;
+	virtual Error open() = 0;
+	virtual void close() = 0;
 
-	virtual void get_import_options(List<ImportOption> *r_options, int p_preset = 0) const;
-	virtual bool get_option_visibility(const String &p_option, const Map<StringName, Variant> &p_options) const;
+	virtual PoolStringArray get_connected_inputs();
 
-	virtual Error import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files = NULL);
+	static void receive_input_packet(uint64_t timestamp, uint8_t *data, uint32_t length);
 
-	ResourceImporterWebm();
+	MIDIDriver();
+	virtual ~MIDIDriver() {}
 };
 
-#endif // RESOURCEIMPORTERWEBM_H
+#endif

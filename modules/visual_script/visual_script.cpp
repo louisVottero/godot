@@ -1333,6 +1333,19 @@ VisualScript::VisualScript() {
 	base_type = "Object";
 }
 
+Set<int> VisualScript::get_output_sequence_ports_connected(const String &edited_func, int from_node) {
+	List<VisualScript::SequenceConnection> *sc = memnew(List<VisualScript::SequenceConnection>);
+	get_sequence_connection_list(edited_func, sc);
+	Set<int> connected;
+	for (List<VisualScript::SequenceConnection>::Element *E = sc->front(); E; E = E->next()) {
+		if (E->get().from_node == from_node) {
+			connected.insert(E->get().from_output);
+		}
+	}
+	memdelete(sc);
+	return connected;
+}
+
 VisualScript::~VisualScript() {
 
 	while (!functions.empty()) {
@@ -2402,7 +2415,7 @@ void VisualScriptLanguage::make_template(const String &p_class_name, const Strin
 	script->set_instance_base_type(p_base_class_name);
 }
 
-bool VisualScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions) const {
+bool VisualScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, Set<int> *r_safe_lines) const {
 
 	return false;
 }

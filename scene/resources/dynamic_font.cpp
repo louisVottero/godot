@@ -211,9 +211,9 @@ Error DynamicFontAtSize::_load() {
 				scale_color_font = float(id.size) / face->available_sizes[i].width;
 			}
 		}
-		error = FT_Select_Size(face, best_match);
+		FT_Select_Size(face, best_match);
 	} else {
-		error = FT_Set_Pixel_Sizes(face, 0, id.size * oversampling);
+		FT_Set_Pixel_Sizes(face, 0, id.size * oversampling);
 	}
 
 	ascent = (face->size->metrics.ascender / 64.0) / oversampling * scale_color_font;
@@ -625,7 +625,7 @@ void DynamicFontAtSize::_update_char(CharType p_char) {
 			break;
 	}
 
-	int error = FT_Load_Char(face, p_char, FT_HAS_COLOR(face) ? FT_LOAD_COLOR : FT_LOAD_DEFAULT | (font->force_autohinter ? FT_LOAD_FORCE_AUTOHINT : 0));
+	int error = FT_Load_Char(face, p_char, FT_HAS_COLOR(face) ? FT_LOAD_COLOR : FT_LOAD_DEFAULT | (font->force_autohinter ? FT_LOAD_FORCE_AUTOHINT : 0) | ft_hinting);
 	if (error) {
 		char_map[p_char] = character;
 		return;
