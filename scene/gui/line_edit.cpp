@@ -29,12 +29,12 @@
 /*************************************************************************/
 
 #include "line_edit.h"
+#include "core/message_queue.h"
+#include "core/os/keyboard.h"
+#include "core/os/os.h"
+#include "core/print_string.h"
+#include "core/translation.h"
 #include "label.h"
-#include "message_queue.h"
-#include "os/keyboard.h"
-#include "os/os.h"
-#include "print_string.h"
-#include "translation.h"
 
 #ifdef TOOLS_ENABLED
 #include "editor/editor_scale.h"
@@ -866,15 +866,14 @@ void LineEdit::_notification(int p_what) {
 
 void LineEdit::copy_text() {
 
-	if (selection.enabled) {
-
+	if (selection.enabled && !pass) {
 		OS::get_singleton()->set_clipboard(text.substr(selection.begin, selection.end - selection.begin));
 	}
 }
 
 void LineEdit::cut_text() {
 
-	if (selection.enabled) {
+	if (selection.enabled && !pass) {
 		OS::get_singleton()->set_clipboard(text.substr(selection.begin, selection.end - selection.begin));
 		selection_delete();
 	}

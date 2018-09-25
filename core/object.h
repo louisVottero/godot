@@ -31,13 +31,13 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "hash_map.h"
-#include "list.h"
-#include "map.h"
-#include "os/rw_lock.h"
-#include "set.h"
-#include "variant.h"
-#include "vmap.h"
+#include "core/hash_map.h"
+#include "core/list.h"
+#include "core/map.h"
+#include "core/os/rw_lock.h"
+#include "core/set.h"
+#include "core/variant.h"
+#include "core/vmap.h"
 
 #define VARIANT_ARG_LIST const Variant &p_arg1 = Variant(), const Variant &p_arg2 = Variant(), const Variant &p_arg3 = Variant(), const Variant &p_arg4 = Variant(), const Variant &p_arg5 = Variant()
 #define VARIANT_ARG_PASS p_arg1, p_arg2, p_arg3, p_arg4, p_arg5
@@ -71,6 +71,7 @@ enum PropertyHint {
 	PROPERTY_HINT_GLOBAL_DIR, ///< a directory path must be passed
 	PROPERTY_HINT_RESOURCE_TYPE, ///< a resource object type
 	PROPERTY_HINT_MULTILINE_TEXT, ///< used for string properties that can contain multiple lines
+	PROPERTY_HINT_PLACEHOLDER_TEXT, ///< used to set a placeholder text for string properties
 	PROPERTY_HINT_COLOR_NO_ALPHA, ///< used for ignoring alpha component when editing a color
 	PROPERTY_HINT_IMAGE_COMPRESS_LOSSY,
 	PROPERTY_HINT_IMAGE_COMPRESS_LOSSLESS,
@@ -391,7 +392,8 @@ public:
 
 		CONNECT_DEFERRED = 1,
 		CONNECT_PERSIST = 2, // hint for scene to save this connection
-		CONNECT_ONESHOT = 4
+		CONNECT_ONESHOT = 4,
+		CONNECT_REFERENCE_COUNTED = 8,
 	};
 
 	struct Connection {
@@ -442,8 +444,10 @@ private:
 
 		struct Slot {
 
+			int reference_count;
 			Connection conn;
 			List<Connection>::Element *cE;
+			Slot() { reference_count = 0; }
 		};
 
 		MethodInfo user;
@@ -486,9 +490,11 @@ private:
 	void _set_indexed_bind(const NodePath &p_name, const Variant &p_value);
 	Variant _get_indexed_bind(const NodePath &p_name) const;
 
-	void *_script_instance_bindings[MAX_SCRIPT_INSTANCE_BINDINGS];
-
 	void property_list_changed_notify();
+
+	friend class Reference;
+	uint32_t instance_binding_count;
+	void *_script_instance_bindings[MAX_SCRIPT_INSTANCE_BINDINGS];
 
 protected:
 	virtual void _initialize_classv() { initialize_class(); }
@@ -546,6 +552,8 @@ protected:
 
 	friend class ClassDB;
 	virtual void _validate_property(PropertyInfo &property) const;
+
+	void _disconnect(const StringName &p_signal, Object *p_to_object, const StringName &p_to_method, bool p_force = false);
 
 public: //should be protected, but bug in clang++
 	static void initialize_class();
@@ -771,6 +779,6 @@ public:
 };
 
 //needed by macros
-#include "class_db.h"
+#include "core/class_db.h"
 
 #endif

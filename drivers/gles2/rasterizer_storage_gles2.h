@@ -27,11 +27,12 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #ifndef RASTERIZERSTORAGEGLES2_H
 #define RASTERIZERSTORAGEGLES2_H
 
-#include "dvector.h"
-#include "self_list.h"
+#include "core/dvector.h"
+#include "core/self_list.h"
 #include "servers/visual/rasterizer.h"
 #include "servers/visual/shader_language.h"
 #include "shader_compiler_gles2.h"
@@ -325,7 +326,7 @@ public:
 
 	mutable RID_Owner<Texture> texture_owner;
 
-	Ref<Image> _get_gl_image_and_format(const Ref<Image> &p_image, Image::Format p_format, uint32_t p_flags, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed);
+	Ref<Image> _get_gl_image_and_format(const Ref<Image> &p_image, Image::Format p_format, uint32_t p_flags, Image::Format &r_real_format, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed) const;
 
 	virtual RID texture_create();
 	virtual void texture_allocate(RID p_texture, int p_width, int p_height, int p_depth_3d, Image::Format p_format, VS::TextureType p_type, uint32_t p_flags = VS::TEXTURE_FLAGS_DEFAULT);
@@ -404,6 +405,9 @@ public:
 		bool valid;
 
 		String path;
+
+		uint32_t index;
+		uint64_t last_pass;
 
 		struct CanvasItem {
 
@@ -490,6 +494,7 @@ public:
 			valid = false;
 			custom_code_id = 0;
 			version = 1;
+			last_pass = 0;
 		}
 	};
 
@@ -562,6 +567,7 @@ public:
 
 	virtual void material_set_param(RID p_material, const StringName &p_param, const Variant &p_value);
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const;
+	virtual Variant material_get_param_default(RID p_material, const StringName &p_param) const;
 
 	virtual void material_set_line_width(RID p_material, float p_width);
 	virtual void material_set_next_pass(RID p_material, RID p_next_material);

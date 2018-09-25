@@ -31,8 +31,8 @@
 #ifndef VECTOR2_H
 #define VECTOR2_H
 
-#include "math_funcs.h"
-#include "ustring.h"
+#include "core/math/math_funcs.h"
+#include "core/ustring.h"
 
 struct Vector2i;
 
@@ -68,7 +68,7 @@ struct Vector2 {
 
 	real_t dot(const Vector2 &p_other) const;
 	real_t cross(const Vector2 &p_other) const;
-	Vector2 project(const Vector2 &p_vec) const;
+	Vector2 project(const Vector2 &p_b) const;
 
 	Vector2 plane_project(real_t p_d, const Vector2 &p_vec) const;
 

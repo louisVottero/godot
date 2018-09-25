@@ -31,10 +31,10 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "resource.h"
+#include "core/resource.h"
+#include "core/self_list.h"
 #include "scene/resources/shader.h"
 #include "scene/resources/texture.h"
-#include "self_list.h"
 #include "servers/visual/shader_language.h"
 #include "servers/visual_server.h"
 /**
@@ -85,6 +85,8 @@ protected:
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
 	void _get_property_list(List<PropertyInfo> *p_list) const;
+	bool property_can_revert(const String &p_name);
+	Variant property_get_revert(const String &p_name);
 
 	static void _bind_methods();
 
@@ -233,6 +235,13 @@ public:
 		EMISSION_OP_MULTIPLY
 	};
 
+	enum DistanceFadeMode {
+		DISTANCE_FADE_DISABLED,
+		DISTANCE_FADE_PIXEL_ALPHA,
+		DISTANCE_FADE_PIXEL_DITHER,
+		DISTANCE_FADE_OBJECT_DITHER,
+	};
+
 private:
 	union MaterialKey {
 
@@ -251,7 +260,7 @@ private:
 			uint64_t billboard_mode : 2;
 			uint64_t grow : 1;
 			uint64_t proximity_fade : 1;
-			uint64_t distance_fade : 1;
+			uint64_t distance_fade : 2;
 			uint64_t emission_op : 1;
 		};
 
@@ -296,7 +305,7 @@ private:
 		mk.deep_parallax = deep_parallax ? 1 : 0;
 		mk.grow = grow_enabled;
 		mk.proximity_fade = proximity_fade_enabled;
-		mk.distance_fade = distance_fade_enabled;
+		mk.distance_fade = distance_fade;
 		mk.emission_op = emission_op;
 
 		return mk;
@@ -402,7 +411,7 @@ private:
 	bool proximity_fade_enabled;
 	float proximity_fade_distance;
 
-	bool distance_fade_enabled;
+	DistanceFadeMode distance_fade;
 	float distance_fade_max_distance;
 	float distance_fade_min_distance;
 
@@ -583,8 +592,8 @@ public:
 	void set_proximity_fade_distance(float p_distance);
 	float get_proximity_fade_distance() const;
 
-	void set_distance_fade(bool p_enable);
-	bool is_distance_fade_enabled() const;
+	void set_distance_fade(DistanceFadeMode p_mode);
+	DistanceFadeMode get_distance_fade() const;
 
 	void set_distance_fade_max_distance(float p_distance);
 	float get_distance_fade_max_distance() const;
@@ -630,6 +639,7 @@ VARIANT_ENUM_CAST(SpatialMaterial::SpecularMode)
 VARIANT_ENUM_CAST(SpatialMaterial::BillboardMode)
 VARIANT_ENUM_CAST(SpatialMaterial::TextureChannel)
 VARIANT_ENUM_CAST(SpatialMaterial::EmissionOperator)
+VARIANT_ENUM_CAST(SpatialMaterial::DistanceFadeMode)
 
 //////////////////////
 

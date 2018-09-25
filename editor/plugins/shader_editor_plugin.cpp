@@ -37,7 +37,6 @@
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
 #include "editor/property_editor.h"
-#include "scene/resources/shader_graph.h"
 #include "servers/visual/shader_types.h"
 
 /*** SHADER SCRIPT EDITOR ****/
@@ -167,7 +166,6 @@ void ShaderTextEditor::_check_shader_mode() {
 
 	String type = ShaderLanguage::get_shader_type(get_text_edit()->get_text());
 
-	print_line("type is: " + type);
 	Shader::Mode mode;
 
 	if (type == "canvas_item") {
@@ -428,7 +426,7 @@ void ShaderEditor::ensure_select_current() {
 
 void ShaderEditor::edit(const Ref<Shader> &p_shader) {
 
-	if (p_shader.is_null())
+	if (p_shader.is_null() || !p_shader->is_text_shader())
 		return;
 
 	shader = p_shader;
@@ -482,7 +480,7 @@ void ShaderEditor::_text_edit_gui_input(const Ref<InputEvent> &ev) {
 					int to_column = tx->get_selection_to_column();
 
 					if (row < from_line || row > to_line || (row == from_line && col < from_column) || (row == to_line && col > to_column)) {
-						// Right click is outside the seleted text
+						// Right click is outside the selected text
 						tx->deselect();
 					}
 				}
@@ -608,7 +606,7 @@ void ShaderEditorPlugin::edit(Object *p_object) {
 bool ShaderEditorPlugin::handles(Object *p_object) const {
 
 	Shader *shader = Object::cast_to<Shader>(p_object);
-	return shader != NULL;
+	return shader != NULL && shader->is_text_shader();
 }
 
 void ShaderEditorPlugin::make_visible(bool p_visible) {

@@ -61,7 +61,7 @@ void EditorPropertyText::_text_changed(const String &p_string) {
 	if (updating)
 		return;
 
-	emit_signal("property_changed", get_edited_property(), p_string);
+	emit_signal("property_changed", get_edited_property(), p_string, true);
 }
 
 void EditorPropertyText::update_property() {
@@ -70,6 +70,10 @@ void EditorPropertyText::update_property() {
 	text->set_text(s);
 	text->set_editable(!is_read_only());
 	updating = false;
+}
+
+void EditorPropertyText::set_placeholder(const String &p_string) {
+	text->set_placeholder(p_string);
 }
 
 void EditorPropertyText::_bind_methods() {
@@ -92,12 +96,11 @@ EditorPropertyText::EditorPropertyText() {
 
 void EditorPropertyMultilineText::_big_text_changed() {
 	text->set_text(big_text->get_text());
-	emit_signal("property_changed", get_edited_property(), big_text->get_text());
+	emit_signal("property_changed", get_edited_property(), big_text->get_text(), true);
 }
 
 void EditorPropertyMultilineText::_text_changed() {
-
-	emit_signal("property_changed", get_edited_property(), text->get_text());
+	emit_signal("property_changed", get_edited_property(), text->get_text(), true);
 }
 
 void EditorPropertyMultilineText::_open_big_text() {
@@ -255,19 +258,40 @@ void EditorPropertyPath::setup(const Vector<String> &p_extensions, bool p_folder
 	global = p_global;
 }
 
+void EditorPropertyPath::_notification(int p_what) {
+
+	if (p_what == NOTIFICATION_ENTER_TREE || p_what == NOTIFICATION_THEME_CHANGED) {
+		path_edit->set_icon(get_icon("Folder", "EditorIcons"));
+	}
+}
+
+void EditorPropertyPath::_path_focus_exited() {
+
+	_path_selected(path->get_text());
+}
+
 void EditorPropertyPath::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_path_pressed"), &EditorPropertyPath::_path_pressed);
 	ClassDB::bind_method(D_METHOD("_path_selected"), &EditorPropertyPath::_path_selected);
+	ClassDB::bind_method(D_METHOD("_path_focus_exited"), &EditorPropertyPath::_path_focus_exited);
 }
 
 EditorPropertyPath::EditorPropertyPath() {
-	path = memnew(Button);
-	path->set_clip_text(true);
-	add_child(path);
+	HBoxContainer *path_hb = memnew(HBoxContainer);
+	add_child(path_hb);
+	path = memnew(LineEdit);
+	path_hb->add_child(path);
+	path->connect("text_entered", this, "_path_selected");
+	path->connect("focus_exited", this, "_path_focus_exited");
+	path->set_h_size_flags(SIZE_EXPAND_FILL);
+
+	path_edit = memnew(Button);
+	path_edit->set_clip_text(true);
+	path_hb->add_child(path_edit);
 	add_focusable(path);
 	dialog = NULL;
-	path->connect("pressed", this, "_path_pressed");
+	path_edit->connect("pressed", this, "_path_pressed");
 	folder = false;
 	global = false;
 }
@@ -627,6 +651,7 @@ public:
 			int h = bsize * 2 + 1;
 			int vofs = (rect.size.height - h) / 2;
 
+			Color color = get_color("highlight_color", "Editor");
 			for (int i = 0; i < 2; i++) {
 
 				Point2 ofs(4, vofs);
@@ -643,7 +668,8 @@ public:
 					uint32_t idx = i * 10 + j;
 					bool on = value & (1 << idx);
 					Rect2 rect = Rect2(o, Size2(bsize, bsize));
-					draw_rect(rect, Color(0, 0, 0, on ? 0.8 : 0.3));
+					color.a = on ? 0.6 : 0.2;
+					draw_rect(rect, color);
 					flag_rects.push_back(rect);
 				}
 			}
@@ -820,18 +846,11 @@ void EditorPropertyObjectID::update_property() {
 	if (type == "")
 		type = "Object";
 
-	String icon_type = type;
-	if (has_icon(icon_type, "EditorIcons")) {
-		type = icon_type;
-	} else {
-		type = "Object";
-	}
-
 	ObjectID id = get_edited_object()->get(get_edited_property());
 	if (id != 0) {
 		edit->set_text(type + " ID: " + itos(id));
 		edit->set_disabled(false);
-		edit->set_icon(get_icon(icon_type, "EditorIcons"));
+		edit->set_icon(EditorNode::get_singleton()->get_class_icon(type));
 	} else {
 		edit->set_text(TTR("[Empty]"));
 		edit->set_disabled(true);
@@ -1735,12 +1754,18 @@ EditorPropertyTransform::EditorPropertyTransform() {
 
 void EditorPropertyColor::_color_changed(const Color &p_color) {
 
-	emit_signal("property_changed", get_edited_property(), p_color);
+	emit_signal("property_changed", get_edited_property(), p_color, true);
+}
+
+void EditorPropertyColor::_popup_closed() {
+
+	emit_signal("property_changed", get_edited_property(), picker->get_pick_color(), false);
 }
 
 void EditorPropertyColor::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_color_changed"), &EditorPropertyColor::_color_changed);
+	ClassDB::bind_method(D_METHOD("_popup_closed"), &EditorPropertyColor::_popup_closed);
 }
 
 void EditorPropertyColor::update_property() {
@@ -1758,6 +1783,7 @@ EditorPropertyColor::EditorPropertyColor() {
 	add_child(picker);
 	picker->set_flat(true);
 	picker->connect("color_changed", this, "_color_changed");
+	picker->connect("popup_closed", this, "_popup_closed");
 }
 
 ////////////// NODE PATH //////////////////////
@@ -1825,14 +1851,7 @@ void EditorPropertyNodePath::update_property() {
 	ERR_FAIL_COND(!target_node);
 
 	assign->set_text(target_node->get_name());
-
-	Ref<Texture> icon;
-	if (has_icon(target_node->get_class(), "EditorIcons"))
-		icon = get_icon(target_node->get_class(), "EditorIcons");
-	else
-		icon = get_icon("Node", "EditorIcons");
-
-	assign->set_icon(icon);
+	assign->set_icon(EditorNode::get_singleton()->get_object_icon(target_node, "Node"));
 }
 
 void EditorPropertyNodePath::setup(const NodePath &p_base_hint, Vector<StringName> p_valid_types) {
@@ -1872,7 +1891,7 @@ EditorPropertyNodePath::EditorPropertyNodePath() {
 	clear->connect("pressed", this, "_node_clear");
 	hbc->add_child(clear);
 
-	scene_tree = NULL; //do not allocate unnecesarily
+	scene_tree = NULL; //do not allocate unnecessarily
 }
 
 ////////////// RESOURCE //////////////////////
@@ -2052,7 +2071,7 @@ void EditorPropertyResource::_menu_option(int p_which) {
 			ERR_BREAK(!resp);
 			if (get_edited_object() && base_type != String() && base_type == "Script") {
 				//make visual script the right type
-				res->call("set_instance_base_type", get_edited_object()->get_class());
+				resp->call("set_instance_base_type", get_edited_object()->get_class());
 			}
 
 			res = Ref<Resource>(resp);
@@ -2330,13 +2349,7 @@ void EditorPropertyResource::update_property() {
 		assign->set_text(TTR("[empty]"));
 	} else {
 
-		Ref<Texture> icon;
-		if (has_icon(res->get_class(), "EditorIcons"))
-			icon = get_icon(res->get_class(), "EditorIcons");
-		else
-			icon = get_icon("Node", "EditorIcons");
-
-		assign->set_icon(icon);
+		assign->set_icon(EditorNode::get_singleton()->get_object_icon(res.operator->(), "Node"));
 
 		if (res->get_name() != String()) {
 			assign->set_text(res->get_name());
@@ -2637,7 +2650,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 					case PROPERTY_HINT_LAYERS_3D_PHYSICS:
 						lt = EditorPropertyLayers::LAYER_PHYSICS_3D;
 						break;
-					default: {} //compiler could be smarter here and realize this cant happen
+					default: {} //compiler could be smarter here and realize this can't happen
 				}
 				EditorPropertyLayers *editor = memnew(EditorPropertyLayers);
 				editor->setup(lt);
@@ -2654,7 +2667,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 				bool greater = true, lesser = true;
 
 				if (p_hint == PROPERTY_HINT_RANGE && p_hint_text.get_slice_count(",") >= 2) {
-					greater = false; //if using ranged, asume false by default
+					greater = false; //if using ranged, assume false by default
 					lesser = false;
 					min = p_hint_text.get_slice(",", 0).to_int();
 					max = p_hint_text.get_slice(",", 1).to_int();
@@ -2702,7 +2715,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 				bool greater = true, lesser = true;
 
 				if ((p_hint == PROPERTY_HINT_RANGE || p_hint == PROPERTY_HINT_EXP_RANGE) && p_hint_text.get_slice_count(",") >= 2) {
-					greater = false; //if using ranged, asume false by default
+					greater = false; //if using ranged, assume false by default
 					lesser = false;
 					min = p_hint_text.get_slice(",", 0).to_double();
 					max = p_hint_text.get_slice(",", 1).to_double();
@@ -2777,6 +2790,9 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 			} else {
 
 				EditorPropertyText *editor = memnew(EditorPropertyText);
+				if (p_hint == PROPERTY_HINT_PLACEHOLDER_TEXT) {
+					editor->set_placeholder(p_hint_text);
+				}
 				add_property_editor(p_path, editor);
 			}
 		} break;
@@ -3032,7 +3048,7 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 		default: {}
 	}
 
-	return false; //can be overriden, although it will most likely be last anyway
+	return false; //can be overridden, although it will most likely be last anyway
 }
 
 void EditorInspectorDefaultPlugin::parse_end() {

@@ -30,7 +30,7 @@
 
 #include "animation.h"
 
-#include "geometry.h"
+#include "core/math/geometry.h"
 
 #define ANIM_MIN_LENGTH 0.001
 
@@ -1442,7 +1442,7 @@ void Animation::track_set_key_transition(int p_track, int p_key_idx, float p_tra
 		case TYPE_BEZIER:
 		case TYPE_AUDIO:
 		case TYPE_ANIMATION: {
-			// they dont use transition
+			// they don't use transition
 		} break;
 	}
 }
@@ -2906,8 +2906,6 @@ bool Animation::_transform_track_optimize_key(const TKey<TransformKey> &t0, cons
 				//able to optimize more
 				erase = false;
 			} else {
-
-				//print_line(itos(i)+"because of interp");
 			}
 		}
 	}

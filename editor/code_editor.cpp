@@ -30,10 +30,10 @@
 
 #include "code_editor.h"
 
+#include "core/os/keyboard.h"
 #include "editor/editor_scale.h"
 #include "editor_node.h"
 #include "editor_settings.h"
-#include "os/keyboard.h"
 #include "scene/gui/margin_container.h"
 #include "scene/gui/separator.h"
 #include "scene/resources/dynamic_font.h"
@@ -374,7 +374,7 @@ void FindReplaceBar::_hide_bar() {
 void FindReplaceBar::_show_search() {
 
 	show();
-	search_text->grab_focus();
+	search_text->call_deferred("grab_focus");
 
 	if (text_edit->is_selection_active() && !selection_only->is_pressed()) {
 		search_text->set_text(text_edit->get_selection_text());
@@ -717,7 +717,6 @@ void CodeTextEditor::_complete_request() {
 	if (code_complete_func) {
 		code_complete_func(code_complete_ud, ctext, &entries, forced);
 	}
-	// print_line("COMPLETE: "+p_request);
 	if (entries.size() == 0)
 		return;
 	Vector<String> strs;

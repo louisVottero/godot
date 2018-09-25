@@ -27,11 +27,14 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "rasterizer_canvas_gles2.h"
-#include "os/os.h"
-#include "project_settings.h"
+
+#include "core/os/os.h"
+#include "core/project_settings.h"
 #include "rasterizer_scene_gles2.h"
 #include "servers/visual/visual_server_raster.h"
+
 #ifndef GLES_OVER_GL
 #define glClearDepth glClearDepthf
 #endif
@@ -152,7 +155,7 @@ RasterizerStorageGLES2::Texture *RasterizerCanvasGLES2::_bind_canvas_texture(con
 			state.current_tex = RID();
 			state.current_tex_ptr = NULL;
 
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE0 + storage->config.max_texture_image_units - 1);
 			glBindTexture(GL_TEXTURE_2D, storage->resources.white_tex);
 
 		} else {
@@ -167,7 +170,7 @@ RasterizerStorageGLES2::Texture *RasterizerCanvasGLES2::_bind_canvas_texture(con
 				texture->render_target->used_in_frame = true;
 			}
 
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE0 + storage->config.max_texture_image_units - 1);
 			glBindTexture(GL_TEXTURE_2D, texture->tex_id);
 
 			state.current_tex = p_texture;
@@ -179,7 +182,7 @@ RasterizerStorageGLES2::Texture *RasterizerCanvasGLES2::_bind_canvas_texture(con
 		state.current_tex = RID();
 		state.current_tex_ptr = NULL;
 
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE0 + storage->config.max_texture_image_units - 1);
 		glBindTexture(GL_TEXTURE_2D, storage->resources.white_tex);
 	}
 
@@ -486,7 +489,8 @@ void RasterizerCanvasGLES2::_canvas_item_render_commands(Item *p_item, Item *cur
 				RasterizerStorageGLES2::Texture *tex = _bind_canvas_texture(np->texture, np->normal_map);
 
 				if (!tex) {
-					print_line("TODO: ninepatch without texture");
+					// FIXME: Handle textureless ninepatch gracefully
+					WARN_PRINT("NinePatch without texture not supported yet in GLES2 backend, skipping.");
 					continue;
 				}
 
@@ -561,7 +565,7 @@ void RasterizerCanvasGLES2::_canvas_item_render_commands(Item *p_item, Item *cur
 					buffer[(1 * 4 * 4) + 14] = (source.position.x + source.size.x) * texpixel_size.x;
 					buffer[(1 * 4 * 4) + 15] = (source.position.y + np->margin[MARGIN_TOP]) * texpixel_size.y;
 
-					// thrid row
+					// third row
 
 					buffer[(2 * 4 * 4) + 0] = np->rect.position.x;
 					buffer[(2 * 4 * 4) + 1] = np->rect.position.y + np->rect.size.y - np->margin[MARGIN_BOTTOM];
@@ -612,8 +616,6 @@ void RasterizerCanvasGLES2::_canvas_item_render_commands(Item *p_item, Item *cur
 
 					buffer[(3 * 4 * 4) + 14] = (source.position.x + source.size.x) * texpixel_size.x;
 					buffer[(3 * 4 * 4) + 15] = (source.position.y + source.size.y) * texpixel_size.y;
-
-					// print_line(String::num((source.position.y + source.size.y) * texpixel_size.y));
 				}
 
 				glBindBuffer(GL_ARRAY_BUFFER, data.ninepatch_vertices);
@@ -789,7 +791,8 @@ void RasterizerCanvasGLES2::_canvas_item_render_commands(Item *p_item, Item *cur
 			} break;
 
 			default: {
-				print_line("other");
+				// FIXME: Proper error handling if relevant
+				//print_line("other");
 			} break;
 		}
 	}
@@ -889,7 +892,7 @@ void RasterizerCanvasGLES2::canvas_render_items(Item *p_item_list, int p_z, cons
 
 				for (int i = 0; i < tc; i++) {
 
-					glActiveTexture(GL_TEXTURE2 + i);
+					glActiveTexture(GL_TEXTURE0 + i);
 
 					RasterizerStorageGLES2::Texture *t = storage->texture_owner.getornull(textures[i].second);
 
@@ -937,7 +940,7 @@ void RasterizerCanvasGLES2::canvas_render_items(Item *p_item_list, int p_z, cons
 		}
 
 		int blend_mode = shader_cache ? shader_cache->canvas_item.blend_mode : RasterizerStorageGLES2::Shader::CanvasItem::BLEND_MODE_MIX;
-		bool unshaded = true || (shader_cache && blend_mode != RasterizerStorageGLES2::Shader::CanvasItem::BLEND_MODE_MIX);
+		bool unshaded = (shader_cache && blend_mode != RasterizerStorageGLES2::Shader::CanvasItem::BLEND_MODE_MIX);
 		bool reclip = false;
 
 		if (last_blend_mode != blend_mode) {
@@ -1027,8 +1030,8 @@ void RasterizerCanvasGLES2::reset_canvas() {
 	// keeping this for now as there's nothing else that uses texture unit 2
 	// TODO ^
 	if (storage->frame.current_rt) {
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->copy_screen_effect.color);
+		// glActiveTexture(GL_TEXTURE0 + 2);
+		// glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->copy_screen_effect.color);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -13,7 +13,7 @@ def add_source_files(self, sources, filetype, lib_env=None, shared=False):
 
     if isbasestring(filetype):
         dir_path = self.Dir('.').abspath
-        filetype = glob.glob(dir_path + "/" + filetype)
+        filetype = sorted(glob.glob(dir_path + "/" + filetype))
 
     for path in filetype:
         sources.append(self.Object(path))
@@ -43,7 +43,7 @@ def update_version(module_version_string=""):
     f.write("#define VERSION_STATUS \"" + str(version.status) + "\"\n")
     f.write("#define VERSION_BUILD \"" + str(build_name) + "\"\n")
     f.write("#define VERSION_MODULE_CONFIG \"" + str(version.module_config) + module_version_string + "\"\n")
-    f.write("#define VERSION_YEAR " + str(datetime.datetime.now().year) + "\n")
+    f.write("#define VERSION_YEAR " + str(2018) + "\n")
     f.close()
 
     # NOTE: It is safe to generate this file here, since this is still executed serially
@@ -578,6 +578,9 @@ def generate_vs_project(env, num_jobs):
         release_targets = ['bin\\godot.windows.opt.32.exe'] + ['bin\\godot.windows.opt.64.exe']
         release_debug_targets = ['bin\\godot.windows.opt.tools.32.exe'] + ['bin\\godot.windows.opt.tools.64.exe']
         targets = debug_targets + release_targets + release_debug_targets
+        if not env.get('MSVS'):
+            env['MSVS']['PROJECTSUFFIX'] = '.vcxproj'    
+            env['MSVS']['SOLUTIONSUFFIX'] = '.sln'
         env.MSVSProject(
             target=['#godot' + env['MSVSPROJECTSUFFIX']],
             incs=env.vs_incs,

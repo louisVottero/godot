@@ -31,10 +31,10 @@
 #ifndef VECTOR3_H
 #define VECTOR3_H
 
-#include "math_defs.h"
-#include "math_funcs.h"
-#include "typedefs.h"
-#include "ustring.h"
+#include "core/math/math_defs.h"
+#include "core/math/math_funcs.h"
+#include "core/typedefs.h"
+#include "core/ustring.h"
 
 class Basis;
 
@@ -109,6 +109,8 @@ struct Vector3 {
 	_FORCE_INLINE_ real_t distance_to(const Vector3 &p_b) const;
 	_FORCE_INLINE_ real_t distance_squared_to(const Vector3 &p_b) const;
 
+	_FORCE_INLINE_ Vector3 project(const Vector3 &p_b) const;
+
 	_FORCE_INLINE_ real_t angle_to(const Vector3 &p_b) const;
 
 	_FORCE_INLINE_ Vector3 slide(const Vector3 &p_normal) const;
@@ -148,13 +150,8 @@ struct Vector3 {
 	}
 };
 
-#ifdef VECTOR3_IMPL_OVERRIDE
-
-#include "vector3_inline.h"
-
-#else
-
-#include "matrix3.h"
+// Should be included after class definition, otherwise we get circular refs
+#include "core/math/matrix3.h"
 
 Vector3 Vector3::cross(const Vector3 &p_b) const {
 
@@ -236,6 +233,10 @@ real_t Vector3::distance_to(const Vector3 &p_b) const {
 real_t Vector3::distance_squared_to(const Vector3 &p_b) const {
 
 	return (p_b - *this).length_squared();
+}
+
+Vector3 Vector3::project(const Vector3 &p_b) const {
+	return p_b * (dot(p_b) / p_b.length_squared());
 }
 
 real_t Vector3::angle_to(const Vector3 &p_b) const {
@@ -444,7 +445,5 @@ Vector3 Vector3::reflect(const Vector3 &p_normal) const {
 #endif
 	return 2.0 * p_normal * this->dot(p_normal) - *this;
 }
-
-#endif
 
 #endif // VECTOR3_H

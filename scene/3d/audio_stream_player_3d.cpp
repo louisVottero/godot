@@ -29,7 +29,7 @@
 /*************************************************************************/
 
 #include "audio_stream_player_3d.h"
-#include "engine.h"
+#include "core/engine.h"
 #include "scene/3d/area.h"
 #include "scene/3d/camera.h"
 #include "scene/main/viewport.h"
@@ -626,6 +626,7 @@ float AudioStreamPlayer3D::get_max_db() const {
 }
 
 void AudioStreamPlayer3D::set_pitch_scale(float p_pitch_scale) {
+	ERR_FAIL_COND(p_pitch_scale <= 0.0);
 	pitch_scale = p_pitch_scale;
 }
 float AudioStreamPlayer3D::get_pitch_scale() const {

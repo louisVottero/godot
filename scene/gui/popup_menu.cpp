@@ -29,10 +29,10 @@
 /*************************************************************************/
 
 #include "popup_menu.h"
-#include "os/input.h"
-#include "os/keyboard.h"
-#include "print_string.h"
-#include "translation.h"
+#include "core/os/input.h"
+#include "core/os/keyboard.h"
+#include "core/print_string.h"
+#include "core/translation.h"
 
 String PopupMenu::_get_accel_text(int p_item) const {
 
@@ -1074,19 +1074,23 @@ void PopupMenu::activate_item(int p_item) {
 	// Hides popup by default; unless otherwise specified
 	// by using set_hide_on_item_selection and set_hide_on_checkable_item_selection
 
+	bool need_hide = true;
+
 	if (items[p_item].checkable_type) {
 		if (!hide_on_checkable_item_selection)
-			return;
+			need_hide = false;
 	} else if (0 < items[p_item].max_states) {
 		if (!hide_on_multistate_item_selection)
-			return;
+			need_hide = false;
 	} else if (!hide_on_item_selection)
-		return;
-
-	hide();
+		need_hide = false;
 
 	emit_signal("id_pressed", id);
 	emit_signal("index_pressed", p_item);
+
+	if (need_hide) {
+		hide();
+	}
 }
 
 void PopupMenu::remove_item(int p_idx) {
@@ -1099,6 +1103,7 @@ void PopupMenu::remove_item(int p_idx) {
 
 	items.remove(p_idx);
 	update();
+	minimum_size_changed();
 }
 
 void PopupMenu::add_separator(const String &p_text) {
