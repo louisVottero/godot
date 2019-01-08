@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -750,7 +750,7 @@ void CSGBrushOperation::_add_poly_outline(const BuildPoly &p_poly, int p_from_po
 
 		t2d.affine_invert();
 
-		float max_angle;
+		float max_angle = 0;
 		int next_point_angle = -1;
 
 		for (int i = 0; i < vertex_process[to_point].size(); i++) {
@@ -805,7 +805,7 @@ void CSGBrushOperation::_merge_poly(MeshMerge &mesh, int p_face_idx, const Build
 
 	//process points that were not processed
 	for (int i = 0; i < edge_process.size(); i++) {
-		if (edge_process[i] == true)
+		if (edge_process[i])
 			continue; //already processed
 
 		int intersect_poly = -1;

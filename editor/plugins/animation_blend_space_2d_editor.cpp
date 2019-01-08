@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -113,7 +113,7 @@ void AnimationNodeBlendSpace2DEditor::_blend_space_gui_input(const Ref<InputEven
 			menu->add_item(TTR("Paste"), MENU_PASTE);
 		}
 		menu->add_separator();
-		menu->add_item(TTR("Load.."), MENU_LOAD_FILE);
+		menu->add_item(TTR("Load..."), MENU_LOAD_FILE);
 
 		menu->set_global_position(blend_space_draw->get_global_transform().xform(mb->get_position()));
 		menu->popup();
@@ -434,7 +434,7 @@ void AnimationNodeBlendSpace2DEditor::_blend_space_draw() {
 
 		if (blend_space->get_snap().x > 0) {
 
-			int prev_idx;
+			int prev_idx = 0;
 			for (int i = 0; i < s.x; i++) {
 
 				float v = blend_space->get_min_space().x + i * (blend_space->get_max_space().x - blend_space->get_min_space().x) / s.x;
@@ -450,7 +450,7 @@ void AnimationNodeBlendSpace2DEditor::_blend_space_draw() {
 
 		if (blend_space->get_snap().y > 0) {
 
-			int prev_idx;
+			int prev_idx = 0;
 			for (int i = 0; i < s.y; i++) {
 
 				float v = blend_space->get_max_space().y - i * (blend_space->get_max_space().y - blend_space->get_min_space().y) / s.y;
@@ -607,6 +607,8 @@ void AnimationNodeBlendSpace2DEditor::_update_space() {
 
 	auto_triangles->set_pressed(blend_space->get_auto_triangles());
 
+	interpolation->select(blend_space->get_blend_mode());
+
 	max_x_value->set_value(blend_space->get_max_space().x);
 	max_y_value->set_value(blend_space->get_max_space().y);
 
@@ -636,6 +638,8 @@ void AnimationNodeBlendSpace2DEditor::_config_changed(double) {
 	undo_redo->add_undo_method(blend_space.ptr(), "set_min_space", blend_space->get_min_space());
 	undo_redo->add_do_method(blend_space.ptr(), "set_snap", Vector2(snap_x->get_value(), snap_y->get_value()));
 	undo_redo->add_undo_method(blend_space.ptr(), "set_snap", blend_space->get_snap());
+	undo_redo->add_do_method(blend_space.ptr(), "set_blend_mode", interpolation->get_selected());
+	undo_redo->add_undo_method(blend_space.ptr(), "set_blend_mode", blend_space->get_blend_mode());
 	undo_redo->add_do_method(this, "_update_space");
 	undo_redo->add_undo_method(this, "_update_space");
 	undo_redo->commit_action();
@@ -752,6 +756,10 @@ void AnimationNodeBlendSpace2DEditor::_notification(int p_what) {
 		snap->set_icon(get_icon("SnapGrid", "EditorIcons"));
 		open_editor->set_icon(get_icon("Edit", "EditorIcons"));
 		auto_triangles->set_icon(get_icon("AutoTriangle", "EditorIcons"));
+		interpolation->clear();
+		interpolation->add_icon_item(get_icon("TrackContinuous", "EditorIcons"), "", 0);
+		interpolation->add_icon_item(get_icon("TrackDiscrete", "EditorIcons"), "", 1);
+		interpolation->add_icon_item(get_icon("TrackCapture", "EditorIcons"), "", 2);
 	}
 
 	if (p_what == NOTIFICATION_PROCESS) {
@@ -896,8 +904,8 @@ AnimationNodeBlendSpace2DEditor::AnimationNodeBlendSpace2DEditor() {
 	snap = memnew(ToolButton);
 	snap->set_toggle_mode(true);
 	top_hb->add_child(snap);
-	//snap->set_text(TTR("Snap"));
 	snap->set_pressed(true);
+	snap->set_tooltip(TTR("Enable snap and show grid."));
 	snap->connect("pressed", this, "_snap_toggled");
 
 	snap_x = memnew(SpinBox);
@@ -913,6 +921,13 @@ AnimationNodeBlendSpace2DEditor::AnimationNodeBlendSpace2DEditor() {
 	snap_y->set_min(0.01);
 	snap_y->set_step(0.01);
 	snap_y->set_max(1000);
+
+	top_hb->add_child(memnew(VSeparator));
+
+	top_hb->add_child(memnew(Label(TTR("Blend:"))));
+	interpolation = memnew(OptionButton);
+	top_hb->add_child(interpolation);
+	interpolation->connect("item_selected", this, "_config_changed");
 
 	edit_hb = memnew(HBoxContainer);
 	top_hb->add_child(edit_hb);

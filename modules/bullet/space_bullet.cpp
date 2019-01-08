@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -175,7 +175,7 @@ bool BulletPhysicsDirectSpaceState::cast_motion(const RID &p_shape, const Transf
 	btResult.m_collisionFilterGroup = 0;
 	btResult.m_collisionFilterMask = p_collision_mask;
 
-	space->dynamicsWorld->convexSweepTest(bt_convex_shape, bt_xform_from, bt_xform_to, btResult, 0.002);
+	space->dynamicsWorld->convexSweepTest(bt_convex_shape, bt_xform_from, bt_xform_to, btResult, space->dynamicsWorld->getDispatchInfo().m_allowedCcdPenetration);
 
 	r_closest_unsafe = 1.0;
 	r_closest_safe = 1.0;
@@ -332,16 +332,17 @@ Vector3 BulletPhysicsDirectSpaceState::get_closest_point_to_object_volume(RID p_
 
 SpaceBullet::SpaceBullet() :
 		broadphase(NULL),
+		collisionConfiguration(NULL),
 		dispatcher(NULL),
 		solver(NULL),
-		collisionConfiguration(NULL),
 		dynamicsWorld(NULL),
 		soft_body_world_info(NULL),
 		ghostPairCallback(NULL),
 		godotFilterCallback(NULL),
 		gravityDirection(0, -1, 0),
 		gravityMagnitude(10),
-		contactDebugCount(0) {
+		contactDebugCount(0),
+		delta_time(0.) {
 
 	create_empty_world(GLOBAL_DEF("physics/3d/active_soft_world", true));
 	direct_access = memnew(BulletPhysicsDirectSpaceState(this));
@@ -539,17 +540,20 @@ void onBulletPreTickCallback(btDynamicsWorld *p_dynamicsWorld, btScalar timeStep
 
 void onBulletTickCallback(btDynamicsWorld *p_dynamicsWorld, btScalar timeStep) {
 
-	// Notify all Collision objects the collision checker is started
 	const btCollisionObjectArray &colObjArray = p_dynamicsWorld->getCollisionObjectArray();
+
+	// Notify all Collision objects the collision checker is started
 	for (int i = colObjArray.size() - 1; 0 <= i; --i) {
-		CollisionObjectBullet *colObj = static_cast<CollisionObjectBullet *>(colObjArray[i]->getUserPointer());
-		assert(NULL != colObj);
-		colObj->on_collision_checker_start();
+		static_cast<CollisionObjectBullet *>(colObjArray[i]->getUserPointer())->on_collision_checker_start();
 	}
 
 	SpaceBullet *sb = static_cast<SpaceBullet *>(p_dynamicsWorld->getWorldUserInfo());
 	sb->check_ghost_overlaps();
 	sb->check_body_collision();
+
+	for (int i = colObjArray.size() - 1; 0 <= i; --i) {
+		static_cast<CollisionObjectBullet *>(colObjArray[i]->getUserPointer())->on_collision_checker_end();
+	}
 }
 
 BulletPhysicsDirectSpaceState *SpaceBullet::get_direct_state() {
@@ -570,7 +574,6 @@ void SpaceBullet::create_empty_world(bool p_create_soft_world) {
 
 	gjk_epa_pen_solver = bulletnew(btGjkEpaPenetrationDepthSolver);
 	gjk_simplex_solver = bulletnew(btVoronoiSimplexSolver);
-	gjk_simplex_solver->setEqualVertexThreshold(0.f);
 
 	void *world_mem;
 	if (p_create_soft_world) {
@@ -649,7 +652,6 @@ void SpaceBullet::check_ghost_overlaps() {
 	btConvexShape *area_shape;
 	btGjkPairDetector::ClosestPointInput gjk_input;
 	AreaBullet *area;
-	RigidCollisionObjectBullet *otherObject;
 	int x(-1), i(-1), y(-1), z(-1), indexOverlap(-1);
 
 	/// For each areas
@@ -676,13 +678,17 @@ void SpaceBullet::check_ghost_overlaps() {
 		// For each overlapping
 		for (i = ghostOverlaps.size() - 1; 0 <= i; --i) {
 
-			if (ghostOverlaps[i]->getUserIndex() == CollisionObjectBullet::TYPE_AREA) {
-				if (!static_cast<AreaBullet *>(ghostOverlaps[i]->getUserPointer())->is_monitorable())
-					continue;
-			} else if (ghostOverlaps[i]->getUserIndex() != CollisionObjectBullet::TYPE_RIGID_BODY)
+			btCollisionObject *overlapped_bt_co = ghostOverlaps[i];
+			RigidCollisionObjectBullet *otherObject = static_cast<RigidCollisionObjectBullet *>(overlapped_bt_co->getUserPointer());
+
+			if (!area->is_transform_changed() && !otherObject->is_transform_changed())
 				continue;
 
-			otherObject = static_cast<RigidCollisionObjectBullet *>(ghostOverlaps[i]->getUserPointer());
+			if (overlapped_bt_co->getUserIndex() == CollisionObjectBullet::TYPE_AREA) {
+				if (!static_cast<AreaBullet *>(overlapped_bt_co->getUserPointer())->is_monitorable())
+					continue;
+			} else if (overlapped_bt_co->getUserIndex() != CollisionObjectBullet::TYPE_RIGID_BODY)
+				continue;
 
 			bool hasOverlap = false;
 
@@ -780,16 +786,22 @@ void SpaceBullet::check_body_collision() {
 			}
 
 			const int numContacts = contactManifold->getNumContacts();
+
+			/// Since I don't need report all contacts for these objects,
+			/// So report only the first
 #define REPORT_ALL_CONTACTS 0
 #if REPORT_ALL_CONTACTS
 			for (int j = 0; j < numContacts; j++) {
 				btManifoldPoint &pt = contactManifold->getContactPoint(j);
 #else
-			// Since I don't need report all contacts for these objects, I'll report only the first
 			if (numContacts) {
 				btManifoldPoint &pt = contactManifold->getContactPoint(0);
 #endif
-				if (pt.getDistance() <= 0.0) {
+				if (
+						pt.getDistance() <= 0.0 ||
+						bodyA->was_colliding(bodyB) ||
+						bodyB->was_colliding(bodyA)) {
+
 					Vector3 collisionWorldPosition;
 					Vector3 collisionLocalPosition;
 					Vector3 normalOnB;

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -72,11 +72,11 @@ void NativeScript::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_signal_documentation", "signal_name"), &NativeScript::get_signal_documentation);
 	ClassDB::bind_method(D_METHOD("get_property_documentation", "path"), &NativeScript::get_property_documentation);
 
-	ADD_PROPERTYNZ(PropertyInfo(Variant::STRING, "class_name"), "set_class_name", "get_class_name");
-	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT, "library", PROPERTY_HINT_RESOURCE_TYPE, "GDNativeLibrary"), "set_library", "get_library");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "class_name"), "set_class_name", "get_class_name");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "library", PROPERTY_HINT_RESOURCE_TYPE, "GDNativeLibrary"), "set_library", "get_library");
 	ADD_GROUP("Script Class", "script_class_");
-	ADD_PROPERTYNZ(PropertyInfo(Variant::STRING, "script_class_name"), "set_script_class_name", "get_script_class_name");
-	ADD_PROPERTYNZ(PropertyInfo(Variant::STRING, "script_class_icon_path", PROPERTY_HINT_FILE), "set_script_class_icon_path", "get_script_class_icon_path");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "script_class_name"), "set_script_class_name", "get_script_class_name");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "script_class_icon_path", PROPERTY_HINT_FILE), "set_script_class_icon_path", "get_script_class_icon_path");
 
 	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "new", &NativeScript::_new, MethodInfo(Variant::OBJECT, "new"));
 }
@@ -292,6 +292,10 @@ MethodInfo NativeScript::get_method_info(const StringName &p_method) const {
 		script_data = script_data->base_data;
 	}
 	return MethodInfo();
+}
+
+bool NativeScript::is_valid() const {
+	return true;
 }
 
 bool NativeScript::is_tool() const {
@@ -1016,6 +1020,16 @@ NativeScriptLanguage::NativeScriptLanguage() {
 #ifdef DEBUG_ENABLED
 	profiling = false;
 #endif
+
+	_init_call_type = "nativescript_init";
+	_init_call_name = "nativescript_init";
+	_terminate_call_name = "nativescript_terminate";
+	_noarg_call_type = "nativescript_no_arg";
+	_frame_call_name = "nativescript_frame";
+#ifndef NO_THREADS
+	_thread_enter_call_name = "nativescript_thread_enter";
+	_thread_exit_call_name = "nativescript_thread_exit";
+#endif
 }
 
 NativeScriptLanguage::~NativeScriptLanguage() {
@@ -1701,8 +1715,7 @@ void NativeReloadNode::_notification(int p_what) {
 }
 
 RES ResourceFormatLoaderNativeScript::load(const String &p_path, const String &p_original_path, Error *r_error) {
-	ResourceFormatLoaderText rsflt;
-	return rsflt.load(p_path, p_original_path, r_error);
+	return ResourceFormatLoaderText::singleton->load(p_path, p_original_path, r_error);
 }
 
 void ResourceFormatLoaderNativeScript::get_recognized_extensions(List<String> *p_extensions) const {

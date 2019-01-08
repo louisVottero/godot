@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,6 +32,7 @@
 
 #include "canvas_item_editor_plugin.h"
 #include "core/io/image_loader.h"
+#include "scene/2d/cpu_particles_2d.h"
 #include "scene/gui/separator.h"
 #include "scene/resources/particles_material.h"
 
@@ -81,6 +82,25 @@ void Particles2DEditorPlugin::_menu_callback(int p_idx) {
 		case MENU_CLEAR_EMISSION_MASK: {
 
 			emission_mask->popup_centered_minsize();
+		} break;
+		case MENU_OPTION_CONVERT_TO_CPU_PARTICLES: {
+
+			UndoRedo *undo_redo = EditorNode::get_singleton()->get_undo_redo();
+
+			CPUParticles2D *cpu_particles = memnew(CPUParticles2D);
+			cpu_particles->convert_from_particles(particles);
+			cpu_particles->set_name(particles->get_name());
+			cpu_particles->set_transform(particles->get_transform());
+			cpu_particles->set_visible(particles->is_visible());
+			cpu_particles->set_pause_mode(particles->get_pause_mode());
+
+			undo_redo->create_action("Replace Particles by CPUParticles");
+			undo_redo->add_do_method(particles, "replace_by", cpu_particles);
+			undo_redo->add_undo_method(cpu_particles, "replace_by", particles);
+			undo_redo->add_do_reference(cpu_particles);
+			undo_redo->add_undo_reference(particles);
+			undo_redo->commit_action();
+
 		} break;
 	}
 }
@@ -355,6 +375,8 @@ Particles2DEditorPlugin::Particles2DEditorPlugin(EditorNode *p_node) {
 	menu->get_popup()->add_separator();
 	menu->get_popup()->add_item(TTR("Load Emission Mask"), MENU_LOAD_EMISSION_MASK);
 	//	menu->get_popup()->add_item(TTR("Clear Emission Mask"), MENU_CLEAR_EMISSION_MASK);
+	menu->get_popup()->add_separator();
+	menu->get_popup()->add_item(TTR("Convert to CPUParticles"), MENU_OPTION_CONVERT_TO_CPU_PARTICLES);
 	menu->set_text(TTR("Particles"));
 	toolbar->add_child(menu);
 

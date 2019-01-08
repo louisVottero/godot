@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -87,6 +87,8 @@ public:
 				} break;
 				case CLASS: {
 					return class_type == other.class_type;
+				} break;
+				case UNRESOLVED: {
 				} break;
 			}
 			return false;
@@ -553,7 +555,6 @@ private:
 
 	CompletionType completion_type;
 	StringName completion_cursor;
-	bool completion_static;
 	Variant::Type completion_built_in_constant;
 	Node *completion_node;
 	ClassNode *completion_class;

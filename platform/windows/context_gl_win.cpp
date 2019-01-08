@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -91,18 +91,18 @@ Error ContextGL_Win::initialize() {
 		PFD_DRAW_TO_WINDOW | // Format Must Support Window
 				PFD_SUPPORT_OPENGL | // Format Must Support OpenGL
 				PFD_DOUBLEBUFFER,
-		PFD_TYPE_RGBA,
-		OS::get_singleton()->is_layered_allowed() ? 32 : 24,
-		0, 0, 0, 0, 0, 0, // Color Bits Ignored
-		OS::get_singleton()->is_layered_allowed() ? 8 : 0, // Alpha Buffer
-		0, // Shift Bit Ignored
-		0, // No Accumulation Buffer
-		0, 0, 0, 0, // Accumulation Bits Ignored
-		24, // 24Bit Z-Buffer (Depth Buffer)
-		0, // No Stencil Buffer
-		0, // No Auxiliary Buffer
-		PFD_MAIN_PLANE, // Main Drawing Layer
-		0, // Reserved
+		(BYTE)PFD_TYPE_RGBA,
+		(BYTE)(OS::get_singleton()->is_layered_allowed() ? 32 : 24),
+		(BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, // Color Bits Ignored
+		(BYTE)(OS::get_singleton()->is_layered_allowed() ? 8 : 0), // Alpha Buffer
+		(BYTE)0, // Shift Bit Ignored
+		(BYTE)0, // No Accumulation Buffer
+		(BYTE)0, (BYTE)0, (BYTE)0, (BYTE)0, // Accumulation Bits Ignored
+		(BYTE)24, // 24Bit Z-Buffer (Depth Buffer)
+		(BYTE)0, // No Stencil Buffer
+		(BYTE)0, // No Auxiliary Buffer
+		(BYTE)PFD_MAIN_PLANE, // Main Drawing Layer
+		(BYTE)0, // Reserved
 		0, 0, 0 // Layer Masks Ignored
 	};
 

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -70,8 +70,6 @@ struct NativeScriptDesc {
 		String documentation;
 	};
 
-	String documentation;
-
 	Map<StringName, Method> methods;
 	OrderedHashMap<StringName, Property> properties;
 	Map<StringName, Signal> signals_; // QtCreator doesn't like the name signals
@@ -80,6 +78,8 @@ struct NativeScriptDesc {
 	NativeScriptDesc *base_data;
 	godot_instance_create_func create_func;
 	godot_instance_destroy_func destroy_func;
+
+	String documentation;
 
 	const void *type_tag;
 
@@ -160,6 +160,7 @@ public:
 	virtual MethodInfo get_method_info(const StringName &p_method) const;
 
 	virtual bool is_tool() const;
+	virtual bool is_valid() const;
 
 	virtual ScriptLanguage *get_language() const;
 
@@ -277,18 +278,14 @@ public:
 
 	Map<String, Set<NativeScript *> > library_script_users;
 
-	const StringName _init_call_type = "nativescript_init";
-	const StringName _init_call_name = "nativescript_init";
-
-	const StringName _terminate_call_name = "nativescript_terminate";
-
-	const StringName _noarg_call_type = "nativescript_no_arg";
-
-	const StringName _frame_call_name = "nativescript_frame";
-
+	StringName _init_call_type;
+	StringName _init_call_name;
+	StringName _terminate_call_name;
+	StringName _noarg_call_type;
+	StringName _frame_call_name;
 #ifndef NO_THREADS
-	const StringName _thread_enter_call_name = "nativescript_thread_enter";
-	const StringName _thread_exit_call_name = "nativescript_thread_exit";
+	StringName _thread_enter_call_name;
+	StringName _thread_exit_call_name;
 #endif
 
 	NativeScriptLanguage();
@@ -372,14 +369,18 @@ inline NativeScriptDesc *NativeScript::get_script_desc() const {
 
 class NativeReloadNode : public Node {
 	GDCLASS(NativeReloadNode, Node)
-	bool unloaded = false;
+	bool unloaded;
 
 public:
 	static void _bind_methods();
 	void _notification(int p_what);
+
+	NativeReloadNode() :
+			unloaded(false) {}
 };
 
 class ResourceFormatLoaderNativeScript : public ResourceFormatLoader {
+	GDCLASS(ResourceFormatLoaderNativeScript, ResourceFormatLoader)
 public:
 	virtual RES load(const String &p_path, const String &p_original_path = "", Error *r_error = NULL);
 	virtual void get_recognized_extensions(List<String> *p_extensions) const;
@@ -388,6 +389,7 @@ public:
 };
 
 class ResourceFormatSaverNativeScript : public ResourceFormatSaver {
+	GDCLASS(ResourceFormatSaverNativeScript, ResourceFormatSaver)
 	virtual Error save(const String &p_path, const RES &p_resource, uint32_t p_flags = 0);
 	virtual bool recognize(const RES &p_resource) const;
 	virtual void get_recognized_extensions(const RES &p_resource, List<String> *p_extensions) const;

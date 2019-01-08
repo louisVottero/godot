@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -365,29 +365,37 @@ Node *ResourceImporterScene::_fix_node(Node *p_node, Node *p_root, Map<Ref<Array
 			return p_node;
 		MeshInstance *mi = Object::cast_to<MeshInstance>(p_node);
 		if (mi) {
-			Node *col;
+			Node *col = NULL;
 
 			if (_teststr(name, "colonly")) {
 				col = mi->create_trimesh_collision_node();
-				ERR_FAIL_COND_V(!col, NULL);
+				if (col == NULL) {
+					ERR_PRINTS("Error generating collision for mesh: " + name);
+				} else {
 
-				col->set_name(_fixstr(name, "colonly"));
+					col->set_name(_fixstr(name, "colonly"));
+				}
 			} else {
 				col = mi->create_convex_collision_node();
-				ERR_FAIL_COND_V(!col, NULL);
+				if (col == NULL) {
+					ERR_PRINTS("Error generating collision for mesh: " + name);
+				} else {
 
-				col->set_name(_fixstr(name, "convcolonly"));
+					col->set_name(_fixstr(name, "convcolonly"));
+				}
 			}
 
-			Object::cast_to<Spatial>(col)->set_transform(mi->get_transform());
-			p_node->replace_by(col);
-			memdelete(p_node);
-			p_node = col;
+			if (col) {
+				Object::cast_to<Spatial>(col)->set_transform(mi->get_transform());
+				p_node->replace_by(col);
+				memdelete(p_node);
+				p_node = col;
 
-			StaticBody *sb = Object::cast_to<StaticBody>(col);
-			CollisionShape *colshape = Object::cast_to<CollisionShape>(sb->get_child(0));
-			colshape->set_name("shape");
-			colshape->set_owner(p_node->get_owner());
+				StaticBody *sb = Object::cast_to<StaticBody>(col);
+				CollisionShape *colshape = Object::cast_to<CollisionShape>(sb->get_child(0));
+				colshape->set_name("shape");
+				colshape->set_owner(p_node->get_owner());
+			}
 		} else if (p_node->has_meta("empty_draw_type")) {
 			String empty_draw_type = String(p_node->get_meta("empty_draw_type"));
 			StaticBody *sb = memnew(StaticBody);

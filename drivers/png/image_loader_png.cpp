@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -227,10 +227,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t p_len
 	PNGReadStatus *rstatus;
 	rstatus = (PNGReadStatus *)png_get_io_ptr(png_ptr);
 
-	png_size_t to_read = p_length;
-	if (rstatus->size >= 0) {
-		to_read = MIN(p_length, rstatus->size - rstatus->offset);
-	}
+	png_size_t to_read = MIN(p_length, rstatus->size - rstatus->offset);
 	memcpy(data, &rstatus->image[rstatus->offset], to_read);
 	rstatus->offset += to_read;
 

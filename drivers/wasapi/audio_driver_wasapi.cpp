@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -336,10 +336,7 @@ Error AudioDriverWASAPI::init_capture_device(bool reinit) {
 	HRESULT hr = audio_input.audio_client->GetBufferSize(&max_frames);
 	ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
 
-	// Set the buffer size
-	input_buffer.resize(max_frames * CAPTURE_BUFFER_CHANNELS);
-	input_position = 0;
-	input_size = 0;
+	input_buffer_init(max_frames);
 
 	return OK;
 }
@@ -796,19 +793,18 @@ Error AudioDriverWASAPI::capture_start() {
 		return err;
 	}
 
-	if (audio_input.active == false) {
-		audio_input.audio_client->Start();
-		audio_input.active = true;
-
-		return OK;
+	if (audio_input.active) {
+		return FAILED;
 	}
 
-	return FAILED;
+	audio_input.audio_client->Start();
+	audio_input.active = true;
+	return OK;
 }
 
 Error AudioDriverWASAPI::capture_stop() {
 
-	if (audio_input.active == true) {
+	if (audio_input.active) {
 		audio_input.audio_client->Stop();
 		audio_input.active = false;
 

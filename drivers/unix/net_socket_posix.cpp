@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -42,11 +42,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #ifndef NO_FCNTL
-#ifdef __HAIKU__
 #include <fcntl.h>
-#else
-#include <sys/fcntl.h>
-#endif
 #else
 #include <sys/ioctl.h>
 #endif
@@ -59,7 +55,7 @@
 
 #include <netinet/tcp.h>
 
-#if defined(OSX_ENABLED) || defined(IPHONE_ENABLED)
+#if defined(__APPLE__)
 #define MSG_NOSIGNAL SO_NOSIGPIPE
 #endif
 
@@ -94,7 +90,7 @@
 
 #endif
 
-static size_t _set_addr_storage(struct sockaddr_storage *p_addr, const IP_Address &p_ip, uint16_t p_port, IP::Type p_ip_type) {
+size_t NetSocketPosix::_set_addr_storage(struct sockaddr_storage *p_addr, const IP_Address &p_ip, uint16_t p_port, IP::Type p_ip_type) {
 
 	memset(p_addr, 0, sizeof(struct sockaddr_storage));
 	if (p_ip_type == IP::TYPE_IPV6 || p_ip_type == IP::TYPE_ANY) { // IPv6 socket
@@ -114,7 +110,7 @@ static size_t _set_addr_storage(struct sockaddr_storage *p_addr, const IP_Addres
 	} else { // IPv4 socket
 
 		// IPv4 socket with IPv6 address
-		ERR_FAIL_COND_V(!p_ip.is_ipv4(), 0);
+		ERR_FAIL_COND_V(!p_ip.is_wildcard() && !p_ip.is_ipv4(), 0);
 
 		struct sockaddr_in *addr4 = (struct sockaddr_in *)p_addr;
 		addr4->sin_family = AF_INET;
@@ -126,12 +122,11 @@ static size_t _set_addr_storage(struct sockaddr_storage *p_addr, const IP_Addres
 			addr4->sin_addr.s_addr = INADDR_ANY;
 		}
 
-		copymem(&addr4->sin_addr.s_addr, p_ip.get_ipv4(), 16);
 		return sizeof(sockaddr_in);
 	}
 }
 
-static void _set_ip_port(IP_Address &r_ip, uint16_t &r_port, struct sockaddr_storage *p_addr) {
+void NetSocketPosix::_set_ip_port(struct sockaddr_storage *p_addr, IP_Address &r_ip, uint16_t &r_port) {
 
 	if (p_addr->ss_family == AF_INET) {
 
@@ -172,10 +167,10 @@ void NetSocketPosix::cleanup() {
 #endif
 }
 
-NetSocketPosix::NetSocketPosix() {
-	_sock = SOCK_EMPTY;
-	_ip_type = IP::TYPE_NONE;
-	_is_stream = false;
+NetSocketPosix::NetSocketPosix() :
+		_sock(SOCK_EMPTY),
+		_ip_type(IP::TYPE_NONE),
+		_is_stream(false) {
 }
 
 NetSocketPosix::~NetSocketPosix() {
@@ -559,7 +554,7 @@ void NetSocketPosix::set_ipv6_only_enabled(bool p_enabled) {
 
 void NetSocketPosix::set_tcp_no_delay_enabled(bool p_enabled) {
 	ERR_FAIL_COND(!is_open());
-	ERR_FAIL_COND(_ip_type != TYPE_TCP);
+	ERR_FAIL_COND(!_is_stream); // Not TCP
 
 	int par = p_enabled ? 1 : 0;
 	if (setsockopt(_sock, IPPROTO_TCP, TCP_NODELAY, SOCK_CBUF(&par), sizeof(int)) < 0) {
@@ -612,7 +607,7 @@ Ref<NetSocket> NetSocketPosix::accept(IP_Address &r_ip, uint16_t &r_port) {
 	SOCKET_TYPE fd = ::accept(_sock, (struct sockaddr *)&their_addr, &size);
 	ERR_FAIL_COND_V(fd == SOCK_EMPTY, out);
 
-	_set_ip_port(r_ip, r_port, &their_addr);
+	_set_ip_port(&their_addr, r_ip, r_port);
 
 	NetSocketPosix *ns = memnew(NetSocketPosix);
 	ns->_set_socket(fd, _ip_type, _is_stream);

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -236,23 +236,23 @@ void GradientEdit::_gui_input(const Ref<InputEvent> &p_event) {
 
 		//Snap to nearest point if holding shift
 		if (mm->get_shift()) {
-			float snap_treshhold = 0.03;
-			float smallest_ofs = snap_treshhold;
-			bool founded = false;
-			int nearest_point;
+			float snap_threshold = 0.03;
+			float smallest_ofs = snap_threshold;
+			bool found = false;
+			int nearest_point = 0;
 			for (int i = 0; i < points.size(); ++i) {
 				if (i != grabbed) {
 					float temp_ofs = ABS(points[i].offset - newofs);
 					if (temp_ofs < smallest_ofs) {
 						smallest_ofs = temp_ofs;
 						nearest_point = i;
-						if (founded)
+						if (found)
 							break;
-						founded = true;
+						found = true;
 					}
 				}
 			}
-			if (founded) {
+			if (found) {
 				if (points[nearest_point].offset < newofs)
 					newofs = points[nearest_point].offset + 0.00001;
 				else

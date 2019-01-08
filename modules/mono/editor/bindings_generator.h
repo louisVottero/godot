@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,6 +32,7 @@
 #define BINDINGS_GENERATOR_H
 
 #include "core/class_db.h"
+#include "dotnet_solution.h"
 #include "editor/doc/doc_data.h"
 #include "editor/editor_help.h"
 
@@ -43,20 +44,21 @@ class BindingsGenerator {
 
 	struct ConstantInterface {
 		String name;
+		String proxy_name;
 		int value;
 		const DocData::ConstantDoc *const_doc;
 
 		ConstantInterface() {}
 
-		ConstantInterface(const String &p_name, int p_value) {
+		ConstantInterface(const String &p_name, const String &p_proxy_name, int p_value) {
 			name = p_name;
+			proxy_name = p_proxy_name;
 			value = p_value;
 		}
 	};
 
 	struct EnumInterface {
 		StringName cname;
-		String prefix;
 		List<ConstantInterface> constants;
 
 		_FORCE_INLINE_ bool operator==(const EnumInterface &p_ienum) const {
@@ -223,7 +225,7 @@ class BindingsGenerator {
 		String c_in;
 
 		/**
-		 * Determines the name of the variable that will be passed as argument to a ptrcall.
+		 * Determines the expression that will be passed as argument to ptrcall.
 		 * By default the value equals the name of the parameter,
 		 * this varies for types that require special manipulation via [c_in].
 		 * Formatting elements:
@@ -333,8 +335,6 @@ class BindingsGenerator {
 			itype.proxy_name = itype.name;
 
 			itype.c_type = itype.name;
-			itype.c_type_in = "void*";
-			itype.c_type_out = "MonoObject*";
 			itype.cs_type = itype.proxy_name;
 			itype.im_type_in = "ref " + itype.proxy_name;
 			itype.im_type_out = itype.proxy_name;
@@ -385,10 +385,19 @@ class BindingsGenerator {
 		}
 
 		static void postsetup_enum_type(TypeInterface &r_enum_itype) {
-			r_enum_itype.c_arg_in = "&%s";
-			r_enum_itype.c_type = "int";
-			r_enum_itype.c_type_in = "int";
-			r_enum_itype.c_type_out = "int";
+			// C interface is the same as that of 'int'. Remember to apply any
+			// changes done here to the 'int' type interface as well
+
+			r_enum_itype.c_arg_in = "&%s_in";
+			{
+				// The expected types for parameters and return value in ptrcall are 'int64_t' or 'uint64_t'.
+				r_enum_itype.c_in = "\t%0 %1_in = (%0)%1;\n";
+				r_enum_itype.c_out = "\treturn (%0)%1;\n";
+				r_enum_itype.c_type = "int64_t";
+			}
+			r_enum_itype.c_type_in = "int32_t";
+			r_enum_itype.c_type_out = r_enum_itype.c_type_in;
+
 			r_enum_itype.cs_type = r_enum_itype.proxy_name;
 			r_enum_itype.cs_in = "(int)%s";
 			r_enum_itype.cs_out = "return (%1)%0;";
@@ -513,7 +522,8 @@ class BindingsGenerator {
 		return p_type.name;
 	}
 
-	String _determine_enum_prefix(const EnumInterface &p_ienum);
+	int _determine_enum_prefix(const EnumInterface &p_ienum);
+	void _apply_prefix_to_enum_constants(EnumInterface &p_ienum, int p_prefix_length);
 
 	void _generate_method_icalls(const TypeInterface &p_itype);
 
@@ -547,8 +557,9 @@ class BindingsGenerator {
 	static BindingsGenerator *singleton;
 
 public:
-	Error generate_cs_core_project(const String &p_output_dir, bool p_verbose_output = true);
-	Error generate_cs_editor_project(const String &p_output_dir, const String &p_core_dll_path, bool p_verbose_output = true);
+	Error generate_cs_core_project(const String &p_solution_dir, DotNetSolution &r_solution, bool p_verbose_output = true);
+	Error generate_cs_editor_project(const String &p_solution_dir, DotNetSolution &r_solution, bool p_verbose_output = true);
+	Error generate_cs_api(const String &p_output_dir, bool p_verbose_output = true);
 	Error generate_glue(const String &p_output_dir);
 
 	static uint32_t get_version();

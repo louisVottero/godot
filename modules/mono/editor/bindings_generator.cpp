@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -47,7 +47,6 @@
 #include "../utils/path_utils.h"
 #include "../utils/string_utils.h"
 #include "csharp_project.h"
-#include "net_solution.h"
 
 #define CS_INDENT "    " // 4 whitespaces
 
@@ -97,7 +96,7 @@
 #define C_METHOD_MONOARRAY_TO(m_type) C_NS_MONOMARSHAL "::mono_array_to_" #m_type
 #define C_METHOD_MONOARRAY_FROM(m_type) C_NS_MONOMARSHAL "::" #m_type "_to_mono_array"
 
-#define BINDINGS_GENERATOR_VERSION UINT32_C(3)
+#define BINDINGS_GENERATOR_VERSION UINT32_C(5)
 
 const char *BindingsGenerator::TypeInterface::DEFAULT_VARARG_C_IN = "\t%0 %1_in = %1;\n";
 
@@ -173,23 +172,74 @@ static String snake_to_camel_case(const String &p_identifier, bool p_input_is_up
 	return ret;
 }
 
-String BindingsGenerator::_determine_enum_prefix(const EnumInterface &p_ienum) {
+int BindingsGenerator::_determine_enum_prefix(const EnumInterface &p_ienum) {
 
 	CRASH_COND(p_ienum.constants.empty());
 
-	const List<ConstantInterface>::Element *front = p_ienum.constants.front();
-	int candidate_len = front->get().name.length();
+	const ConstantInterface &front_iconstant = p_ienum.constants.front()->get();
+	Vector<String> front_parts = front_iconstant.name.split("_", /* p_allow_empty: */ true);
+	int candidate_len = front_parts.size() - 1;
 
-	for (const List<ConstantInterface>::Element *E = front->next(); E; E = E->next()) {
-		int j = 0;
-		for (j = 0; j < candidate_len && j < E->get().name.length(); j++) {
-			if (front->get().name[j] != E->get().name[j])
-				break;
+	if (candidate_len == 0)
+		return 0;
+
+	for (const List<ConstantInterface>::Element *E = p_ienum.constants.front()->next(); E; E = E->next()) {
+		const ConstantInterface &iconstant = E->get();
+
+		Vector<String> parts = iconstant.name.split("_", /* p_allow_empty: */ true);
+
+		int i;
+		for (i = 0; i < candidate_len && i < parts.size(); i++) {
+			if (front_parts[i] != parts[i]) {
+				// HARDCODED: Some Flag enums have the prefix 'FLAG_' for everything except 'FLAGS_DEFAULT' (same for 'METHOD_FLAG_' and'METHOD_FLAGS_DEFAULT').
+				bool hardcoded_exc = (i == candidate_len - 1 && ((front_parts[i] == "FLAGS" && parts[i] == "FLAG") || (front_parts[i] == "FLAG" && parts[i] == "FLAGS")));
+				if (!hardcoded_exc)
+					break;
+			}
 		}
-		candidate_len = j;
+		candidate_len = i;
+
+		if (candidate_len == 0)
+			return 0;
 	}
 
-	return front->get().name.substr(0, candidate_len);
+	return candidate_len;
+}
+
+void BindingsGenerator::_apply_prefix_to_enum_constants(BindingsGenerator::EnumInterface &p_ienum, int p_prefix_length) {
+
+	if (p_prefix_length > 0) {
+		for (List<ConstantInterface>::Element *E = p_ienum.constants.front(); E; E = E->next()) {
+			int curr_prefix_length = p_prefix_length;
+
+			ConstantInterface &curr_const = E->get();
+
+			String constant_name = curr_const.name;
+
+			Vector<String> parts = constant_name.split("_", /* p_allow_empty: */ true);
+
+			if (parts.size() <= curr_prefix_length)
+				continue;
+
+			if (parts[curr_prefix_length][0] >= '0' && parts[curr_prefix_length][0] <= '9') {
+				// The name of enum constants may begin with a numeric digit when strip from the enum prefix,
+				// so we make the prefix for this constant one word shorter in those cases.
+				for (curr_prefix_length = curr_prefix_length - 1; curr_prefix_length > 0; curr_prefix_length--) {
+					if (parts[curr_prefix_length][0] < '0' || parts[curr_prefix_length][0] > '9')
+						break;
+				}
+			}
+
+			constant_name = "";
+			for (int i = curr_prefix_length; i < parts.size(); i++) {
+				if (i > curr_prefix_length)
+					constant_name += "_";
+				constant_name += parts[i];
+			}
+
+			curr_const.proxy_name = snake_to_pascal_case(constant_name, true);
+		}
+	}
 }
 
 void BindingsGenerator::_generate_method_icalls(const TypeInterface &p_itype) {
@@ -272,7 +322,7 @@ void BindingsGenerator::_generate_global_constants(List<String> &p_output) {
 		}
 
 		p_output.push_back(MEMBER_BEGIN "public const int ");
-		p_output.push_back(iconstant.name);
+		p_output.push_back(iconstant.proxy_name);
 		p_output.push_back(" = ");
 		p_output.push_back(itos(iconstant.value));
 		p_output.push_back(";");
@@ -334,25 +384,8 @@ void BindingsGenerator::_generate_global_constants(List<String> &p_output) {
 				p_output.push_back(INDENT2 "/// </summary>\n");
 			}
 
-			String constant_name = iconstant.name;
-
-			if (!ienum.prefix.empty() && constant_name.begins_with(ienum.prefix)) {
-				constant_name = constant_name.substr(ienum.prefix.length(), constant_name.length());
-			}
-
-			if (constant_name[0] >= '0' && constant_name[0] <= '9') {
-				// The name of enum constants may begin with a numeric digit when strip from the enum prefix,
-				// so we make the prefix one word shorter in those cases.
-				int i = 0;
-				for (i = ienum.prefix.length() - 1; i >= 0; i--) {
-					if (ienum.prefix[i] >= 'A' && ienum.prefix[i] <= 'Z')
-						break;
-				}
-				constant_name = ienum.prefix.substr(i, ienum.prefix.length()) + constant_name;
-			}
-
 			p_output.push_back(INDENT2);
-			p_output.push_back(constant_name);
+			p_output.push_back(iconstant.proxy_name);
 			p_output.push_back(" = ");
 			p_output.push_back(itos(iconstant.value));
 			p_output.push_back(E != ienum.constants.back() ? ",\n" : "\n");
@@ -367,31 +400,28 @@ void BindingsGenerator::_generate_global_constants(List<String> &p_output) {
 	p_output.push_back(CLOSE_BLOCK); // end of namespace
 }
 
-Error BindingsGenerator::generate_cs_core_project(const String &p_output_dir, bool p_verbose_output) {
+Error BindingsGenerator::generate_cs_core_project(const String &p_solution_dir, DotNetSolution &r_solution, bool p_verbose_output) {
 
 	verbose_output = p_verbose_output;
+
+	String proj_dir = p_solution_dir.plus_file(CORE_API_ASSEMBLY_NAME);
 
 	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
 	ERR_FAIL_COND_V(!da, ERR_CANT_CREATE);
 
-	if (!DirAccess::exists(p_output_dir)) {
-		Error err = da->make_dir_recursive(p_output_dir);
+	if (!DirAccess::exists(proj_dir)) {
+		Error err = da->make_dir_recursive(proj_dir);
 		ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
 	}
 
-	da->change_dir(p_output_dir);
+	da->change_dir(proj_dir);
 	da->make_dir("Core");
 	da->make_dir("ObjectType");
 
-	String core_dir = path_join(p_output_dir, "Core");
-	String obj_type_dir = path_join(p_output_dir, "ObjectType");
+	String core_dir = path_join(proj_dir, "Core");
+	String obj_type_dir = path_join(proj_dir, "ObjectType");
 
 	Vector<String> compile_items;
-
-	NETSolution solution(API_ASSEMBLY_NAME);
-
-	if (!solution.set_path(p_output_dir))
-		return ERR_FILE_NOT_FOUND;
 
 	// Generate source file for global scope constants and enums
 	{
@@ -496,15 +526,15 @@ Error BindingsGenerator::generate_cs_core_project(const String &p_output_dir, bo
 
 	compile_items.push_back(internal_methods_file);
 
-	String guid = CSharpProject::generate_core_api_project(p_output_dir, compile_items);
+	String guid = CSharpProject::generate_core_api_project(proj_dir, compile_items);
 
-	solution.add_new_project(API_ASSEMBLY_NAME, guid);
+	DotNetSolution::ProjectInfo proj_info;
+	proj_info.guid = guid;
+	proj_info.relpath = String(CORE_API_ASSEMBLY_NAME).plus_file(CORE_API_ASSEMBLY_NAME ".csproj");
+	proj_info.configs.push_back("Debug");
+	proj_info.configs.push_back("Release");
 
-	Error sln_error = solution.save();
-	if (sln_error != OK) {
-		ERR_PRINT("Could not to save .NET solution.");
-		return sln_error;
-	}
+	r_solution.add_new_project(CORE_API_ASSEMBLY_NAME, proj_info);
 
 	if (verbose_output)
 		OS::get_singleton()->print("The solution and C# project for the Core API was generated successfully\n");
@@ -512,31 +542,28 @@ Error BindingsGenerator::generate_cs_core_project(const String &p_output_dir, bo
 	return OK;
 }
 
-Error BindingsGenerator::generate_cs_editor_project(const String &p_output_dir, const String &p_core_dll_path, bool p_verbose_output) {
+Error BindingsGenerator::generate_cs_editor_project(const String &p_solution_dir, DotNetSolution &r_solution, bool p_verbose_output) {
 
 	verbose_output = p_verbose_output;
+
+	String proj_dir = p_solution_dir.plus_file(EDITOR_API_ASSEMBLY_NAME);
 
 	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
 	ERR_FAIL_COND_V(!da, ERR_CANT_CREATE);
 
-	if (!DirAccess::exists(p_output_dir)) {
-		Error err = da->make_dir_recursive(p_output_dir);
+	if (!DirAccess::exists(proj_dir)) {
+		Error err = da->make_dir_recursive(proj_dir);
 		ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
 	}
 
-	da->change_dir(p_output_dir);
+	da->change_dir(proj_dir);
 	da->make_dir("Core");
 	da->make_dir("ObjectType");
 
-	String core_dir = path_join(p_output_dir, "Core");
-	String obj_type_dir = path_join(p_output_dir, "ObjectType");
+	String core_dir = path_join(proj_dir, "Core");
+	String obj_type_dir = path_join(proj_dir, "ObjectType");
 
 	Vector<String> compile_items;
-
-	NETSolution solution(EDITOR_API_ASSEMBLY_NAME);
-
-	if (!solution.set_path(p_output_dir))
-		return ERR_FILE_NOT_FOUND;
 
 	for (OrderedHashMap<StringName, TypeInterface>::Element E = obj_types.front(); E; E = E.next()) {
 		const TypeInterface &itype = E.get();
@@ -598,18 +625,56 @@ Error BindingsGenerator::generate_cs_editor_project(const String &p_output_dir, 
 
 	compile_items.push_back(internal_methods_file);
 
-	String guid = CSharpProject::generate_editor_api_project(p_output_dir, p_core_dll_path, compile_items);
+	String guid = CSharpProject::generate_editor_api_project(proj_dir, "../" CORE_API_ASSEMBLY_NAME "/" CORE_API_ASSEMBLY_NAME ".csproj", compile_items);
 
-	solution.add_new_project(EDITOR_API_ASSEMBLY_NAME, guid);
+	DotNetSolution::ProjectInfo proj_info;
+	proj_info.guid = guid;
+	proj_info.relpath = String(EDITOR_API_ASSEMBLY_NAME).plus_file(EDITOR_API_ASSEMBLY_NAME ".csproj");
+	proj_info.configs.push_back("Debug");
+	proj_info.configs.push_back("Release");
 
-	Error sln_error = solution.save();
-	if (sln_error != OK) {
-		ERR_PRINT("Could not to save .NET solution.");
-		return sln_error;
-	}
+	r_solution.add_new_project(EDITOR_API_ASSEMBLY_NAME, proj_info);
 
 	if (verbose_output)
 		OS::get_singleton()->print("The solution and C# project for the Editor API was generated successfully\n");
+
+	return OK;
+}
+
+Error BindingsGenerator::generate_cs_api(const String &p_output_dir, bool p_verbose_output) {
+
+	DirAccessRef da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+	ERR_FAIL_COND_V(!da, ERR_CANT_CREATE);
+
+	if (!DirAccess::exists(p_output_dir)) {
+		Error err = da->make_dir_recursive(p_output_dir);
+		ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
+	}
+
+	DotNetSolution solution(API_SOLUTION_NAME);
+
+	if (!solution.set_path(p_output_dir))
+		return ERR_FILE_NOT_FOUND;
+
+	Error proj_err;
+
+	proj_err = generate_cs_core_project(p_output_dir, solution, p_verbose_output);
+	if (proj_err != OK) {
+		ERR_PRINT("Generation of the Core API C# project failed");
+		return proj_err;
+	}
+
+	proj_err = generate_cs_editor_project(p_output_dir, solution, p_verbose_output);
+	if (proj_err != OK) {
+		ERR_PRINT("Generation of the Editor API C# project failed");
+		return proj_err;
+	}
+
+	Error sln_error = solution.save();
+	if (sln_error != OK) {
+		ERR_PRINT("Failed to save API solution");
+		return sln_error;
+	}
 
 	return OK;
 }
@@ -646,8 +711,11 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 	List<String> output;
 
 	output.push_back("using System;\n"); // IntPtr
+	output.push_back("using System.Diagnostics;\n"); // DebuggerBrowsable
+
 	output.push_back("\n#pragma warning disable CS1591 // Disable warning: "
 					 "'Missing XML comment for publicly visible type or member'\n");
+
 	output.push_back("\nnamespace " BINDINGS_NAMESPACE "\n" OPEN_BLOCK);
 
 	const DocData::ClassDoc *class_doc = itype.class_doc;
@@ -717,7 +785,7 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 			}
 
 			output.push_back(MEMBER_BEGIN "public const int ");
-			output.push_back(iconstant.name);
+			output.push_back(iconstant.proxy_name);
 			output.push_back(" = ");
 			output.push_back(itos(iconstant.value));
 			output.push_back(";");
@@ -757,25 +825,8 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 					output.push_back(INDENT3 "/// </summary>\n");
 				}
 
-				String constant_name = iconstant.name;
-
-				if (!ienum.prefix.empty() && constant_name.begins_with(ienum.prefix)) {
-					constant_name = constant_name.substr(ienum.prefix.length(), constant_name.length());
-				}
-
-				if (constant_name[0] >= '0' && constant_name[0] <= '9') {
-					// The name of enum constants may begin with a numeric digit when strip from the enum prefix,
-					// so we make the prefix one word shorter in those cases.
-					int i = 0;
-					for (i = ienum.prefix.length() - 1; i >= 0; i--) {
-						if (ienum.prefix[i] >= 'A' && ienum.prefix[i] <= 'Z')
-							break;
-					}
-					constant_name = ienum.prefix.substr(i, ienum.prefix.length()) + constant_name;
-				}
-
 				output.push_back(INDENT3);
-				output.push_back(constant_name);
+				output.push_back(iconstant.proxy_name);
 				output.push_back(" = ");
 				output.push_back(itos(iconstant.value));
 				output.push_back(E != ienum.constants.back() ? ",\n" : "\n");
@@ -1086,7 +1137,7 @@ Error BindingsGenerator::_generate_cs_method(const BindingsGenerator::TypeInterf
 	// Generate method
 	{
 		if (!p_imethod.is_virtual && !p_imethod.requires_object_call) {
-			p_output.push_back(MEMBER_BEGIN "private static IntPtr ");
+			p_output.push_back(MEMBER_BEGIN "[DebuggerBrowsable(DebuggerBrowsableState.Never)]" MEMBER_BEGIN "private static IntPtr ");
 			p_output.push_back(method_bind_field + " = Object." ICALL_GET_METHODBIND "(" BINDINGS_NATIVE_NAME_FIELD ", \"");
 			p_output.push_back(p_imethod.name);
 			p_output.push_back("\");\n");
@@ -1269,12 +1320,12 @@ Error BindingsGenerator::generate_glue(const String &p_output_dir) {
 	output.push_back("namespace GodotSharpBindings\n" OPEN_BLOCK "\n");
 
 	output.push_back("uint64_t get_core_api_hash() { return ");
-	output.push_back(String::num_uint64(GDMono::get_singleton()->get_api_core_hash()) + "; }\n");
+	output.push_back(String::num_uint64(GDMono::get_singleton()->get_api_core_hash()) + "U; }\n");
 
 	output.push_back("#ifdef TOOLS_ENABLED\n"
 					 "uint64_t get_editor_api_hash() { return ");
-	output.push_back(String::num_uint64(GDMono::get_singleton()->get_api_editor_hash()) +
-					 "; }\n#endif // TOOLS_ENABLED\n");
+	output.push_back(String::num_uint64(GDMono::get_singleton()->get_api_editor_hash()) + "U; }\n");
+	output.push_back("#endif // TOOLS_ENABLED\n");
 
 	output.push_back("uint32_t get_bindings_version() { return ");
 	output.push_back(String::num_uint64(BINDINGS_GENERATOR_VERSION) + "; }\n");
@@ -1843,11 +1894,13 @@ void BindingsGenerator::_populate_object_type_interfaces() {
 			EnumInterface ienum(enum_proxy_cname);
 			const List<StringName> &constants = enum_map.get(*k);
 			for (const List<StringName>::Element *E = constants.front(); E; E = E->next()) {
-				int *value = class_info->constant_map.getptr(E->get());
+				const StringName &constant_cname = E->get();
+				String constant_name = constant_cname.operator String();
+				int *value = class_info->constant_map.getptr(constant_cname);
 				ERR_FAIL_NULL(value);
-				constant_list.erase(E->get().operator String());
+				constant_list.erase(constant_name);
 
-				ConstantInterface iconstant(snake_to_pascal_case(E->get(), true), *value);
+				ConstantInterface iconstant(constant_name, snake_to_pascal_case(constant_name, true), *value);
 
 				iconstant.const_doc = NULL;
 				for (int i = 0; i < itype.class_doc->constants.size(); i++) {
@@ -1862,7 +1915,9 @@ void BindingsGenerator::_populate_object_type_interfaces() {
 				ienum.constants.push_back(iconstant);
 			}
 
-			ienum.prefix = _determine_enum_prefix(ienum);
+			int prefix_length = _determine_enum_prefix(ienum);
+
+			_apply_prefix_to_enum_constants(ienum, prefix_length);
 
 			itype.enums.push_back(ienum);
 
@@ -1876,10 +1931,11 @@ void BindingsGenerator::_populate_object_type_interfaces() {
 		}
 
 		for (const List<String>::Element *E = constant_list.front(); E; E = E->next()) {
-			int *value = class_info->constant_map.getptr(E->get());
+			const String &constant_name = E->get();
+			int *value = class_info->constant_map.getptr(StringName(E->get()));
 			ERR_FAIL_NULL(value);
 
-			ConstantInterface iconstant(snake_to_pascal_case(E->get(), true), *value);
+			ConstantInterface iconstant(constant_name, snake_to_pascal_case(constant_name, true), *value);
 
 			iconstant.const_doc = NULL;
 			for (int i = 0; i < itype.class_doc->constants.size(); i++) {
@@ -1990,18 +2046,18 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 
 	TypeInterface itype;
 
-#define INSERT_STRUCT_TYPE(m_type, m_type_in)                                                         \
-	{                                                                                                 \
-		itype = TypeInterface::create_value_type(String(#m_type));                                    \
-		itype.c_in = "\tMARSHALLED_IN(" #m_type ", %1, %1_in);\n";                                    \
-		itype.c_out = "\tMARSHALLED_OUT(" #m_type ", %1, ret_out)\n"                                  \
-					  "\treturn mono_value_box(mono_domain_get(), CACHED_CLASS_RAW(%2), ret_out);\n"; \
-		itype.c_arg_in = "&%s_in";                                                                    \
-		itype.c_type_in = m_type_in;                                                                  \
-		itype.cs_in = "ref %s";                                                                       \
-		itype.cs_out = "return (%1)%0;";                                                              \
-		itype.im_type_out = "object";                                                                 \
-		builtin_types.insert(itype.cname, itype);                                                     \
+#define INSERT_STRUCT_TYPE(m_type, m_type_in)                          \
+	{                                                                  \
+		itype = TypeInterface::create_value_type(String(#m_type));     \
+		itype.c_in = "\t%0 %1_in = MARSHALLED_IN(" #m_type ", %1);\n"; \
+		itype.c_out = "\treturn MARSHALLED_OUT(" #m_type ", %1);\n";   \
+		itype.c_arg_in = "&%s_in";                                     \
+		itype.c_type_in = "GDMonoMarshal::M_" #m_type "*";             \
+		itype.c_type_out = "GDMonoMarshal::M_" #m_type;                \
+		itype.cs_in = "ref %s";                                        \
+		itype.cs_out = "return (%1)%0;";                               \
+		itype.im_type_out = itype.cs_type;                             \
+		builtin_types.insert(itype.cname, itype);                      \
 	}
 
 	INSERT_STRUCT_TYPE(Vector2, "real_t*")
@@ -2019,26 +2075,31 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 
 	// bool
 	itype = TypeInterface::create_value_type(String("bool"));
-	itype.c_arg_in = "&%s";
-	// /* MonoBoolean <---> bool
-	itype.c_in = "\t%0 %1_in = (%0)%1;\n";
-	itype.c_out = "\treturn (%0)%1;\n";
-	itype.c_type = "bool";
-	// */
-	itype.c_type_in = "MonoBoolean";
-	itype.c_type_out = itype.c_type_in;
+
+	{
+		// MonoBoolean <---> bool
+		itype.c_in = "\t%0 %1_in = (%0)%1;\n";
+		itype.c_out = "\treturn (%0)%1;\n";
+		itype.c_type = "bool";
+		itype.c_type_in = "MonoBoolean";
+		itype.c_type_out = itype.c_type_in;
+		itype.c_arg_in = "&%s_in";
+	}
 	itype.im_type_in = itype.name;
 	itype.im_type_out = itype.name;
 	builtin_types.insert(itype.cname, itype);
 
 	// int
+	// C interface is the same as that of enums. Remember to apply any
+	// changes done here to TypeInterface::postsetup_enum_type as well
 	itype = TypeInterface::create_value_type(String("int"));
 	itype.c_arg_in = "&%s_in";
-	// /* ptrcall only supports int64_t and uint64_t
-	itype.c_in = "\t%0 %1_in = (%0)%1;\n";
-	itype.c_out = "\treturn (%0)%1;\n";
-	itype.c_type = "int64_t";
-	// */
+	{
+		// The expected types for parameters and return value in ptrcall are 'int64_t' or 'uint64_t'.
+		itype.c_in = "\t%0 %1_in = (%0)%1;\n";
+		itype.c_out = "\treturn (%0)%1;\n";
+		itype.c_type = "int64_t";
+	}
 	itype.c_type_in = "int32_t";
 	itype.c_type_out = itype.c_type_in;
 	itype.im_type_in = itype.name;
@@ -2047,21 +2108,22 @@ void BindingsGenerator::_populate_builtin_type_interfaces() {
 
 	// real_t
 	itype = TypeInterface();
-#ifdef REAL_T_IS_DOUBLE
-	itype.name = "double";
-#else
-	itype.name = "float";
-#endif
+	itype.name = "float"; // The name is always "float" in Variant, even with REAL_T_IS_DOUBLE.
 	itype.cname = itype.name;
-	itype.proxy_name = itype.name;
-	itype.c_arg_in = "&%s_in";
-	//* ptrcall only supports double
-	itype.c_in = "\t%0 %1_in = (%0)%1;\n";
-	itype.c_out = "\treturn (%0)%1;\n";
-	itype.c_type = "double";
-	//*/
-	itype.c_type_in = "real_t";
-	itype.c_type_out = "real_t";
+#ifdef REAL_T_IS_DOUBLE
+	itype.proxy_name = "double";
+#else
+	itype.proxy_name = "float";
+#endif
+	{
+		// The expected type for parameters and return value in ptrcall is 'double'.
+		itype.c_in = "\t%0 %1_in = (%0)%1;\n";
+		itype.c_out = "\treturn (%0)%1;\n";
+		itype.c_type = "double";
+		itype.c_type_in = "real_t";
+		itype.c_type_out = "real_t";
+		itype.c_arg_in = "&%s_in";
+	}
 	itype.cs_type = itype.proxy_name;
 	itype.im_type_in = itype.proxy_name;
 	itype.im_type_out = itype.proxy_name;
@@ -2244,8 +2306,8 @@ void BindingsGenerator::_populate_global_constants() {
 			String constant_name = GlobalConstants::get_global_constant_name(i);
 
 			const DocData::ConstantDoc *const_doc = NULL;
-			for (int i = 0; i < global_scope_doc.constants.size(); i++) {
-				const DocData::ConstantDoc &curr_const_doc = global_scope_doc.constants[i];
+			for (int j = 0; j < global_scope_doc.constants.size(); j++) {
+				const DocData::ConstantDoc &curr_const_doc = global_scope_doc.constants[j];
 
 				if (curr_const_doc.name == constant_name) {
 					const_doc = &curr_const_doc;
@@ -2256,7 +2318,7 @@ void BindingsGenerator::_populate_global_constants() {
 			int constant_value = GlobalConstants::get_global_constant_value(i);
 			StringName enum_name = GlobalConstants::get_global_constant_enum(i);
 
-			ConstantInterface iconstant(snake_to_pascal_case(constant_name, true), constant_value);
+			ConstantInterface iconstant(constant_name, snake_to_pascal_case(constant_name, true), constant_value);
 			iconstant.const_doc = const_doc;
 
 			if (enum_name != StringName()) {
@@ -2284,16 +2346,18 @@ void BindingsGenerator::_populate_global_constants() {
 			TypeInterface::postsetup_enum_type(enum_itype);
 			enum_types.insert(enum_itype.cname, enum_itype);
 
-			ienum.prefix = _determine_enum_prefix(ienum);
+			int prefix_length = _determine_enum_prefix(ienum);
 
-			// HARDCODED
+			// HARDCODED: The Error enum have the prefix 'ERR_' for everything except 'OK' and 'FAILED'.
 			if (ienum.cname == name_cache.enum_Error) {
-				if (!ienum.prefix.empty()) { // Just in case it ever changes
+				if (prefix_length > 0) { // Just in case it ever changes
 					ERR_PRINTS("Prefix for enum 'Error' is not empty");
 				}
 
-				ienum.prefix = "Err";
+				prefix_length = 1; // 'ERR_'
 			}
+
+			_apply_prefix_to_enum_constants(ienum, prefix_length);
 		}
 	}
 
@@ -2335,12 +2399,11 @@ void BindingsGenerator::initialize() {
 
 void BindingsGenerator::handle_cmdline_args(const List<String> &p_cmdline_args) {
 
-	const int NUM_OPTIONS = 3;
+	const int NUM_OPTIONS = 2;
 	int options_left = NUM_OPTIONS;
 
 	String mono_glue_option = "--generate-mono-glue";
-	String cs_core_api_option = "--generate-cs-core-api";
-	String cs_editor_api_option = "--generate-cs-editor-api";
+	String cs_api_option = "--generate-cs-api";
 
 	verbose_output = true;
 
@@ -2354,42 +2417,24 @@ void BindingsGenerator::handle_cmdline_args(const List<String> &p_cmdline_args) 
 
 			if (path_elem) {
 				if (get_singleton()->generate_glue(path_elem->get()) != OK)
-					ERR_PRINT("Mono glue generation failed");
+					ERR_PRINTS(mono_glue_option + ": Failed to generate mono glue");
 				elem = elem->next();
 			} else {
-				ERR_PRINTS("--generate-mono-glue: No output directory specified");
+				ERR_PRINTS(mono_glue_option + ": No output directory specified");
 			}
 
 			--options_left;
 
-		} else if (elem->get() == cs_core_api_option) {
+		} else if (elem->get() == cs_api_option) {
 
 			const List<String>::Element *path_elem = elem->next();
 
 			if (path_elem) {
-				if (get_singleton()->generate_cs_core_project(path_elem->get()) != OK)
-					ERR_PRINT("Generation of solution and C# project for the Core API failed");
+				if (get_singleton()->generate_cs_api(path_elem->get()) != OK)
+					ERR_PRINTS(cs_api_option + ": Failed to generate the C# API");
 				elem = elem->next();
 			} else {
-				ERR_PRINTS(cs_core_api_option + ": No output directory specified");
-			}
-
-			--options_left;
-
-		} else if (elem->get() == cs_editor_api_option) {
-
-			const List<String>::Element *path_elem = elem->next();
-
-			if (path_elem) {
-				if (path_elem->next()) {
-					if (get_singleton()->generate_cs_editor_project(path_elem->get(), path_elem->next()->get()) != OK)
-						ERR_PRINT("Generation of solution and C# project for the Editor API failed");
-					elem = path_elem->next();
-				} else {
-					ERR_PRINTS(cs_editor_api_option + ": No hint path for the Core API dll specified");
-				}
-			} else {
-				ERR_PRINTS(cs_editor_api_option + ": No output directory specified");
+				ERR_PRINTS(cs_api_option + ": No output directory specified");
 			}
 
 			--options_left;
@@ -2401,7 +2446,7 @@ void BindingsGenerator::handle_cmdline_args(const List<String> &p_cmdline_args) 
 	verbose_output = false;
 
 	if (options_left != NUM_OPTIONS)
-		exit(0);
+		::exit(0);
 }
 
 #endif

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,12 +33,9 @@
 #include "core/engine.h"
 #include "core/global_constants.h"
 #include "core/os/file_access.h"
-#include "editor/editor_settings.h"
 #include "gdscript_compiler.h"
 
 #ifdef TOOLS_ENABLED
-#include "core/engine.h"
-#include "core/reference.h"
 #include "editor/editor_file_system.h"
 #include "editor/editor_settings.h"
 #endif
@@ -54,12 +51,6 @@ void GDScriptLanguage::get_string_delimiters(List<String> *p_delimiters) const {
 	p_delimiters->push_back("\"\"\" \"\"\"");
 }
 Ref<Script> GDScriptLanguage::get_template(const String &p_class_name, const String &p_base_class_name) const {
-#ifdef TOOLS_ENABLED
-	bool th = EDITOR_DEF("text_editor/completion/add_type_hints", false);
-#else
-	bool th = false;
-#endif
-
 	String _template = "extends %BASE%\n"
 					   "\n"
 					   "# Declare member variables here. Examples:\n"
@@ -1113,6 +1104,7 @@ static bool _guess_expression_type(const GDScriptCompletionContext &p_context, c
 				} break;
 			}
 		} break;
+		default: {}
 	}
 
 	// It may have found a null, but that's never useful
@@ -1316,37 +1308,38 @@ static bool _guess_identifier_type(const GDScriptCompletionContext &p_context, c
 		return false;
 	}
 
-	// Check ClassDB
-	if (ClassDB::class_exists(p_identifier)) {
-		r_type.type.has_type = true;
-		r_type.type.kind = GDScriptParser::DataType::NATIVE;
-		r_type.type.native_type = p_identifier;
-		if (Engine::get_singleton()->has_singleton(p_identifier)) {
-			r_type.type.is_meta_type = false;
-			r_type.value = Engine::get_singleton()->get_singleton_object(p_identifier);
-		} else {
-			r_type.type.is_meta_type = true;
-			int idx = GDScriptLanguage::get_singleton()->get_global_map()[p_identifier];
-			r_type.value = GDScriptLanguage::get_singleton()->get_global_array()[idx];
+	for (int i = 0; i < 2; i++) {
+		StringName target_id;
+		switch (i) {
+			case 0:
+				// Check ClassDB
+				target_id = p_identifier;
+				break;
+			case 1:
+				// ClassDB again for underscore-prefixed classes
+				target_id = String("_") + p_identifier;
+				break;
 		}
-		return true;
-	}
 
-	// ClassDB again for underscore-prefixed classes
-	StringName under_id = String("_") + p_identifier;
-	if (ClassDB::class_exists(under_id)) {
-		r_type.type.has_type = true;
-		r_type.type.kind = GDScriptParser::DataType::NATIVE;
-		r_type.type.native_type = p_identifier;
-		if (Engine::get_singleton()->has_singleton(p_identifier)) {
-			r_type.type.is_meta_type = false;
-			r_type.value = Engine::get_singleton()->get_singleton_object(p_identifier);
-		} else {
-			r_type.type.is_meta_type = true;
-			int idx = GDScriptLanguage::get_singleton()->get_global_map()[p_identifier];
-			r_type.value = GDScriptLanguage::get_singleton()->get_global_array()[idx];
+		if (ClassDB::class_exists(target_id)) {
+			r_type.type.has_type = true;
+			r_type.type.kind = GDScriptParser::DataType::NATIVE;
+			r_type.type.native_type = target_id;
+			if (Engine::get_singleton()->has_singleton(target_id)) {
+				r_type.type.is_meta_type = false;
+				r_type.value = Engine::get_singleton()->get_singleton_object(target_id);
+			} else {
+				r_type.type.is_meta_type = true;
+				const Map<StringName, int>::Element *target_elem = GDScriptLanguage::get_singleton()->get_global_map().find(target_id);
+				// Check because classes like EditorNode are in ClassDB by now, but unknown to GDScript
+				if (!target_elem) {
+					return false;
+				}
+				int idx = target_elem->get();
+				r_type.value = GDScriptLanguage::get_singleton()->get_global_array()[idx];
+			}
+			return true;
 		}
-		return true;
 	}
 
 	// Check autoload singletons
@@ -2007,7 +2000,8 @@ static void _find_identifiers_in_base(const GDScriptCompletionContext &p_context
 
 				if (!_static) {
 					List<MethodInfo> methods;
-					ClassDB::get_method_list(type, &methods, false, true);
+					bool is_autocompleting_getters = GLOBAL_GET("debug/gdscript/completion/autocomplete_setters_and_getters").booleanize();
+					ClassDB::get_method_list(type, &methods, false, !is_autocompleting_getters);
 					for (List<MethodInfo>::Element *E = methods.front(); E; E = E->next()) {
 						if (E->get().name.begins_with("_")) {
 							continue;
@@ -2448,9 +2442,13 @@ Error GDScriptLanguage::complete_code(const String &p_code, const String &p_base
 	context._class = parser.get_completion_class();
 	context.block = parser.get_completion_block();
 	context.function = parser.get_completion_function();
-	context.base = p_owner;
-	context.base_path = p_base_path;
 	context.line = parser.get_completion_line();
+
+	if (!context._class || context._class->owner == NULL) {
+		context.base = p_owner;
+		context.base_path = p_base_path;
+	}
+
 	bool is_function = false;
 
 	switch (parser.get_completion_type()) {
@@ -3357,6 +3355,7 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 				return OK;
 			}
 		} break;
+		default: {}
 	}
 
 	return ERR_CANT_RESOLVE;

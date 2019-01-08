@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -332,8 +332,8 @@ void VideoStreamPlaybackTheora::set_file(const String &p_file) {
 
 		int w;
 		int h;
-		w = (ti.pic_x + ti.frame_width + 1 & ~1) - (ti.pic_x & ~1);
-		h = (ti.pic_y + ti.frame_height + 1 & ~1) - (ti.pic_y & ~1);
+		w = ((ti.pic_x + ti.frame_width + 1) & ~1) - (ti.pic_x & ~1);
+		h = ((ti.pic_y + ti.frame_height + 1) & ~1) - (ti.pic_y & ~1);
 		size.x = w;
 		size.y = h;
 
@@ -439,7 +439,7 @@ void VideoStreamPlaybackTheora::update(float p_delta) {
 					}
 				}
 
-				int tr = vorbis_synthesis_read(&vd, ret - to_read);
+				vorbis_synthesis_read(&vd, ret - to_read);
 
 				audio_frames_wrote += ret - to_read;
 
@@ -730,7 +730,6 @@ RES ResourceFormatLoaderTheora::load(const String &p_path, const String &p_origi
 		if (r_error) {
 			*r_error = ERR_CANT_OPEN;
 		}
-		memdelete(f);
 		return RES();
 	}
 

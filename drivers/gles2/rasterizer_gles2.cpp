@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,7 +32,7 @@
 
 #include "core/os/os.h"
 #include "core/project_settings.h"
-#include "gl_context/context_gl.h"
+#include "drivers/gl_context/context_gl.h"
 
 #define _EXT_DEBUG_OUTPUT_SYNCHRONOUS_ARB 0x8242
 #define _EXT_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB 0x8243
@@ -58,12 +58,29 @@
 #define _EXT_DEBUG_SEVERITY_LOW_ARB 0x9148
 #define _EXT_DEBUG_OUTPUT 0x92E0
 
-#if (defined WINDOWS_ENABLED) && !(defined UWP_ENABLED)
+#ifndef GLAPIENTRY
+#if defined(WINDOWS_ENABLED) && !defined(UWP_ENABLED)
 #define GLAPIENTRY APIENTRY
 #else
 #define GLAPIENTRY
 #endif
+#endif
 
+#if !defined(GLES_OVER_GL) && !defined(IPHONE_ENABLED)
+// Used for debugging on mobile, but not iOS as EGL is not available
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <GLES2/gl2platform.h>
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
+
+#if defined(MINGW_ENABLED) || defined(_MSC_VER)
+#define strcpy strcpy_s
+#endif
+
+#ifndef IPHONE_ENABLED
 static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const GLvoid *userParam) {
 
 	if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
@@ -73,6 +90,7 @@ static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GL
 		return; //these are ultimately annoying, so removing for now
 
 	char debSource[256], debType[256], debSev[256];
+
 	if (source == _EXT_DEBUG_SOURCE_API_ARB)
 		strcpy(debSource, "OpenGL");
 	else if (source == _EXT_DEBUG_SOURCE_WINDOW_SYSTEM_ARB)
@@ -110,6 +128,7 @@ static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GL
 
 	ERR_PRINTS(output);
 }
+#endif // IPHONE_ENABLED
 
 typedef void (*DEBUGPROCARB)(GLenum source,
 		GLenum type,
@@ -179,7 +198,7 @@ Error RasterizerGLES2::is_viable() {
 			return ERR_UNAVAILABLE;
 		}
 	}
-#endif
+#endif // GLES_OVER_GL
 
 #endif // GLAD_ENABLED
 
@@ -191,7 +210,7 @@ void RasterizerGLES2::initialize() {
 	print_verbose("Using GLES2 video driver");
 
 #ifdef GLAD_ENABLED
-	if (true || OS::get_singleton()->is_stdout_verbose()) {
+	if (OS::get_singleton()->is_stdout_verbose()) {
 		if (GLAD_GL_ARB_debug_output) {
 			glEnable(_EXT_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 			glDebugMessageCallbackARB(_gl_debug_print, NULL);
@@ -204,7 +223,7 @@ void RasterizerGLES2::initialize() {
 
 	// For debugging
 #ifdef GLES_OVER_GL
-	if (GLAD_GL_ARB_debug_output) {
+	if (OS::get_singleton()->is_stdout_verbose() && GLAD_GL_ARB_debug_output) {
 		glDebugMessageControlARB(_EXT_DEBUG_SOURCE_API_ARB, _EXT_DEBUG_TYPE_ERROR_ARB, _EXT_DEBUG_SEVERITY_HIGH_ARB, 0, NULL, GL_TRUE);
 		glDebugMessageControlARB(_EXT_DEBUG_SOURCE_API_ARB, _EXT_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB, _EXT_DEBUG_SEVERITY_HIGH_ARB, 0, NULL, GL_TRUE);
 		glDebugMessageControlARB(_EXT_DEBUG_SOURCE_API_ARB, _EXT_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB, _EXT_DEBUG_SEVERITY_HIGH_ARB, 0, NULL, GL_TRUE);
@@ -217,7 +236,24 @@ void RasterizerGLES2::initialize() {
 			GL_DEBUG_SEVERITY_HIGH_ARB, 5, "hello");
 		*/
 	}
-#endif
+#else
+#ifndef IPHONE_ENABLED
+	if (OS::get_singleton()->is_stdout_verbose()) {
+		DebugMessageCallbackARB callback = (DebugMessageCallbackARB)eglGetProcAddress("glDebugMessageCallback");
+		if (!callback) {
+			callback = (DebugMessageCallbackARB)eglGetProcAddress("glDebugMessageCallbackKHR");
+		}
+
+		if (callback) {
+
+			print_line("godot: ENABLING GL DEBUG");
+			glEnable(_EXT_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+			callback(_gl_debug_print, NULL);
+			glEnable(_EXT_DEBUG_OUTPUT);
+		}
+	}
+#endif // !IPHONE_ENABLED
+#endif // GLES_OVER_GL
 
 	const GLubyte *renderer = glGetString(GL_RENDERER);
 	print_line("OpenGL ES 2.0 Renderer: " + String((const char *)renderer));
@@ -361,7 +397,6 @@ void RasterizerGLES2::blit_render_target_to_screen(RID p_render_target, const Re
 	ERR_FAIL_COND(!rt);
 
 	canvas->state.canvas_shader.set_conditional(CanvasShaderGLES2::USE_TEXTURE_RECT, true);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderGLES2::USE_UV_ATTRIBUTE, false);
 
 	canvas->state.canvas_shader.set_custom_shader(0);
 	canvas->state.canvas_shader.bind();
@@ -378,6 +413,26 @@ void RasterizerGLES2::blit_render_target_to_screen(RID p_render_target, const Re
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	canvas->canvas_end();
+}
+
+void RasterizerGLES2::output_lens_distorted_to_screen(RID p_render_target, const Rect2 &p_screen_rect, float p_k1, float p_k2, const Vector2 &p_eye_center, float p_oversample) {
+	ERR_FAIL_COND(storage->frame.current_rt);
+
+	RasterizerStorageGLES2::RenderTarget *rt = storage->render_target_owner.getornull(p_render_target);
+	ERR_FAIL_COND(!rt);
+
+	glDisable(GL_BLEND);
+
+	// render to our framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, RasterizerStorageGLES2::system_fbo);
+
+	// output our texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, rt->color);
+
+	canvas->draw_lens_distortion_rect(p_screen_rect, p_k1, p_k2, p_eye_center, p_oversample);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void RasterizerGLES2::end_frame(bool p_swap_buffers) {

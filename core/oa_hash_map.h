@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -125,7 +125,7 @@ private:
 
 		while (42) {
 			if (hashes[pos] == EMPTY_HASH) {
-				_construct(pos, hash, p_key, p_value);
+				_construct(pos, hash, key, value);
 
 				return;
 			}
@@ -136,7 +136,7 @@ private:
 
 				if (hashes[pos] & DELETED_HASH_BIT) {
 					// we found a place where we can fit in!
-					_construct(pos, hash, p_key, p_value);
+					_construct(pos, hash, key, value);
 
 					return;
 				}
@@ -166,7 +166,7 @@ private:
 		values = memnew_arr(TValue, capacity);
 		hashes = memnew_arr(uint32_t, capacity);
 
-		for (int i = 0; i < capacity; i++) {
+		for (uint32_t i = 0; i < capacity; i++) {
 			hashes[i] = 0;
 		}
 
@@ -311,7 +311,7 @@ public:
 		values = memnew_arr(TValue, p_initial_capacity);
 		hashes = memnew_arr(uint32_t, p_initial_capacity);
 
-		for (int i = 0; i < p_initial_capacity; i++) {
+		for (uint32_t i = 0; i < p_initial_capacity; i++) {
 			hashes[i] = 0;
 		}
 	}

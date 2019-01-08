@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -194,7 +194,7 @@ void Polygon2D::_notification(int p_what) {
 				}
 			}
 
-			if (!invert && bone_weights.size()) {
+			if (skeleton_node && !invert && bone_weights.size()) {
 				//a skeleton is set! fill indices and weights
 				int vc = points.size();
 				bones.resize(vc * 4);

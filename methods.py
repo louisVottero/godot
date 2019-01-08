@@ -6,7 +6,7 @@ import glob
 import string
 import datetime
 import subprocess
-from compat import iteritems, isbasestring
+from compat import iteritems, isbasestring, decode_utf8
 
 
 def add_source_files(self, sources, filetype, lib_env=None, shared=False):
@@ -17,6 +17,18 @@ def add_source_files(self, sources, filetype, lib_env=None, shared=False):
 
     for path in filetype:
         sources.append(self.Object(path))
+
+
+def disable_warnings(self):
+    # 'self' is the environment
+    if self.msvc:
+        # We have to remove existing warning level defines before appending /w,
+        # otherwise we get: "warning D9025 : overriding '/W3' with '/w'"
+        warn_flags = ['/Wall', '/W4', '/W3', '/W2', '/W1', '/WX']
+        self['CCFLAGS'] = [x for x in self['CCFLAGS'] if not x in warn_flags]
+        self.Append(CCFLAGS=['/w'])
+    else:
+        self.Append(CCFLAGS=['-w'])
 
 
 def add_module_version_string(self,s):
@@ -318,7 +330,7 @@ def split_lib(self, libname, src_list = None, env_lib = None):
     list = []
     lib_list = []
 
-    if src_list == None:
+    if src_list is None:
         src_list = getattr(env, libname + "_sources")
 
     if type(env_lib) == type(None):
@@ -579,7 +591,7 @@ def generate_vs_project(env, num_jobs):
         release_debug_targets = ['bin\\godot.windows.opt.tools.32.exe'] + ['bin\\godot.windows.opt.tools.64.exe']
         targets = debug_targets + release_targets + release_debug_targets
         if not env.get('MSVS'):
-            env['MSVS']['PROJECTSUFFIX'] = '.vcxproj'    
+            env['MSVS']['PROJECTSUFFIX'] = '.vcxproj'
             env['MSVS']['SOLUTIONSUFFIX'] = '.sln'
         env.MSVSProject(
             target=['#godot' + env['MSVSPROJECTSUFFIX']],
@@ -616,3 +628,27 @@ def CommandNoCache(env, target, sources, command, **args):
     result = env.Command(target, sources, command, **args)
     env.NoCache(result)
     return result
+
+def detect_darwin_sdk_path(platform, env):
+    sdk_name = ''
+    if platform == 'osx':
+        sdk_name = 'macosx'
+        var_name = 'MACOS_SDK_PATH'
+    elif platform == 'iphone':
+        sdk_name = 'iphoneos'
+        var_name = 'IPHONESDK'
+    elif platform == 'iphonesimulator':
+        sdk_name = 'iphonesimulator'
+        var_name = 'IPHONESDK'
+    else:
+        raise Exception("Invalid platform argument passed to detect_darwin_sdk_path")
+
+    if not env[var_name]:
+        try:
+            sdk_path = decode_utf8(subprocess.check_output(['xcrun', '--sdk', sdk_name, '--show-sdk-path']).strip())
+            if sdk_path:
+                env[var_name] = sdk_path
+        except (subprocess.CalledProcessError, OSError) as e:
+            print("Failed to find SDK path while running xcrun --sdk {} --show-sdk-path.".format(sdk_name))
+            raise
+

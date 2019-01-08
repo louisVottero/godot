@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -303,7 +303,7 @@ public:
 	String get_filename() const;
 
 	void set_editable_instance(Node *p_node, bool p_editable);
-	bool is_editable_instance(Node *p_node) const;
+	bool is_editable_instance(const Node *p_node) const;
 	void set_editable_instances(const HashMap<NodePath, int> &p_editable_instances);
 	HashMap<NodePath, int> get_editable_instances() const;
 

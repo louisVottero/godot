@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -999,6 +999,10 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 				print_verbose("glTF: Mesh has targets");
 				Array targets = p["targets"];
 
+				//ideally BLEND_SHAPE_MODE_RELATIVE since gltf2 stores in displacement
+				//but it could require a larger refactor?
+				mesh.mesh->set_blend_shape_mode(Mesh::BLEND_SHAPE_MODE_NORMALIZED);
+
 				if (j == 0) {
 					Array target_names = extras.has("targetNames") ? (Array)extras["targetNames"] : Array();
 					for (int k = 0; k < targets.size(); k++) {
@@ -1021,10 +1025,34 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 					array_copy[Mesh::ARRAY_INDEX] = Variant();
 
 					if (t.has("POSITION")) {
-						array_copy[Mesh::ARRAY_VERTEX] = _decode_accessor_as_vec3(state, t["POSITION"], true);
+						PoolVector<Vector3> varr = _decode_accessor_as_vec3(state, t["POSITION"], true);
+						PoolVector<Vector3> src_varr = array[Mesh::ARRAY_VERTEX];
+						int size = src_varr.size();
+						ERR_FAIL_COND_V(size == 0, ERR_PARSE_ERROR);
+						{
+							PoolVector<Vector3>::Write w_varr = varr.write();
+							PoolVector<Vector3>::Read r_varr = varr.read();
+							PoolVector<Vector3>::Read r_src_varr = src_varr.read();
+							for (int l = 0; l < size; l++) {
+								w_varr[l] = r_varr[l] + r_src_varr[l];
+							}
+						}
+						array_copy[Mesh::ARRAY_VERTEX] = varr;
 					}
 					if (t.has("NORMAL")) {
-						array_copy[Mesh::ARRAY_NORMAL] = _decode_accessor_as_vec3(state, t["NORMAL"], true);
+						PoolVector<Vector3> narr = _decode_accessor_as_vec3(state, t["NORMAL"], true);
+						PoolVector<Vector3> src_narr = array[Mesh::ARRAY_NORMAL];
+						int size = src_narr.size();
+						ERR_FAIL_COND_V(size == 0, ERR_PARSE_ERROR);
+						{
+							PoolVector<Vector3>::Write w_narr = narr.write();
+							PoolVector<Vector3>::Read r_narr = narr.read();
+							PoolVector<Vector3>::Read r_src_narr = src_narr.read();
+							for (int l = 0; l < size; l++) {
+								w_narr[l] = r_narr[l] + r_src_narr[l];
+							}
+						}
+						array_copy[Mesh::ARRAY_NORMAL] = narr;
 					}
 					if (t.has("TANGENT")) {
 						PoolVector<Vector3> tangents_v3 = _decode_accessor_as_vec3(state, t["TANGENT"], true);
@@ -1043,9 +1071,9 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 
 							for (int l = 0; l < size4 / 4; l++) {
 
-								w4[l * 4 + 0] = r3[l].x;
-								w4[l * 4 + 1] = r3[l].y;
-								w4[l * 4 + 2] = r3[l].z;
+								w4[l * 4 + 0] = r3[l].x + r4[l * 4 + 0];
+								w4[l * 4 + 1] = r3[l].y + r4[l * 4 + 1];
+								w4[l * 4 + 2] = r3[l].z + r4[l * 4 + 2];
 								w4[l * 4 + 3] = r4[l * 4 + 3]; //copy flip value
 							}
 						}
@@ -1686,7 +1714,7 @@ void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node 
 
 	n->godot_nodes.push_back(node);
 
-	if (n->skin >= 0 && Object::cast_to<MeshInstance>(node)) {
+	if (n->skin >= 0 && n->skin < skeletons.size() && Object::cast_to<MeshInstance>(node)) {
 		MeshInstance *mi = Object::cast_to<MeshInstance>(node);
 
 		Skeleton *s = skeletons[n->skin];
@@ -1793,22 +1821,22 @@ template <>
 struct EditorSceneImporterGLTFInterpolate<Quat> {
 
 	Quat lerp(const Quat &a, const Quat &b, float c) const {
-		ERR_FAIL_COND_V(a.is_normalized() == false, Quat());
-		ERR_FAIL_COND_V(b.is_normalized() == false, Quat());
+		ERR_FAIL_COND_V(!a.is_normalized(), Quat());
+		ERR_FAIL_COND_V(!b.is_normalized(), Quat());
 
 		return a.slerp(b, c).normalized();
 	}
 
 	Quat catmull_rom(const Quat &p0, const Quat &p1, const Quat &p2, const Quat &p3, float c) {
-		ERR_FAIL_COND_V(p1.is_normalized() == false, Quat());
-		ERR_FAIL_COND_V(p2.is_normalized() == false, Quat());
+		ERR_FAIL_COND_V(!p1.is_normalized(), Quat());
+		ERR_FAIL_COND_V(!p2.is_normalized(), Quat());
 
 		return p1.slerp(p2, c).normalized();
 	}
 
 	Quat bezier(Quat start, Quat control_1, Quat control_2, Quat end, float t) {
-		ERR_FAIL_COND_V(start.is_normalized() == false, Quat());
-		ERR_FAIL_COND_V(end.is_normalized() == false, Quat());
+		ERR_FAIL_COND_V(!start.is_normalized(), Quat());
+		ERR_FAIL_COND_V(!end.is_normalized(), Quat());
 
 		return start.slerp(end, t).normalized();
 	}
@@ -1910,15 +1938,15 @@ void EditorSceneImporterGLTF::_import_animation(GLTFState &state, AnimationPlaye
 		NodePath node_path;
 
 		GLTFNode *node = state.nodes[E->key()];
-		for (int i = 0; i < node->godot_nodes.size(); i++) {
+		for (int n = 0; n < node->godot_nodes.size(); n++) {
 
 			if (node->joints.size()) {
-				Skeleton *sk = (Skeleton *)node->godot_nodes[i];
+				Skeleton *sk = (Skeleton *)node->godot_nodes[n];
 				String path = ap->get_parent()->get_path_to(sk);
-				String bone = sk->get_bone_name(node->joints[i].godot_bone_index);
+				String bone = sk->get_bone_name(node->joints[n].godot_bone_index);
 				node_path = path + ":" + bone;
 			} else {
-				node_path = ap->get_parent()->get_path_to(node->godot_nodes[i]);
+				node_path = ap->get_parent()->get_path_to(node->godot_nodes[n]);
 			}
 
 			for (int i = 0; i < track.rotation_track.times.size(); i++) {
@@ -1993,8 +2021,8 @@ void EditorSceneImporterGLTF::_import_animation(GLTFState &state, AnimationPlaye
 						xform.basis.set_quat_scale(rot, scale);
 						xform.origin = pos;
 
-						Skeleton *skeleton = skeletons[node->joints[i].skin];
-						int bone = node->joints[i].godot_bone_index;
+						Skeleton *skeleton = skeletons[node->joints[n].skin];
+						int bone = node->joints[n].godot_bone_index;
 						xform = skeleton->get_bone_rest(bone).affine_inverse() * xform;
 
 						rot = xform.basis.get_rotation_quat();

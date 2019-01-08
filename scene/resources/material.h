@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -286,7 +286,7 @@ private:
 		mk.key = 0;
 		for (int i = 0; i < FEATURE_MAX; i++) {
 			if (features[i]) {
-				mk.feature_mask |= (1 << i);
+				mk.feature_mask |= ((uint64_t)1 << i);
 			}
 		}
 		mk.detail_uv = detail_uv;
@@ -295,7 +295,7 @@ private:
 		mk.cull_mode = cull_mode;
 		for (int i = 0; i < FLAG_MAX; i++) {
 			if (flags[i]) {
-				mk.flags |= (1 << i);
+				mk.flags |= ((uint64_t)1 << i);
 			}
 		}
 		mk.detail_blend_mode = detail_blend_mode;
@@ -338,6 +338,7 @@ private:
 		StringName particles_anim_loop;
 		StringName depth_min_layers;
 		StringName depth_max_layers;
+		StringName depth_flip;
 		StringName uv1_blend_sharpness;
 		StringName uv2_blend_sharpness;
 		StringName grow;
@@ -359,7 +360,7 @@ private:
 	};
 
 	static Mutex *material_mutex;
-	static SelfList<SpatialMaterial>::List dirty_materials;
+	static SelfList<SpatialMaterial>::List *dirty_materials;
 	static ShaderNames *shader_names;
 
 	SelfList<SpatialMaterial> element;
@@ -407,6 +408,8 @@ private:
 	bool deep_parallax;
 	int deep_parallax_min_layers;
 	int deep_parallax_max_layers;
+	bool depth_parallax_flip_tangent;
+	bool depth_parallax_flip_binormal;
 
 	bool proximity_fade_enabled;
 	float proximity_fade_distance;
@@ -441,6 +444,8 @@ private:
 	};
 
 	static Ref<SpatialMaterial> materials_for_2d[MAX_MATERIALS_FOR_2D]; //used by Sprite3D and other stuff
+
+	void _validate_high_end(const String &text, PropertyInfo &property) const;
 
 protected:
 	static void _bind_methods();
@@ -498,6 +503,12 @@ public:
 
 	void set_depth_deep_parallax_max_layers(int p_layer);
 	int get_depth_deep_parallax_max_layers() const;
+
+	void set_depth_deep_parallax_flip_tangent(bool p_flip);
+	bool get_depth_deep_parallax_flip_tangent() const;
+
+	void set_depth_deep_parallax_flip_binormal(bool p_flip);
+	bool get_depth_deep_parallax_flip_binormal() const;
 
 	void set_subsurface_scattering_strength(float p_subsurface_scattering_strength);
 	float get_subsurface_scattering_strength() const;
@@ -572,8 +583,8 @@ public:
 	void set_particles_anim_v_frames(int p_frames);
 	int get_particles_anim_v_frames() const;
 
-	void set_particles_anim_loop(int p_frames);
-	int get_particles_anim_loop() const;
+	void set_particles_anim_loop(bool p_loop);
+	bool get_particles_anim_loop() const;
 
 	void set_grow_enabled(bool p_enable);
 	bool is_grow_enabled() const;

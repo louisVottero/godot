@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -205,13 +205,13 @@ void CurveEditor::on_gui_input(const Ref<InputEvent> &p_event) {
 						curve.set_point_left_tangent(_selected_point, tangent);
 
 						// Note: if a tangent is set to linear, it shouldn't be linked to the other
-						if (link && _selected_point != curve.get_point_count() - 1 && !curve.get_point_right_mode(_selected_point) != Curve::TANGENT_FREE)
+						if (link && _selected_point != (curve.get_point_count() - 1) && curve.get_point_right_mode(_selected_point) != Curve::TANGENT_LINEAR)
 							curve.set_point_right_tangent(_selected_point, tangent);
 
 					} else {
 						curve.set_point_right_tangent(_selected_point, tangent);
 
-						if (link && _selected_point != 0 && !curve.get_point_left_mode(_selected_point) != Curve::TANGENT_FREE)
+						if (link && _selected_point != 0 && curve.get_point_left_mode(_selected_point) != Curve::TANGENT_LINEAR)
 							curve.set_point_left_tangent(_selected_point, tangent);
 					}
 				}
@@ -782,12 +782,13 @@ bool CurvePreviewGenerator::handles(const String &p_type) const {
 	return p_type == "Curve";
 }
 
-Ref<Texture> CurvePreviewGenerator::generate(const Ref<Resource> &p_from) {
+Ref<Texture> CurvePreviewGenerator::generate(const Ref<Resource> &p_from, const Size2 p_size) const {
 
 	Ref<Curve> curve_ref = p_from;
 	ERR_FAIL_COND_V(curve_ref.is_null(), Ref<Texture>());
 	Curve &curve = **curve_ref;
 
+	// FIXME: Should be ported to use p_size as done in b2633a97
 	int thumbnail_size = EditorSettings::get_singleton()->get("filesystem/file_dialog/thumbnail_size");
 	thumbnail_size *= EDSCALE;
 	Ref<Image> img_ref;

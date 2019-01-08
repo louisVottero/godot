@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -29,37 +29,19 @@
 /*************************************************************************/
 
 #include "grid_map.h"
-#include "core/message_queue.h"
-#include "scene/3d/light.h"
-#include "scene/resources/surface_tool.h"
-#include "servers/visual_server.h"
 
 #include "core/io/marshalls.h"
-#include "core/os/os.h"
+#include "core/message_queue.h"
+#include "scene/3d/light.h"
 #include "scene/resources/mesh_library.h"
+#include "scene/resources/surface_tool.h"
 #include "scene/scene_string_names.h"
+#include "servers/visual_server.h"
 
 bool GridMap::_set(const StringName &p_name, const Variant &p_value) {
 
 	String name = p_name;
 
-	/*	} else if (name=="cells") {
-		PoolVector<int> cells = p_value;
-		int amount=cells.size();
-		PoolVector<int>::Read r = cells.read();
-		ERR_FAIL_COND_V(amount&1,false); // not even
-		cell_map.clear();
-		for(int i=0;i<amount/3;i++) {
-
-
-			IndexKey ik;
-			ik.key=decode_uint64(&r[i*3]);
-			Cell cell;
-			cell.cell=uint32_t(r[i*+1]);
-			cell_map[ik]=cell;
-
-		}
-		_recreate_octant_data();*/
 	if (name == "data") {
 
 		Dictionary d = p_value;
@@ -80,7 +62,9 @@ bool GridMap::_set(const StringName &p_name, const Variant &p_value) {
 				cell_map[ik] = cell;
 			}
 		}
+
 		_recreate_octant_data();
+
 	} else if (name == "baked_meshes") {
 
 		clear_baked_meshes();
@@ -103,8 +87,9 @@ bool GridMap::_set(const StringName &p_name, const Variant &p_value) {
 
 		_recreate_octant_data();
 
-	} else
+	} else {
 		return false;
+	}
 
 	return true;
 }
@@ -907,7 +892,7 @@ void GridMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("make_baked_meshes", "gen_lightmap_uv", "lightmap_uv_texel_size"), &GridMap::make_baked_meshes, DEFVAL(false), DEFVAL(0.1));
 
 #ifndef DISABLE_DEPRECATED
-	ADD_PROPERTYNO(PropertyInfo(Variant::OBJECT, "theme", PROPERTY_HINT_RESOURCE_TYPE, "MeshLibrary", 0), "set_theme", "get_theme");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "theme", PROPERTY_HINT_RESOURCE_TYPE, "MeshLibrary", 0), "set_theme", "get_theme");
 #endif // DISABLE_DEPRECATED
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "mesh_library", PROPERTY_HINT_RESOURCE_TYPE, "MeshLibrary"), "set_mesh_library", "get_mesh_library");
@@ -1080,8 +1065,6 @@ void GridMap::make_baked_meshes(bool p_gen_lightmap_uv, float p_lightmap_uv_texe
 			mat_map[surf_mat]->append_from(mesh, i, xform);
 		}
 	}
-
-	int ofs = 0;
 
 	for (Map<OctantKey, Map<Ref<Material>, Ref<SurfaceTool> > >::Element *E = surface_map.front(); E; E = E->next()) {
 

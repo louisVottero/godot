@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -901,6 +901,7 @@ void Tree::update_cache() {
 	cache.item_margin = get_constant("item_margin");
 	cache.button_margin = get_constant("button_margin");
 	cache.guide_width = get_constant("guide_width");
+	cache.draw_guides = get_constant("draw_guides");
 	cache.draw_relationship_lines = get_constant("draw_relationship_lines");
 	cache.relationship_line_color = get_color("relationship_line_color");
 	cache.scroll_border = get_constant("scroll_border");
@@ -1132,7 +1133,9 @@ int Tree::draw_item(const Point2i &p_pos, const Point2 &p_draw_ofs, const Size2 
 				cell_rect.size.x += cache.hseparation;
 			}
 
-			VisualServer::get_singleton()->canvas_item_add_line(ci, Point2i(cell_rect.position.x, cell_rect.position.y + cell_rect.size.height), cell_rect.position + cell_rect.size, cache.guide_color, 1);
+			if (cache.draw_guides) {
+				VisualServer::get_singleton()->canvas_item_add_line(ci, Point2i(cell_rect.position.x, cell_rect.position.y + cell_rect.size.height), cell_rect.position + cell_rect.size, cache.guide_color, 1);
+			}
 
 			if (i == 0) {
 
@@ -1254,13 +1257,13 @@ int Tree::draw_item(const Point2i &p_pos, const Point2 &p_draw_ofs, const Size2 
 
 						String s = RTR("(Other)");
 						Vector<String> strings = p_item->cells[i].text.split(",");
-						for (int i = 0; i < strings.size(); i++) {
-							int value = i;
-							if (!strings[i].get_slicec(':', 1).empty()) {
-								value = strings[i].get_slicec(':', 1).to_int();
+						for (int j = 0; j < strings.size(); j++) {
+							int value = j;
+							if (!strings[j].get_slicec(':', 1).empty()) {
+								value = strings[j].get_slicec(':', 1).to_int();
 							}
 							if (option == value) {
-								s = strings[i].get_slicec(':', 0);
+								s = strings[j].get_slicec(':', 0);
 								break;
 							}
 						}
@@ -1416,7 +1419,7 @@ int Tree::draw_item(const Point2i &p_pos, const Point2 &p_draw_ofs, const Size2 
 
 		while (c) {
 
-			if (cache.draw_relationship_lines == 1 && (c->get_parent() != root || c->get_parent() == root && !hide_root)) {
+			if (cache.draw_relationship_lines > 0 && (!hide_root || c->parent != root)) {
 				int root_ofs = children_pos.x + ((p_item->disable_folding || hide_folding) ? cache.hseparation : cache.item_margin);
 				int parent_ofs = p_pos.x + ((p_item->disable_folding || hide_folding) ? cache.hseparation : cache.item_margin);
 				Point2i root_pos = Point2i(root_ofs, children_pos.y + label_h / 2) - cache.offset + p_draw_ofs;
@@ -2183,6 +2186,7 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 
 	Ref<InputEventKey> k = p_event;
 
+	bool is_command = k.is_valid() && k->get_command();
 	if (p_event->is_action("ui_right") && p_event->is_pressed()) {
 
 		if (!cursor_can_exit_tree) accept_event();
@@ -2219,13 +2223,13 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 			_go_left();
 		}
 
-	} else if (p_event->is_action("ui_up") && p_event->is_pressed() && !k->get_command()) {
+	} else if (p_event->is_action("ui_up") && p_event->is_pressed() && !is_command) {
 
 		if (!cursor_can_exit_tree) accept_event();
 
 		_go_up();
 
-	} else if (p_event->is_action("ui_down") && p_event->is_pressed() && !k->get_command()) {
+	} else if (p_event->is_action("ui_down") && p_event->is_pressed() && !is_command) {
 
 		if (!cursor_can_exit_tree) accept_event();
 
@@ -2518,7 +2522,7 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 					pressing_for_editor = false;
 				}
 
-				if (cache.click_type == Cache::CLICK_BUTTON) {
+				if (cache.click_type == Cache::CLICK_BUTTON && cache.click_item != NULL) {
 					// make sure in case of wrong reference after reconstructing whole TreeItems
 					cache.click_item = get_item_at_position(cache.click_pos);
 					emit_signal("button_pressed", cache.click_item, cache.click_column, cache.click_id);
@@ -2697,6 +2701,7 @@ bool Tree::edit_selected() {
 
 		Vector2 ofs(0, (text_editor->get_size().height - rect.size.height) / 2);
 		Point2i textedpos = get_global_position() + rect.position - ofs;
+		cache.text_editor_position = textedpos;
 		text_editor->set_position(textedpos);
 		text_editor->set_size(rect.size);
 		text_editor->clear();
@@ -2933,7 +2938,7 @@ void Tree::_notification(int p_what) {
 
 		if (show_column_titles) {
 
-			//title butons
+			//title buttons
 			int ofs = cache.bg->get_margin(MARGIN_LEFT);
 			for (int i = 0; i < columns.size(); i++) {
 
@@ -2951,6 +2956,21 @@ void Tree::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_THEME_CHANGED) {
 		update_cache();
+	}
+
+	if (p_what == NOTIFICATION_RESIZED || p_what == NOTIFICATION_TRANSFORM_CHANGED) {
+
+		if (popup_edited_item != NULL) {
+			Rect2 rect = popup_edited_item->get_meta("__focus_rect");
+			Vector2 ofs(0, (text_editor->get_size().height - rect.size.height) / 2);
+			Point2i textedpos = get_global_position() + rect.position - ofs;
+
+			if (cache.text_editor_position != textedpos) {
+				cache.text_editor_position = textedpos;
+				text_editor->set_position(textedpos);
+				value_editor->set_position(textedpos + Point2i(0, text_editor->get_size().height));
+			}
+		}
 	}
 }
 
@@ -3880,6 +3900,7 @@ Tree::Tree() {
 
 	value_editor->set_as_toplevel(true);
 	text_editor->set_as_toplevel(true);
+	set_notify_transform(true);
 
 	updating_value_editor = false;
 	pressed_button = -1;

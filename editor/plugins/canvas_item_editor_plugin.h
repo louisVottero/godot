@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -64,7 +64,10 @@ public:
 
 	Dictionary undo_state;
 
-	CanvasItemEditorSelectedItem() { prev_rot = 0; }
+	CanvasItemEditorSelectedItem() :
+			prev_anchors() {
+		prev_rot = 0;
+	}
 };
 
 class CanvasItemEditor : public VBoxContainer {
@@ -195,6 +198,7 @@ private:
 		DRAG_MOVE,
 		DRAG_SCALE_X,
 		DRAG_SCALE_Y,
+		DRAG_SCALE_BOTH,
 		DRAG_ROTATE,
 		DRAG_PIVOT,
 		DRAG_V_GUIDE,
@@ -218,6 +222,11 @@ private:
 	ToolButton *zoom_minus;
 	ToolButton *zoom_reset;
 	ToolButton *zoom_plus;
+
+	Map<Control *, Timer *> popup_temporarily_timers;
+
+	Label *warning_child_of_container;
+	VBoxContainer *info_overlay;
 
 	Transform2D transform;
 	bool show_grid;
@@ -279,6 +288,10 @@ private:
 		Transform2D xform;
 		float length;
 		uint64_t last_pass;
+
+		BoneList() :
+				length(0.f),
+				last_pass(0) {}
 	};
 
 	uint64_t bone_last_frame;
@@ -364,8 +377,10 @@ private:
 	Ref<ShortCut> multiply_grid_step_shortcut;
 	Ref<ShortCut> divide_grid_step_shortcut;
 
-	void _find_canvas_items_at_pos(const Point2 &p_pos, Node *p_node, Vector<_SelectResult> &r_items, int p_limit = 0, const Transform2D &p_parent_xform = Transform2D(), const Transform2D &p_canvas_xform = Transform2D());
-	void _get_canvas_items_at_pos(const Point2 &p_pos, Vector<_SelectResult> &r_items, int p_limit = 0);
+	bool _is_node_locked(const Node *p_node);
+	bool _is_node_movable(const Node *p_node, bool p_popup_warning = false);
+	void _find_canvas_items_at_pos(const Point2 &p_pos, Node *p_node, Vector<_SelectResult> &r_items, const Transform2D &p_parent_xform = Transform2D(), const Transform2D &p_canvas_xform = Transform2D());
+	void _get_canvas_items_at_pos(const Point2 &p_pos, Vector<_SelectResult> &r_items);
 	void _get_bones_at_pos(const Point2 &p_pos, Vector<_SelectResult> &r_items);
 
 	void _find_canvas_items_in_rect(const Rect2 &p_rect, Node *p_node, List<CanvasItem *> *r_items, const Transform2D &p_parent_xform = Transform2D(), const Transform2D &p_canvas_xform = Transform2D());
@@ -471,6 +486,9 @@ private:
 	void _update_bone_list();
 	void _tree_changed(Node *);
 
+	void _popup_warning_temporarily(Control *p_control, const float p_duration);
+	void _popup_warning_depop(Control *p_control);
+
 	friend class CanvasItemEditorPlugin;
 
 protected:
@@ -536,10 +554,15 @@ public:
 	void add_control_to_menu_panel(Control *p_control);
 	void remove_control_from_menu_panel(Control *p_control);
 
+	void add_control_to_info_overlay(Control *p_control);
+	void remove_control_from_info_overlay(Control *p_control);
+
 	HSplitContainer *get_palette_split();
 	VSplitContainer *get_bottom_split();
 
 	Control *get_viewport_control() { return viewport; }
+
+	void update_viewport();
 
 	Tool get_current_tool() { return tool; }
 
@@ -585,7 +608,7 @@ class CanvasItemEditorViewport : public Control {
 
 	EditorNode *editor;
 	EditorData *editor_data;
-	CanvasItemEditor *canvas;
+	CanvasItemEditor *canvas_item_editor;
 	Node2D *preview_node;
 	AcceptDialog *accept;
 	WindowDialog *selector;
@@ -619,7 +642,7 @@ public:
 	virtual bool can_drop_data(const Point2 &p_point, const Variant &p_data) const;
 	virtual void drop_data(const Point2 &p_point, const Variant &p_data);
 
-	CanvasItemEditorViewport(EditorNode *p_node, CanvasItemEditor *p_canvas);
+	CanvasItemEditorViewport(EditorNode *p_node, CanvasItemEditor *p_canvas_item_editor);
 	~CanvasItemEditorViewport();
 };
 

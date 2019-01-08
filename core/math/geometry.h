@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -798,6 +798,21 @@ public:
 			return _decompose_func(p_polygon);
 
 		return Vector<Vector<Vector2> >();
+	}
+
+	static bool is_polygon_clockwise(const Vector<Vector2> &p_polygon) {
+		int c = p_polygon.size();
+		if (c < 3)
+			return false;
+		const Vector2 *p = p_polygon.ptr();
+		real_t sum = 0;
+		for (int i = 0; i < c; i++) {
+			const Vector2 &v1 = p[i];
+			const Vector2 &v2 = p[(i + 1) % c];
+			sum += (v2.x - v1.x) * (v2.y + v1.y);
+		}
+
+		return sum > 0.0f;
 	}
 
 	static PoolVector<PoolVector<Face3> > separate_objects(PoolVector<Face3> p_array);

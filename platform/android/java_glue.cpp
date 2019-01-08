@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,8 +27,6 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-
-#ifndef ANDROID_NATIVE_ACTIVITY
 
 #include "java_glue.h"
 #include "android/asset_manager_jni.h"
@@ -268,11 +266,11 @@ Variant _jobject_to_variant(JNIEnv *env, jobject obj) {
 		return ret;
 	};
 
-	if (name == "java.lang.Integer") {
+	if (name == "java.lang.Integer" || name == "java.lang.Long") {
 
 		jclass nclass = env->FindClass("java/lang/Number");
-		jmethodID intValue = env->GetMethodID(nclass, "intValue", "()I");
-		int ret = env->CallIntMethod(obj, intValue);
+		jmethodID longValue = env->GetMethodID(nclass, "longValue", "()J");
+		jlong ret = env->CallLongMethod(obj, longValue);
 		return ret;
 	};
 
@@ -589,8 +587,6 @@ TST tst;
 
 static bool initialized = false;
 static int step = 0;
-static bool resized = false;
-static bool resized_reload = false;
 static Size2 new_size;
 static Vector3 accelerometer;
 static Vector3 gravity;
@@ -792,7 +788,6 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 		_getClipboard = env->GetMethodID(cls, "getClipboard", "()Ljava/lang/String;");
 		_setClipboard = env->GetMethodID(cls, "setClipboard", "(Ljava/lang/String;)V");
 
-		jclass clsio = env->FindClass("org/godotengine/godot/Godot");
 		if (cls) {
 			jclass c = env->GetObjectClass(gob);
 			_openURI = env->GetMethodID(c, "openURI", "(Ljava/lang/String;)I");
@@ -887,7 +882,7 @@ static void _initialize_java_modules() {
 				ERR_CONTINUE(!initialize);
 			}
 			jobject obj = env->CallStaticObjectMethod(singletonClass, initialize, _godot_instance);
-			jobject gob = env->NewGlobalRef(obj);
+			env->NewGlobalRef(obj);
 		}
 	}
 }
@@ -931,13 +926,6 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_resize(JNIEnv *env, j
 
 	if (os_android)
 		os_android->set_display_size(Size2(width, height));
-
-	/*input_mutex->lock();
-	resized=true;
-	if (reload)
-		resized_reload=true;
-	new_size=Size2(width,height);
-	input_mutex->unlock();*/
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_newcontext(JNIEnv *env, jobject obj, bool p_32_bits) {
@@ -986,7 +974,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, job
 
 	os_android->process_gyroscope(gyroscope);
 
-	if (os_android->main_loop_iterate() == true) {
+	if (os_android->main_loop_iterate()) {
 
 		jclass cls = env->FindClass("org/godotengine/godot/Godot");
 		jmethodID _finish = env->GetMethodID(cls, "forceQuit", "()V");
@@ -1576,4 +1564,3 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_calldeferred(JNIEnv *
 //Main::cleanup();
 
 //return os.get_exit_code();
-#endif

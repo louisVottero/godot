@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -220,13 +220,14 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 				case ALIGN_LEFT: l.offset_caches.push_back(0); break;                                                                                           \
 				case ALIGN_CENTER: l.offset_caches.push_back(((p_width - margin) - used) / 2); break;                                                           \
 				case ALIGN_RIGHT: l.offset_caches.push_back(((p_width - margin) - used)); break;                                                                \
-				case ALIGN_FILL: l.offset_caches.push_back((p_width - margin) - used /*+spaces_size*/); break;                                                  \
+				case ALIGN_FILL: l.offset_caches.push_back(line_wrapped ? ((p_width - margin) - used) : 0); break;                                              \
 			}                                                                                                                                                   \
 			l.height_caches.push_back(line_height);                                                                                                             \
 			l.ascent_caches.push_back(line_ascent);                                                                                                             \
 			l.descent_caches.push_back(line_descent);                                                                                                           \
 			l.space_caches.push_back(spaces);                                                                                                                   \
 		}                                                                                                                                                       \
+		line_wrapped = false;                                                                                                                                   \
 		y += line_height + get_constant(SceneStringNames::get_singleton()->line_separation);                                                                    \
 		line_height = 0;                                                                                                                                        \
 		line_ascent = 0;                                                                                                                                        \
@@ -254,6 +255,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 		l.minimum_width = MAX(l.minimum_width, m_width);                                                                                                        \
 	}                                                                                                                                                           \
 	if (wofs + m_width > p_width) {                                                                                                                             \
+		line_wrapped = true;                                                                                                                                    \
 		if (p_mode == PROCESS_CACHE) {                                                                                                                          \
 			if (spaces > 0)                                                                                                                                     \
 				spaces -= 1;                                                                                                                                    \
@@ -298,6 +300,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 	int rchar = 0;
 	int lh = 0;
 	bool line_is_blank = true;
+	bool line_wrapped = false;
 	int fh = 0;
 
 	while (it) {
@@ -421,7 +424,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 								int cw = 0;
 
-								bool visible = visible_characters < 0 || p_char_count < visible_characters && YRANGE_VISIBLE(y + lh - line_descent - line_ascent, line_ascent + line_descent);
+								bool visible = visible_characters < 0 || (p_char_count < visible_characters && YRANGE_VISIBLE(y + lh - line_descent - line_ascent, line_ascent + line_descent));
 								if (visible)
 									line_is_blank = false;
 
@@ -509,7 +512,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 				ENSURE_WIDTH(img->image->get_width());
 
-				bool visible = visible_characters < 0 || p_char_count < visible_characters && YRANGE_VISIBLE(y + lh - font->get_descent() - img->image->get_height(), img->image->get_height());
+				bool visible = visible_characters < 0 || (p_char_count < visible_characters && YRANGE_VISIBLE(y + lh - font->get_descent() - img->image->get_height(), img->image->get_height()));
 				if (visible)
 					line_is_blank = false;
 
@@ -762,20 +765,19 @@ void RichTextLabel::_update_scroll() {
 
 		if (exceeds) {
 			scroll_visible = true;
-			main->first_invalid_line = 0;
 			scroll_w = vscroll->get_combined_minimum_size().width;
 			vscroll->show();
 			vscroll->set_anchor_and_margin(MARGIN_LEFT, ANCHOR_END, -scroll_w);
-			_validate_line_caches(main);
-
 		} else {
-
 			scroll_visible = false;
-			vscroll->hide();
 			scroll_w = 0;
-			_validate_line_caches(main);
+			vscroll->hide();
 		}
+
+		main->first_invalid_line = 0; //invalidate ALL
+		_validate_line_caches(main);
 	}
+	scroll_updated = true;
 }
 
 void RichTextLabel::_notification(int p_what) {
@@ -847,8 +849,6 @@ void RichTextLabel::_notification(int p_what) {
 			bool use_outline = get_constant("shadow_as_outline");
 			Point2 shadow_ofs(get_constant("shadow_offset_x"), get_constant("shadow_offset_y"));
 
-			float x_ofs = 0;
-
 			visible_line_count = 0;
 			while (y < size.height && from_line < main->lines.size()) {
 
@@ -866,7 +866,6 @@ void RichTextLabel::_find_click(ItemFrame *p_frame, const Point2i &p_click, Item
 	if (r_click_item)
 		*r_click_item = NULL;
 
-	Size2 size = get_size();
 	Rect2 text_rect = _get_text_rect();
 	int ofs = vscroll->get_value();
 	Color font_color_shadow = get_color("font_color_shadow");
@@ -931,6 +930,7 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 			if (true) {
 
 				if (b->is_pressed() && !b->is_doubleclick()) {
+					scroll_updated = false;
 					int line = 0;
 					Item *item = NULL;
 
@@ -939,12 +939,7 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 
 					if (item) {
 
-						Variant meta;
-						if (!outside && _find_meta(item, &meta)) {
-							//meta clicked
-
-							emit_signal("meta_clicked", meta);
-						} else if (selection.enabled) {
+						if (selection.enabled) {
 
 							selection.click = item;
 							selection.click_char = line;
@@ -993,6 +988,24 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 				} else if (!b->is_pressed()) {
 
 					selection.click = NULL;
+
+					if (!b->is_doubleclick() && !scroll_updated) {
+						int line = 0;
+						Item *item = NULL;
+
+						bool outside;
+						_find_click(main, b->get_position(), &item, &line, &outside);
+
+						if (item) {
+
+							Variant meta;
+							if (!outside && _find_meta(item, &meta)) {
+								//meta clicked
+
+								emit_signal("meta_clicked", meta);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -2237,7 +2250,7 @@ void RichTextLabel::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "meta_underlined"), "set_meta_underline", "is_meta_underlined");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "tab_size", PROPERTY_HINT_RANGE, "0,24,1"), "set_tab_size", "get_tab_size");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "text"), "set_text", "get_text");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "text", PROPERTY_HINT_MULTILINE_TEXT), "set_text", "get_text");
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_active"), "set_scroll_active", "is_scroll_active");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_following"), "set_scroll_follow", "is_scroll_following");
@@ -2326,6 +2339,7 @@ RichTextLabel::RichTextLabel() {
 	updating_scroll = false;
 	scroll_active = true;
 	scroll_w = 0;
+	scroll_updated = false;
 
 	vscroll = memnew(VScrollBar);
 	add_child(vscroll);

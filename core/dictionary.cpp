@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -112,6 +112,15 @@ Variant Dictionary::get_valid(const Variant &p_key) const {
 	return E.get();
 }
 
+Variant Dictionary::get(const Variant &p_key, const Variant &p_default) const {
+	const Variant *result = getptr(p_key);
+	if (!result) {
+		return p_default;
+	}
+
+	return *result;
+}
+
 int Dictionary::size() const {
 
 	return _p->variant_map.size();
@@ -143,6 +152,11 @@ bool Dictionary::erase(const Variant &p_key) {
 bool Dictionary::operator==(const Dictionary &p_dictionary) const {
 
 	return _p == p_dictionary._p;
+}
+
+bool Dictionary::operator!=(const Dictionary &p_dictionary) const {
+
+	return _p != p_dictionary._p;
 }
 
 void Dictionary::_ref(const Dictionary &p_from) const {

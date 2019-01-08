@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -117,7 +117,7 @@ void HingeJointBullet::set_param(PhysicsServer::HingeJointParam p_param, real_t 
 			hingeConstraint->setMaxMotorImpulse(p_value);
 			break;
 		default:
-			ERR_EXPLAIN("This parameter " + itos(p_param) + " is deprecated");
+			ERR_EXPLAIN("The HingeJoint parameter " + itos(p_param) + " is deprecated.");
 			WARN_DEPRECATED
 			break;
 	}
@@ -143,7 +143,7 @@ real_t HingeJointBullet::get_param(PhysicsServer::HingeJointParam p_param) const
 		case PhysicsServer::HINGE_JOINT_MOTOR_MAX_IMPULSE:
 			return hingeConstraint->getMaxMotorImpulse();
 		default:
-			ERR_EXPLAIN("This parameter " + itos(p_param) + " is deprecated");
+			ERR_EXPLAIN("The HingeJoint parameter " + itos(p_param) + " is deprecated.");
 			WARN_DEPRECATED;
 			return 0;
 	}
@@ -159,6 +159,7 @@ void HingeJointBullet::set_flag(PhysicsServer::HingeJointFlag p_flag, bool p_val
 		case PhysicsServer::HINGE_JOINT_FLAG_ENABLE_MOTOR:
 			hingeConstraint->enableMotor(p_value);
 			break;
+		case PhysicsServer::HINGE_JOINT_FLAG_MAX: break; // Can't happen, but silences warning
 	}
 }
 
