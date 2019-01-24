@@ -634,14 +634,14 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 
 #ifndef GLES_OVER_GL
 	switch (p_format) {
-		case Image::Format::FORMAT_RF:
-		case Image::Format::FORMAT_RGF:
-		case Image::Format::FORMAT_RGBF:
-		case Image::Format::FORMAT_RGBAF:
-		case Image::Format::FORMAT_RH:
-		case Image::Format::FORMAT_RGH:
-		case Image::Format::FORMAT_RGBH:
-		case Image::Format::FORMAT_RGBAH: {
+		case Image::FORMAT_RF:
+		case Image::FORMAT_RGF:
+		case Image::FORMAT_RGBF:
+		case Image::FORMAT_RGBAF:
+		case Image::FORMAT_RH:
+		case Image::FORMAT_RGH:
+		case Image::FORMAT_RGBH:
+		case Image::FORMAT_RGBAH: {
 			if (!config.texture_float_linear_supported) {
 				// disable linear texture filtering when not supported for float format on some devices (issue #24295)
 				p_flags &= ~VS::TEXTURE_FLAG_FILTER;
@@ -6931,7 +6931,12 @@ void RasterizerStorageGLES3::_render_target_allocate(RenderTarget *rt) {
 
 			glGenTextures(1, &rt->exposure.color);
 			glBindTexture(GL_TEXTURE_2D, rt->exposure.color);
+#ifdef IPHONE_ENABLED
+			///@TODO ugly hack to get around iOS not supporting 32bit single channel floating point textures...
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, 1, 1, 0, GL_RED, GL_FLOAT, NULL);
+#else
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 1, 1, 0, GL_RED, GL_FLOAT, NULL);
+#endif
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rt->exposure.color, 0);
 
 			status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -7163,7 +7168,12 @@ RID RasterizerStorageGLES3::canvas_light_shadow_buffer_create(int p_width) {
 	if (config.use_rgba_2d_shadows) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, cls->size, cls->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	} else {
+#ifdef IPHONE_ENABLED
+		///@TODO ugly hack to get around iOS not supporting 32bit single channel floating point textures...
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, cls->size, cls->height, 0, GL_RED, GL_FLOAT, NULL);
+#else
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cls->size, cls->height, 0, GL_RED, GL_FLOAT, NULL);
+#endif
 	}
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

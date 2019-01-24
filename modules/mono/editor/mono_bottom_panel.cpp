@@ -30,6 +30,9 @@
 
 #include "mono_bottom_panel.h"
 
+#include "editor/plugins/script_editor_plugin.h"
+#include "editor/script_editor_debugger.h"
+
 #include "../csharp_script.h"
 #include "../godotsharp_dirs.h"
 #include "csharp_project.h"
@@ -150,6 +153,9 @@ void MonoBottomPanel::_errors_toggled(bool p_pressed) {
 
 void MonoBottomPanel::_build_project_pressed() {
 
+	if (!FileAccess::exists(GodotSharpDirs::get_project_sln_path()))
+		return; // No solution to build
+
 	String scripts_metadata_path = GodotSharpDirs::get_res_metadata_dir().plus_file("scripts_metadata.editor");
 	Error metadata_err = CSharpProject::generate_scripts_metadata(GodotSharpDirs::get_project_csproj_path(), scripts_metadata_path);
 	ERR_FAIL_COND(metadata_err != OK);
@@ -157,7 +163,12 @@ void MonoBottomPanel::_build_project_pressed() {
 	bool build_success = GodotSharpBuilds::get_singleton()->build_project_blocking("Tools");
 
 	if (build_success) {
+		// Notify running game for hot-reload
+		ScriptEditor::get_singleton()->get_debugger()->reload_scripts();
+
+		// Hot-reload in the editor
 		MonoReloadNode::get_singleton()->restart_reload_timer();
+
 		if (CSharpLanguage::get_singleton()->is_assembly_reloading_needed()) {
 			CSharpLanguage::get_singleton()->reload_assemblies(false);
 		}

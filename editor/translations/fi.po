@@ -8,12 +8,12 @@
 # Jarmo Riikonen <amatrelan@gmail.com>, 2017.
 # Nuutti Varvikko <nvarvikko@gmail.com>, 2018.
 # Sami Lehtilä <sami.lehtila@gmail.com>, 2018.
-# Tapani Niemi <tapani.niemi@kapsi.fi>, 2018.
+# Tapani Niemi <tapani.niemi@kapsi.fi>, 2018, 2019.
 msgid ""
 msgstr ""
 "Project-Id-Version: Godot Engine editor\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2018-12-18 20:43+0000\n"
+"PO-Revision-Date: 2019-01-16 20:20+0000\n"
 "Last-Translator: Tapani Niemi <tapani.niemi@kapsi.fi>\n"
 "Language-Team: Finnish <https://hosted.weblate.org/projects/godot-engine/"
 "godot/fi/>\n"
@@ -969,7 +969,6 @@ msgid "Uncompressing Assets"
 msgstr "Puretaan assetteja"
 
 #: editor/editor_asset_installer.cpp editor/project_manager.cpp
-#, fuzzy
 msgid "Package installed successfully!"
 msgstr "Paketti asennettu onnistuneesti!"
 
@@ -1288,8 +1287,25 @@ msgid "Storing File:"
 msgstr "Varastoidaan tiedostoa:"
 
 #: editor/editor_export.cpp
+msgid "No export template found at the expected path:"
+msgstr ""
+
+#: editor/editor_export.cpp
 msgid "Packing"
 msgstr "Pakataan"
+
+#: editor/editor_export.cpp platform/android/export/export.cpp
+#: platform/iphone/export/export.cpp platform/javascript/export/export.cpp
+#: platform/osx/export/export.cpp platform/uwp/export/export.cpp
+#, fuzzy
+msgid "Custom debug template not found."
+msgstr "Mallitiedostoa ei löytynyt:"
+
+#: editor/editor_export.cpp platform/android/export/export.cpp
+#: platform/iphone/export/export.cpp platform/javascript/export/export.cpp
+#: platform/osx/export/export.cpp platform/uwp/export/export.cpp
+msgid "Custom release template not found."
+msgstr ""
 
 #: editor/editor_export.cpp platform/javascript/export/export.cpp
 msgid "Template file not found:"
@@ -2575,17 +2591,20 @@ msgid "[Empty]"
 msgstr "[Tyhjä]"
 
 #: editor/editor_properties.cpp editor/plugins/root_motion_editor_plugin.cpp
-#, fuzzy
 msgid "Assign..."
 msgstr "Aseta..."
 
 #: editor/editor_properties.cpp
-#, fuzzy
+msgid "Invalid RID"
+msgstr "Virheellinen RID"
+
+#: editor/editor_properties.cpp
 msgid ""
 "The selected resource (%s) does not match any type expected for this "
 "property (%s)."
 msgstr ""
-"Valittu resurssi (%s) ei vastaa odotettua tyyppiä tälle ominaisuudelle (%s)."
+"Valittu resurssi (%s) ei vastaa mitään odotettua tyyppiä tälle "
+"ominaisuudelle (%s)."
 
 #: editor/editor_properties.cpp
 msgid ""
@@ -3461,7 +3480,6 @@ msgstr "Lisää animaatio"
 #: editor/plugins/animation_blend_space_2d_editor.cpp
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
 #: editor/plugins/animation_state_machine_editor.cpp
-#, fuzzy
 msgid "Load..."
 msgstr "Lataa..."
 
@@ -3846,9 +3864,8 @@ msgid "Connect nodes."
 msgstr "Kytke solmut."
 
 #: editor/plugins/animation_state_machine_editor.cpp
-#, fuzzy
 msgid "Remove selected node or transition."
-msgstr "Poista valittu solmu tai siirtymä"
+msgstr "Poista valittu solmu tai siirtymä."
 
 #: editor/plugins/animation_state_machine_editor.cpp
 msgid "Toggle autoplay this animation on start, restart or seek to zero."
@@ -4652,7 +4669,7 @@ msgstr "Sisällön muokkaus"
 
 #: editor/plugins/light_occluder_2d_editor_plugin.cpp
 msgid "Create Occluder Polygon"
-msgstr "Luo peittävä polygoni"
+msgstr "Luo peittopolygoni"
 
 #: editor/plugins/mesh_instance_editor_plugin.cpp
 msgid "Mesh is empty!"
@@ -5165,28 +5182,24 @@ msgid "Create Polygon & UV"
 msgstr "Luo polygoni ja UV"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Split point with itself."
-msgstr "Jaa piste itsellään."
+msgid "Create Internal Vertex"
+msgstr "Luo sisäinen kärkipiste"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Split can't form an existing edge."
-msgstr "Jako ei voi muodostaa olemassa olevaa reunaa."
+msgid "Remove Internal Vertex"
+msgstr "Poista sisäinen kärkipiste"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Split already exists."
-msgstr "Jako on jo olemassa."
+msgid "Invalid Polygon (need 3 different vertices)"
+msgstr "Virheellinen polygoni (tarvitaan 3 eri kärkipistettä)"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Add Split"
-msgstr "Lisää jako"
+msgid "Add Custom Polygon"
+msgstr "Lisää mukautettu polygoni"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Invalid Split: "
-msgstr "Virheellinen jako: "
-
-#: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Remove Split"
-msgstr "Poista jako"
+msgid "Remove Custom Polygon"
+msgstr "Poista mukautettu polygoni"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
 msgid "Transform UV Map"
@@ -5213,12 +5226,12 @@ msgid "UV"
 msgstr "UV"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Poly"
-msgstr "Polygoni"
+msgid "Points"
+msgstr "Pisteet"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Splits"
-msgstr "Jaot"
+msgid "Polygons"
+msgstr "Polygonit"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
 msgid "Bones"
@@ -5253,12 +5266,17 @@ msgid "Scale Polygon"
 msgstr "Skaalaa polygonia"
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Connect two points to make a split."
-msgstr "Yhdistä kaksi pistettä luodaksesi jaon."
+msgid "Create a custom polygon. Enables custom polygon rendering."
+msgstr ""
+"Luo mukautettu polygoni. Kytkee päälle mukautettujen polygonien piirron."
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
-msgid "Select a split to erase it."
-msgstr "Valitse jako poistaaksesi sen."
+msgid ""
+"Remove a custom polygon. If none remain, custom polygon rendering is "
+"disabled."
+msgstr ""
+"Poista mukautettu polygoni. Jos yhtään ei jää jäljelle, mukautettujen "
+"polygonien piirto poistetaan päältä."
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
 msgid "Paint weights with specified intensity."
@@ -6250,7 +6268,7 @@ msgstr "Jälki"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Name-less gizmo"
-msgstr ""
+msgstr "Nimetön muokkain"
 
 #: editor/plugins/sprite_editor_plugin.cpp
 msgid "Sprite is empty!"
@@ -6654,9 +6672,9 @@ msgid "Display Tile Names (Hold Alt Key)"
 msgstr "Näytä ruutujen nimet (pidä Alt-näppäin pohjassa)"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove selected texture? This will remove all tiles which use it."
-msgstr "Poista valittu tekstuuri ja KAIKKI RUUDUT, jotka käyttävät sitä?"
+msgstr ""
+"Poista valittu tekstuuri? Tämä poistaa kaikki ruudut, jotka käyttävät sitä."
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "You haven't selected a texture to remove."
@@ -6664,16 +6682,15 @@ msgstr "Et ole valinnut poistettavaa tekstuuria."
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Create from scene? This will overwrite all current tiles."
-msgstr ""
+msgstr "Luo skenestä? Tämä ylikirjoittaa kaikki nykyiset ruudut."
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Merge from scene?"
 msgstr "Yhdistä skenestä?"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove Texture"
-msgstr "Poista malli"
+msgstr "Poista tekstuuri"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "%s file(s) were not added because was already on the list."
@@ -6740,86 +6757,72 @@ msgstr ""
 "Napsauta toista ruutua muokataksesi sitä."
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Set Tile Region"
-msgstr "Aseta alueen suorakulmio"
+msgstr "Aseta ruudun alue"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Create Tile"
-msgstr "Luo kansio"
+msgstr "Luo ruutu"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Set Tile Icon"
-msgstr ""
+msgstr "Aseta ruudun ikoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Edit Tile Bitmask"
-msgstr "Muokkaa suodattimia"
+msgstr "Muokkaa ruudun bittimaskia"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Edit Collision Polygon"
-msgstr "Muokkaa olemassaolevaa polygonia:"
+msgstr "Muokkaa törmäyspolygonia"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Edit Occlusion Polygon"
-msgstr "Muokkaa polygonia"
+msgstr "Muokkaa peittopolygonia"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Edit Navigation Polygon"
-msgstr "Luo navigointipolygoni"
+msgstr "Muokkaa navigointipolygonia"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Paste Tile Bitmask"
-msgstr "Liitä bittimaski."
+msgstr "Liitä ruudun bittimaski"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Clear Tile Bitmask"
-msgstr ""
+msgstr "Tyhjennä ruudun bittimaski"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove Tile"
-msgstr "Poista malli"
+msgstr "Poista ruutu"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove Collision Polygon"
-msgstr "Poista polygoni ja piste"
+msgstr "Poista törmäyspolygoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove Occlusion Polygon"
-msgstr "Luo peittävä polygoni"
+msgstr "Poista peittopolygoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Remove Navigation Polygon"
-msgstr "Luo navigointipolygoni"
+msgstr "Poista navigointipolygoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Edit Tile Priority"
-msgstr "Muokkaa suodattimia"
+msgstr "Muokkaa ruudun prioriteettia"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Edit Tile Z Index"
-msgstr ""
+msgstr "Muokkaa ruudun Z-indeksiä"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Create Collision Polygon"
-msgstr "Luo navigointipolygoni"
+msgstr "Luo törmäyspolygoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
-#, fuzzy
 msgid "Create Occlusion Polygon"
-msgstr "Luo peittävä polygoni"
+msgstr "Luo peittopolygoni"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "This property can't be changed."
@@ -6940,36 +6943,32 @@ msgid "Feature List:"
 msgstr "Ominaisuuslista:"
 
 #: editor/project_export.cpp
-#, fuzzy
 msgid "Script"
-msgstr "Uusi skripti"
+msgstr "Skripti"
 
 #: editor/project_export.cpp
-#, fuzzy
 msgid "Script Export Mode:"
-msgstr "Vientitila:"
+msgstr "Skriptin vientitila:"
 
 #: editor/project_export.cpp
-#, fuzzy
 msgid "Text"
-msgstr "Tekstuuri"
+msgstr "Teksti"
 
 #: editor/project_export.cpp
-#, fuzzy
 msgid "Compiled"
-msgstr "Tiivistä"
+msgstr "Käännetty"
 
 #: editor/project_export.cpp
 msgid "Encrypted (Provide Key Below)"
-msgstr ""
+msgstr "Salattu (syötä avain alla)"
 
 #: editor/project_export.cpp
 msgid "Invalid Encryption Key (must be 64 characters long)"
-msgstr ""
+msgstr "Virheellinen salausavain (oltava 64 merkkiä pitkä)"
 
 #: editor/project_export.cpp
 msgid "Script Encryption Key (256-bits as hex):"
-msgstr ""
+msgstr "Skriptin salausavain (256-bittinen heksana):"
 
 #: editor/project_export.cpp
 msgid "Export PCK/Zip"
@@ -7114,9 +7113,8 @@ msgid "Unnamed Project"
 msgstr "Nimetön projekti"
 
 #: editor/project_manager.cpp
-#, fuzzy
 msgid "Can't open project at '%s'."
-msgstr "Projektia ei voida avata"
+msgstr "Ei voida avata projektia kohteesta '%s'."
 
 #: editor/project_manager.cpp
 msgid "Are you sure to open more than one project?"
@@ -7133,12 +7131,21 @@ msgid ""
 "Warning: You will not be able to open the project with previous versions of "
 "the engine anymore."
 msgstr ""
+"Seuraava projektin asetustiedosto on luotu vanhemmalla versiolla ja täytyy "
+"muuntaa tätä versiota varten:\n"
+"\n"
+"%s\n"
+"\n"
+"Haluatko muuntaa sen?\n"
+"Varoitus: et voi avata projektia tämän jälkeen enää vanhemmilla versioilla."
 
 #: editor/project_manager.cpp
 msgid ""
 "The project settings were created by a newer engine version, whose settings "
 "are not compatible with this version."
 msgstr ""
+"Projektin asetukset on luotu uudemmalla versiolla, jonka asetukset eivät ole "
+"yhteensopivia tämän version kanssa."
 
 #: editor/project_manager.cpp
 msgid ""
@@ -7820,6 +7827,14 @@ msgstr "Siirrä solmut isännän alle"
 #: editor/scene_tree_dock.cpp
 msgid "Duplicate Node(s)"
 msgstr "Kahdenna solmu(t)"
+
+#: editor/scene_tree_dock.cpp
+msgid "Node must belong to the edited scene to become root."
+msgstr ""
+
+#: editor/scene_tree_dock.cpp
+msgid "Instantiated scenes can't become root"
+msgstr ""
 
 #: editor/scene_tree_dock.cpp
 msgid "Delete Node(s)?"
@@ -9035,6 +9050,90 @@ msgstr "Hae %s"
 msgid "Set %s"
 msgstr "Aseta %s"
 
+#: platform/android/export/export.cpp
+msgid "Package name is missing."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "Package segments must be of non-zero length."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "The character '%s' is not allowed in Android application package names."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "A digit cannot be the first character in a package segment."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "The character '%s' cannot be the first character in a package segment."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "The package must have at least one '.' separator."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "ADB executable not configured in the Editor Settings."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "OpenJDK jarsigner not configured in the Editor Settings."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "Debug keystore not configured in the Editor Settings nor in the preset."
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "Invalid public key for APK expansion."
+msgstr ""
+
+#: platform/android/export/export.cpp
+#, fuzzy
+msgid "Invalid package name:"
+msgstr "Virheellinen luokan nimi"
+
+#: platform/iphone/export/export.cpp
+msgid "Identifier is missing."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+msgid "Identifier segments must be of non-zero length."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+#, fuzzy
+msgid "The character '%s' is not allowed in Identifier."
+msgstr "Nimi ei ole kelvollinen tunniste:"
+
+#: platform/iphone/export/export.cpp
+msgid "A digit cannot be the first character in a Identifier segment."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+msgid ""
+"The character '%s' cannot be the first character in a Identifier segment."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+msgid "The Identifier must have at least one '.' separator."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+msgid "App Store Team ID not specified - cannot configure the project."
+msgstr ""
+
+#: platform/iphone/export/export.cpp
+#, fuzzy
+msgid "Invalid Identifier:"
+msgstr "Nimi ei ole kelvollinen tunniste:"
+
+#: platform/iphone/export/export.cpp
+msgid "Required icon is not specified in the preset."
+msgstr ""
+
 #: platform/javascript/export/export.cpp
 msgid "Run in Browser"
 msgstr "Suorita selaimessa"
@@ -9066,6 +9165,53 @@ msgstr "Ei voitu lukea käynnistyskuvan tiedostoa:"
 #: platform/javascript/export/export.cpp
 msgid "Using default boot splash image."
 msgstr "Käytetään oletuskäynnistyskuvaa."
+
+#: platform/uwp/export/export.cpp
+#, fuzzy
+msgid "Invalid package unique name."
+msgstr "Virheellinen ryhmän nimi."
+
+#: platform/uwp/export/export.cpp
+#, fuzzy
+msgid "Invalid product GUID."
+msgstr "Virheellinen projektin nimi."
+
+#: platform/uwp/export/export.cpp
+#, fuzzy
+msgid "Invalid publisher GUID."
+msgstr "Virheellinen jako: "
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid background color."
+msgstr "Virheellinen taustaväri."
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid Store Logo image dimensions (should be 50x50)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid square 44x44 logo image dimensions (should be 44x44)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid square 71x71 logo image dimensions (should be 71x71)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid square 150x150 logo image dimensions (should be 150x150)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid square 310x310 logo image dimensions (should be 310x310)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid wide 310x150 logo image dimensions (should be 310x150)."
+msgstr ""
+
+#: platform/uwp/export/export.cpp
+msgid "Invalid splash screen image dimensions (should be 620x300)."
+msgstr ""
 
 #: scene/2d/animated_sprite.cpp
 msgid ""
@@ -9145,14 +9291,12 @@ msgstr ""
 msgid ""
 "An occluder polygon must be set (or drawn) for this occluder to take effect."
 msgstr ""
-"Toimimiseksi tälle peittäjälle on asetettava (tai piirrettävä) peittävä "
-"monikulmio."
+"Jotta tämä peittäjä toimisi, sille on asetettava (tai piirrettävä) "
+"peittopolygoni."
 
 #: scene/2d/light_occluder_2d.cpp
 msgid "The occluder polygon for this occluder is empty. Please draw a polygon!"
-msgstr ""
-"Peittävä monikulmio tälle peittäjälle on tyhjä. Ole hyvä ja piirrä "
-"monikulmio!"
+msgstr "Tämän peittäjän peittopolygoni on tyhjä. Ole hyvä ja piirrä polygoni!"
 
 #: scene/2d/navigation_polygon.cpp
 msgid ""
@@ -9386,14 +9530,10 @@ msgid "PathFollow only works when set as a child of a Path node."
 msgstr "PathFollow toimii ainoastaan ollessaan asetettuna Path solmun alle."
 
 #: scene/3d/path.cpp
-msgid "OrientedPathFollow only works when set as a child of a Path node."
-msgstr ""
-"OrientedPathFollow toimii ainoastaan ollessaan asetettuna Path solmun alle."
-
-#: scene/3d/path.cpp
+#, fuzzy
 msgid ""
-"OrientedPathFollow requires \"Up Vector\" enabled in its parent Path's Curve "
-"resource."
+"PathFollow ROTATION_ORIENTED requires \"Up Vector\" enabled in its parent "
+"Path's Curve resource."
 msgstr ""
 "OrientedPathFollow edellyttää, että sen Path isäntäsolmun Curve resurssin "
 "\"Up Vector\" on asetettu päälle."
@@ -9602,6 +9742,38 @@ msgstr "Sijoitus uniformille."
 #: servers/visual/shader_language.cpp
 msgid "Varyings can only be assigned in vertex function."
 msgstr "Varying tyypin voi sijoittaa vain vertex-funktiossa."
+
+#~ msgid "OrientedPathFollow only works when set as a child of a Path node."
+#~ msgstr ""
+#~ "OrientedPathFollow toimii ainoastaan ollessaan asetettuna Path solmun "
+#~ "alle."
+
+#~ msgid "Split point with itself."
+#~ msgstr "Jaa piste itsellään."
+
+#~ msgid "Split can't form an existing edge."
+#~ msgstr "Jako ei voi muodostaa olemassa olevaa reunaa."
+
+#~ msgid "Split already exists."
+#~ msgstr "Jako on jo olemassa."
+
+#~ msgid "Add Split"
+#~ msgstr "Lisää jako"
+
+#~ msgid "Remove Split"
+#~ msgstr "Poista jako"
+
+#~ msgid "Poly"
+#~ msgstr "Polygoni"
+
+#~ msgid "Splits"
+#~ msgstr "Jaot"
+
+#~ msgid "Connect two points to make a split."
+#~ msgstr "Yhdistä kaksi pistettä luodaksesi jaon."
+
+#~ msgid "Select a split to erase it."
+#~ msgstr "Valitse jako poistaaksesi sen."
 
 #~ msgid "No name provided"
 #~ msgstr "Nimeä ei annettu"
@@ -10576,9 +10748,6 @@ msgstr "Varying tyypin voi sijoittaa vain vertex-funktiossa."
 
 #~ msgid "Error creating the signature object."
 #~ msgstr "Virhe luotaessa allekirjoitusoliota."
-
-#~ msgid "Invalid background color."
-#~ msgstr "Virheellinen taustaväri."
 
 #~ msgid "Node From Scene"
 #~ msgstr "Node Scenestä"

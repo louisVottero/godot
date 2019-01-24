@@ -880,6 +880,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("rendering/quality/driver/driver_fallback", "Best");
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/driver/driver_fallback", PropertyInfo(Variant::STRING, "rendering/quality/driver/driver_fallback", PROPERTY_HINT_ENUM, "Best,Never"));
 
+	// Assigning here even though it's GLES2-specific, to be sure that it appears in docs
+	GLOBAL_DEF("rendering/quality/2d/gles2_use_nvidia_rect_flicker_workaround", false);
+
 	GLOBAL_DEF("display/window/size/width", 1024);
 	ProjectSettings::get_singleton()->set_custom_property_info("display/window/size/width", PropertyInfo(Variant::INT, "display/window/size/width", PROPERTY_HINT_RANGE, "0,7680,or_greater")); // 8K resolution
 	GLOBAL_DEF("display/window/size/height", 600);
@@ -1786,12 +1789,20 @@ uint64_t Main::target_ticks = 0;
 uint32_t Main::frames = 0;
 uint32_t Main::frame = 0;
 bool Main::force_redraw_requested = false;
+bool Main::iterating = false;
+bool Main::is_iterating() {
+	return iterating;
+}
 
 // For performance metrics
 static uint64_t physics_process_max = 0;
 static uint64_t idle_process_max = 0;
 
 bool Main::iteration() {
+
+	ERR_FAIL_COND_V(iterating, false);
+
+	iterating = true;
 
 	uint64_t ticks = OS::get_singleton()->get_ticks_usec();
 	Engine::get_singleton()->_frame_ticks = ticks;
@@ -1919,6 +1930,8 @@ bool Main::iteration() {
 		frame %= 1000000;
 		frames = 0;
 	}
+
+	iterating = false;
 
 	if (fixed_fps != -1)
 		return exit;
