@@ -112,15 +112,6 @@ void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, GLvoid 
 	}, target, offset, data, size);
 	/* clang-format on */
 }
-
-void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data) {
-
-	/* clang-format off */
-	EM_ASM({
-	    GLctx.bufferSubData($0, $1, HEAPU8, $2, $3);
-	}, target, offset, data, size);
-	/* clang-format on */
-}
 #endif
 
 void glTexStorage2DCustom(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type) {
@@ -1685,6 +1676,17 @@ RID RasterizerStorageGLES3::texture_create_radiance_cubemap(RID p_source, int p_
 	ctex->render_target = NULL;
 
 	return texture_owner.make_rid(ctex);
+}
+
+Size2 RasterizerStorageGLES3::texture_size_with_proxy(RID p_texture) const {
+
+	const Texture *texture = texture_owner.getornull(p_texture);
+	ERR_FAIL_COND_V(!texture, Size2());
+	if (texture->proxy) {
+		return Size2(texture->proxy->width, texture->proxy->height);
+	} else {
+		return Size2(texture->width, texture->height);
+	}
 }
 
 void RasterizerStorageGLES3::texture_set_proxy(RID p_texture, RID p_proxy) {
@@ -7486,7 +7488,7 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 		// delete the texture
 		Shader *shader = shader_owner.get(p_rid);
 
-		if (shader->shader)
+		if (shader->shader && shader->custom_code_id)
 			shader->shader->free_custom_shader(shader->custom_code_id);
 
 		if (shader->dirty_list.in_list())
