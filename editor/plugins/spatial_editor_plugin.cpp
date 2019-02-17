@@ -35,7 +35,7 @@
 #include "core/os/keyboard.h"
 #include "core/print_string.h"
 #include "core/project_settings.h"
-#include "core/sort.h"
+#include "core/sort_array.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
 #include "editor/plugins/animation_player_editor_plugin.h"
@@ -2865,6 +2865,18 @@ void SpatialEditorViewport::update_transform_gizmo_view() {
 	Transform xform = spatial_editor->get_gizmo_transform();
 
 	Transform camera_xform = camera->get_transform();
+
+	if (xform.origin.distance_squared_to(camera_xform.origin) < 0.01) {
+		for (int i = 0; i < 3; i++) {
+			VisualServer::get_singleton()->instance_set_visible(move_gizmo_instance[i], false);
+			VisualServer::get_singleton()->instance_set_visible(move_plane_gizmo_instance[i], false);
+			VisualServer::get_singleton()->instance_set_visible(rotate_gizmo_instance[i], false);
+			VisualServer::get_singleton()->instance_set_visible(scale_gizmo_instance[i], false);
+			VisualServer::get_singleton()->instance_set_visible(scale_plane_gizmo_instance[i], false);
+		}
+		return;
+	}
+
 	Vector3 camz = -camera_xform.get_basis().get_axis(2).normalized();
 	Vector3 camy = -camera_xform.get_basis().get_axis(1).normalized();
 	Plane p(camera_xform.origin, camz);
@@ -4844,6 +4856,13 @@ void SpatialEditor::_update_gizmos_menu() {
 	}
 }
 
+void SpatialEditor::_update_gizmos_menu_theme() {
+	for (int i = 0; i < gizmo_plugins.size(); ++i) {
+		if (!gizmo_plugins[i]->can_be_hidden()) continue;
+		gizmos_menu->set_item_icon(gizmos_menu->get_item_index(i), gizmos_menu->get_icon("visibility_visible"));
+	}
+}
+
 void SpatialEditor::_init_grid() {
 
 	PoolVector<Color> grid_colors[3];
@@ -5133,20 +5152,17 @@ void SpatialEditor::_notification(int p_what) {
 		get_tree()->connect("node_removed", this, "_node_removed");
 		EditorNode::get_singleton()->get_scene_tree_dock()->get_tree_editor()->connect("node_changed", this, "_refresh_menu_icons");
 		editor_selection->connect("selection_changed", this, "_refresh_menu_icons");
-	}
-
-	if (p_what == NOTIFICATION_ENTER_TREE) {
+	} else if (p_what == NOTIFICATION_ENTER_TREE) {
 
 		_register_all_gizmos();
 		_update_gizmos_menu();
 		_init_indicators();
-	}
-
-	if (p_what == NOTIFICATION_EXIT_TREE) {
+	} else if (p_what == NOTIFICATION_THEME_CHANGED) {
+		_update_gizmos_menu_theme();
+	} else if (p_what == NOTIFICATION_EXIT_TREE) {
 
 		_finish_indicators();
-	}
-	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
+	} else if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 		tool_button[SpatialEditor::TOOL_MODE_SELECT]->set_icon(get_icon("ToolSelect", "EditorIcons"));
 		tool_button[SpatialEditor::TOOL_MODE_MOVE]->set_icon(get_icon("ToolMove", "EditorIcons"));
 		tool_button[SpatialEditor::TOOL_MODE_ROTATE]->set_icon(get_icon("ToolRotate", "EditorIcons"));
