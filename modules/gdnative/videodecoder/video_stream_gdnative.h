@@ -121,6 +121,7 @@ class VideoStreamPlaybackGDNative : public VideoStreamPlayback {
 
 	int num_channels;
 	float time;
+	bool seek_backward;
 	int mix_rate;
 	double delay_compensation;
 
@@ -197,7 +198,6 @@ public:
 };
 
 class ResourceFormatLoaderVideoStreamGDNative : public ResourceFormatLoader {
-	GDCLASS(ResourceFormatLoaderVideoStreamGDNative, ResourceFormatLoader)
 public:
 	virtual RES load(const String &p_path, const String &p_original_path = "", Error *r_error = NULL);
 	virtual void get_recognized_extensions(List<String> *p_extensions) const;

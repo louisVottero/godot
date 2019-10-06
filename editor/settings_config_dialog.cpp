@@ -98,14 +98,7 @@ void EditorSettingsDialog::popup_edit_settings() {
 	if (saved_size != Rect2()) {
 		popup(saved_size);
 	} else {
-
-		Size2 popup_size = Size2(900, 700) * editor_get_scale();
-		Size2 window_size = get_viewport_rect().size;
-
-		popup_size.x = MIN(window_size.x * 0.8, popup_size.x);
-		popup_size.y = MIN(window_size.y * 0.8, popup_size.y);
-
-		popup_centered(popup_size);
+		popup_centered_clamped(Size2(900, 700) * EDSCALE, 0.8);
 	}
 
 	_focus_current_search_box();
@@ -117,7 +110,7 @@ void EditorSettingsDialog::_filter_shortcuts(const String &p_filter) {
 }
 
 void EditorSettingsDialog::_undo_redo_callback(void *p_self, const String &p_name) {
-	EditorNode::get_log()->add_message(p_name);
+	EditorNode::get_log()->add_message(p_name, EditorLog::MSG_TYPE_EDITOR);
 }
 
 void EditorSettingsDialog::_notification(int p_what) {
@@ -158,7 +151,7 @@ void EditorSettingsDialog::_unhandled_input(const Ref<InputEvent> &p_event) {
 			if (ED_IS_SHORTCUT("editor/undo", p_event)) {
 				String action = undo_redo->get_current_action_name();
 				if (action != "")
-					EditorNode::get_log()->add_message("UNDO: " + action);
+					EditorNode::get_log()->add_message("Undo: " + action, EditorLog::MSG_TYPE_EDITOR);
 				undo_redo->undo();
 				handled = true;
 			}
@@ -166,7 +159,7 @@ void EditorSettingsDialog::_unhandled_input(const Ref<InputEvent> &p_event) {
 				undo_redo->redo();
 				String action = undo_redo->get_current_action_name();
 				if (action != "")
-					EditorNode::get_log()->add_message("REDO: " + action);
+					EditorNode::get_log()->add_message("Redo: " + action, EditorLog::MSG_TYPE_EDITOR);
 				handled = true;
 			}
 
@@ -187,7 +180,7 @@ void EditorSettingsDialog::_update_icons() {
 	restart_close_button->set_icon(get_icon("Close", "EditorIcons"));
 	restart_container->add_style_override("panel", get_stylebox("bg", "Tree"));
 	restart_icon->set_texture(get_icon("StatusWarning", "EditorIcons"));
-	restart_label->add_color_override("font_color", get_color("error_color", "Editor"));
+	restart_label->add_color_override("font_color", get_color("warning_color", "Editor"));
 }
 
 void EditorSettingsDialog::_update_shortcuts() {
@@ -449,7 +442,7 @@ EditorSettingsDialog::EditorSettingsDialog() {
 	restart_icon->set_v_size_flags(SIZE_SHRINK_CENTER);
 	restart_hb->add_child(restart_icon);
 	restart_label = memnew(Label);
-	restart_label->set_text(TTR("Editor must be restarted for changes to take effect"));
+	restart_label->set_text(TTR("The editor must be restarted for changes to take effect."));
 	restart_hb->add_child(restart_label);
 	restart_hb->add_spacer();
 	Button *restart_button = memnew(Button);
