@@ -2914,6 +2914,16 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 
 				bool ok = _parse_function_arguments(p_block, p_builtin_types, func, &carg);
 
+				// Check if block has a variable with the same name as function to prevent shader crash.
+				ShaderLanguage::BlockNode *bnode = p_block;
+				while (bnode) {
+					if (bnode->variables.has(name)) {
+						_set_error("Expected function name");
+						return NULL;
+					}
+					bnode = bnode->parent_block;
+				}
+
 				//test if function was parsed first
 				for (int i = 0; i < shader->functions.size(); i++) {
 					if (shader->functions[i].name == name) {
@@ -3842,9 +3852,12 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Bui
 				}
 
 				StringName name = tk.text;
-				if (_find_identifier(p_block, p_builtin_types, name)) {
-					_set_error("Redefinition of '" + String(name) + "'");
-					return ERR_PARSE_ERROR;
+				ShaderLanguage::IdentifierType itype;
+				if (_find_identifier(p_block, p_builtin_types, name, (ShaderLanguage::DataType *)0, &itype)) {
+					if (itype != IDENTIFIER_FUNCTION) {
+						_set_error("Redefinition of '" + String(name) + "'");
+						return ERR_PARSE_ERROR;
+					}
 				}
 
 				BlockNode::Variable var;
@@ -4002,6 +4015,11 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Bui
 									return ERR_PARSE_ERROR;
 								}
 
+								if (node->is_const && n->type == Node::TYPE_OPERATOR && ((OperatorNode *)n)->op == OP_CALL) {
+									_set_error("Expected constant expression");
+									return ERR_PARSE_ERROR;
+								}
+
 								if (var.type != n->get_datatype()) {
 									_set_error("Invalid assignment of '" + get_datatype_name(n->get_datatype()) + "' to '" + get_datatype_name(var.type) + "'");
 									return ERR_PARSE_ERROR;
@@ -4062,7 +4080,10 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Bui
 					Node *n = _parse_and_reduce_expression(p_block, p_builtin_types);
 					if (!n)
 						return ERR_PARSE_ERROR;
-
+					if (node->is_const && n->type == Node::TYPE_OPERATOR && ((OperatorNode *)n)->op == OP_CALL) {
+						_set_error("Expected constant expression after '='");
+						return ERR_PARSE_ERROR;
+					}
 					decl.initializer = n;
 
 					if (var.type != n->get_datatype()) {
@@ -4589,19 +4610,34 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Bui
 	return OK;
 }
 
+String ShaderLanguage::_get_shader_type_list(const Set<String> &p_shader_types) const {
+
+	// Return a list of shader types as an human-readable string
+	String valid_types;
+	for (const Set<String>::Element *E = p_shader_types.front(); E; E = E->next()) {
+		if (valid_types != String()) {
+			valid_types += ", ";
+		}
+
+		valid_types += "'" + E->get() + "'";
+	}
+
+	return valid_types;
+}
+
 Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_functions, const Vector<StringName> &p_render_modes, const Set<String> &p_shader_types) {
 
 	Token tk = _get_token();
 
 	if (tk.type != TK_SHADER_TYPE) {
-		_set_error("Expected 'shader_type' at the beginning of shader.");
+		_set_error("Expected 'shader_type' at the beginning of shader. Valid types are: " + _get_shader_type_list(p_shader_types));
 		return ERR_PARSE_ERROR;
 	}
 
 	tk = _get_token();
 
 	if (tk.type != TK_IDENTIFIER) {
-		_set_error("Expected identifier after 'shader_type', indicating type of shader.");
+		_set_error("Expected identifier after 'shader_type', indicating type of shader. Valid types are: " + _get_shader_type_list(p_shader_types));
 		return ERR_PARSE_ERROR;
 	}
 
@@ -4610,15 +4646,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 	shader_type_identifier = tk.text;
 
 	if (!p_shader_types.has(shader_type_identifier)) {
-
-		String valid;
-		for (Set<String>::Element *E = p_shader_types.front(); E; E = E->next()) {
-			if (valid != String()) {
-				valid += ", ";
-			}
-			valid += "'" + E->get() + "'";
-		}
-		_set_error("Invalid shader type, valid types are: " + valid);
+		_set_error("Invalid shader type. Valid types are: " + _get_shader_type_list(p_shader_types));
 		return ERR_PARSE_ERROR;
 	}
 
@@ -5121,9 +5149,12 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 
 					pname = tk.text;
 
-					if (_find_identifier(func_node->body, builtin_types, pname)) {
-						_set_error("Redefinition of '" + String(pname) + "'");
-						return ERR_PARSE_ERROR;
+					ShaderLanguage::IdentifierType itype;
+					if (_find_identifier(func_node->body, builtin_types, pname, (ShaderLanguage::DataType *)0, &itype)) {
+						if (itype != IDENTIFIER_FUNCTION) {
+							_set_error("Redefinition of '" + String(pname) + "'");
+							return ERR_PARSE_ERROR;
+						}
 					}
 					FunctionNode::Argument arg;
 					arg.type = ptype;
@@ -5395,7 +5426,7 @@ Error ShaderLanguage::complete(const String &p_code, const Map<StringName, Funct
 					if (block->parent_function) {
 						if (comp_ident) {
 							for (int i = 0; i < block->parent_function->arguments.size(); i++) {
-								matches.insert(block->parent_function->arguments[i].name, ScriptCodeCompletionOption::KIND_FUNCTION);
+								matches.insert(block->parent_function->arguments[i].name, ScriptCodeCompletionOption::KIND_VARIABLE);
 							}
 						}
 						skip_function = block->parent_function->name;

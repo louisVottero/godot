@@ -131,7 +131,7 @@ void RasterizerSceneGLES2::shadow_atlas_set_size(RID p_atlas, int p_size) {
 
 			//maximum compatibility, renderbuffer and RGBA shadow
 			glGenRenderbuffers(1, &shadow_atlas->depth);
-			glBindRenderbuffer(GL_RENDERBUFFER, directional_shadow.depth);
+			glBindRenderbuffer(GL_RENDERBUFFER, shadow_atlas->depth);
 			glRenderbufferStorage(GL_RENDERBUFFER, storage->config.depth_internalformat, shadow_atlas->size, shadow_atlas->size);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, shadow_atlas->depth);
 
@@ -2905,16 +2905,10 @@ void RasterizerSceneGLES2::_post_process(Environment *env, const CameraMatrix &p
 		glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->depth);
 
 		glActiveTexture(GL_TEXTURE0);
-		if (!storage->frame.current_rt->used_dof_blur_near) {
-			if (storage->frame.current_rt->mip_maps[0].color) {
-				glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->mip_maps[0].color);
-			} else {
-				for (int i = 0; i < storage->frame.current_rt->mip_maps[i].sizes.size(); i++) {
-					glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->mip_maps[0].sizes[i].color);
-					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, storage->frame.current_rt->mip_maps[0].sizes[i].width, storage->frame.current_rt->mip_maps[0].sizes[i].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-				}
-				glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->mip_maps[0].sizes[0].color);
-			}
+		if (storage->frame.current_rt->mip_maps[0].color) {
+			glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->mip_maps[0].color);
+		} else {
+			glBindTexture(GL_TEXTURE_2D, storage->frame.current_rt->mip_maps[0].sizes[0].color);
 		}
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -3303,6 +3297,12 @@ void RasterizerSceneGLES2::render_scene(const Transform &p_cam_transform, const 
 		reflection_probe_count = 0;
 	}
 
+	if (env && env->bg_mode == VS::ENV_BG_CANVAS) {
+		// If using canvas background, copy 2d to screen copy texture
+		// TODO: When GLES2 renders to current_rt->mip_maps[], this copy will no longer be needed
+		_copy_texture_to_buffer(storage->frame.current_rt->color, storage->frame.current_rt->copy_screen_effect.fbo);
+	}
+
 	// render list stuff
 
 	render_list.clear();
@@ -3439,8 +3439,11 @@ void RasterizerSceneGLES2::render_scene(const Transform &p_cam_transform, const 
 					clear_color = Color(0.0, 1.0, 0.0, 1.0);
 				}
 			} break;
+			case VS::ENV_BG_CANVAS: {
+				// use screen copy as background
+				_copy_texture_to_buffer(storage->frame.current_rt->copy_screen_effect.color, current_fb);
+			} break;
 			default: {
-				// FIXME: implement other background modes
 			} break;
 		}
 	}
@@ -3766,6 +3769,10 @@ void RasterizerSceneGLES2::render_shadow(RID p_light, RID p_shadow_atlas, int p_
 	glEnable(GL_SCISSOR_TEST);
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
+	if (storage->config.use_rgba_3d_shadows) {
+		glClearColor(1.0, 1.0, 1.0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
 	glDisable(GL_SCISSOR_TEST);
 
 	if (light->reverse_cull) {
