@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -252,6 +252,7 @@ private:
 	Point2 view_offset;
 	Point2 previous_update_view_offset;
 
+	bool selected_from_canvas;
 	bool anchors_mode;
 
 	Point2 grid_offset;
@@ -530,6 +531,7 @@ private:
 
 	void _button_toggle_anchor_mode(bool p_status);
 
+	VBoxContainer *controls_vb;
 	HBoxContainer *zoom_hb;
 	void _zoom_on_position(float p_zoom, Point2 p_position = Point2());
 	void _update_zoom_label();
@@ -626,6 +628,8 @@ public:
 	VSplitContainer *get_bottom_split();
 
 	Control *get_viewport_control() { return viewport; }
+
+	Control *get_controls_container() { return controls_vb; }
 
 	void update_viewport();
 

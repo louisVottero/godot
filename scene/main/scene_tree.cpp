@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -423,7 +423,7 @@ void SceneTree::input_event(const Ref<InputEvent> &p_event) {
 
 	input_handled = false;
 
-	Ref<InputEvent> ev = p_event;
+	const Ref<InputEvent> &ev = p_event;
 
 	MainLoop::input_event(ev);
 
@@ -631,7 +631,13 @@ void SceneTree::finish() {
 	timers.clear();
 }
 
-void SceneTree::quit() {
+void SceneTree::quit(int p_exit_code) {
+
+	if (p_exit_code >= 0) {
+		// Override the exit code if a positive argument is given (the default is `-1`).
+		// This is a shorthand for calling `set_exit_code()` on the OS singleton then quitting.
+		OS::get_singleton()->set_exit_code(p_exit_code);
+	}
 
 	_quit = true;
 }
@@ -1812,8 +1818,6 @@ bool SceneTree::is_refusing_new_network_connections() const {
 
 void SceneTree::_bind_methods() {
 
-	//ClassDB::bind_method(D_METHOD("call_group","call_flags","group","method","arg1","arg2"),&SceneMainLoop::_call_group,DEFVAL(Variant()),DEFVAL(Variant()));
-
 	ClassDB::bind_method(D_METHOD("get_root"), &SceneTree::get_root);
 	ClassDB::bind_method(D_METHOD("has_group", "name"), &SceneTree::has_group);
 
@@ -1837,7 +1841,7 @@ void SceneTree::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_node_count"), &SceneTree::get_node_count);
 	ClassDB::bind_method(D_METHOD("get_frame"), &SceneTree::get_frame);
-	ClassDB::bind_method(D_METHOD("quit"), &SceneTree::quit);
+	ClassDB::bind_method(D_METHOD("quit", "exit_code"), &SceneTree::quit, DEFVAL(-1));
 
 	ClassDB::bind_method(D_METHOD("set_screen_stretch", "mode", "aspect", "minsize", "shrink"), &SceneTree::set_screen_stretch, DEFVAL(1));
 
@@ -2066,7 +2070,7 @@ SceneTree::SceneTree() {
 	int ref_atlas_subdiv = GLOBAL_DEF("rendering/quality/reflections/atlas_subdiv", 8);
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/reflections/atlas_subdiv", PropertyInfo(Variant::INT, "rendering/quality/reflections/atlas_subdiv", PROPERTY_HINT_RANGE, "0,32,or_greater")); //next_power_of_2 will return a 0 as min value
 	int msaa_mode = GLOBAL_DEF("rendering/quality/filters/msaa", 0);
-	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/filters/msaa", PropertyInfo(Variant::INT, "rendering/quality/filters/msaa", PROPERTY_HINT_ENUM, "Disabled,2x,4x,8x,16x,External 2x,External 4x"));
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/filters/msaa", PropertyInfo(Variant::INT, "rendering/quality/filters/msaa", PROPERTY_HINT_ENUM, "Disabled,2x,4x,8x,16x,AndroidVR 2x,AndroidVR 4x"));
 	root->set_msaa(Viewport::MSAA(msaa_mode));
 
 	GLOBAL_DEF("rendering/quality/depth/hdr", true);

@@ -8,21 +8,6 @@
 - License: BSD-3-Clause
 
 
-## b2d_convexdecomp
-
-- Upstream: https://github.com/erincatto/Box2D/tree/master/Contributions/Utilities/ConvexDecomposition
-- Version: git (25615e0, 2015) with modifications
-- License: zlib
-
-The files were adapted to Godot by removing the dependency on b2Math (replacing
-it by b2Glue.h) and commenting out some verbose printf calls.
-Upstream code has not changed in 10 years, no need to keep track of changes.
-
-Important: Some files have Godot-made changes.
-They are marked with `// -- GODOT start --` and `// -- GODOT end --`
-comments.
-
-
 ## bullet
 
 - Upstream: https://github.com/bulletphysics/bullet3
@@ -397,19 +382,17 @@ Files extracted from the upstream source:
 ## opus
 
 - Upstream: https://opus-codec.org
-- Version: 1.3.1 (opus) and 0.11 (opusfile)
+- Version: 1.1.5 (opus) and 0.8 (opusfile)
 - License: BSD-3-Clause
 
 Files extracted from upstream source:
 
-- Run `opus/configure` and copy/sync changes to `config.h`
-  (note that this file may have Godot-specific options enabled)
 - all .c and .h files in src/ (both opus and opusfile)
 - all .h files in include/ (both opus and opusfile) as opus/
 - remove unused `opus_demo.c`,
 - remove `http.c`, `wincerts.c` and `winerrno.h` (part of
   unused libopusurl)
-- celt/ and silk/ subfolders (minus tests folders)
+- celt/ and silk/ subfolders
 - COPYING
 
 

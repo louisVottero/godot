@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -266,7 +266,6 @@ public:
 				else
 					undo_redo->create_action(TTR("Anim Change Call"));
 
-				Variant prev = animation->track_get_key_value(track, key);
 				setting = true;
 				undo_redo->add_do_method(animation.ptr(), "track_set_key_value", track, key, d_new);
 				undo_redo->add_undo_method(animation.ptr(), "track_set_key_value", track, key, d_old);
@@ -2026,7 +2025,7 @@ void AnimationTrackEdit::_notification(int p_what) {
 
 				float offset = animation->track_get_key_time(track, i) - timeline->get_value();
 				if (editor->is_key_selected(track, i) && editor->is_moving_selection()) {
-					offset = editor->snap_time(offset + editor->get_moving_selection_offset());
+					offset = editor->snap_time(offset + editor->get_moving_selection_offset(), true);
 				}
 				offset = offset * scale + limit;
 				if (i < animation->track_get_key_count(track) - 1) {
@@ -4580,7 +4579,7 @@ void AnimationTrackEditor::_new_track_property_selected(String p_name) {
 			bool valid;
 			subindices = _get_bezier_subindices_for_type(h.type, &valid);
 			if (!valid) {
-				EditorNode::get_singleton()->show_warning("Invalid track for Bezier (no suitable sub-properties)");
+				EditorNode::get_singleton()->show_warning(TTR("Invalid track for Bezier (no suitable sub-properties)"));
 				return;
 			}
 		}
@@ -5703,7 +5702,7 @@ void AnimationTrackEditor::_selection_changed() {
 	}
 }
 
-float AnimationTrackEditor::snap_time(float p_value) {
+float AnimationTrackEditor::snap_time(float p_value, bool p_relative) {
 
 	if (is_snap_enabled()) {
 
@@ -5713,7 +5712,12 @@ float AnimationTrackEditor::snap_time(float p_value) {
 		else
 			snap_increment = step->get_value();
 
-		p_value = Math::stepify(p_value, snap_increment);
+		if (p_relative) {
+			double rel = Math::fmod(timeline->get_value(), snap_increment);
+			p_value = Math::stepify(p_value + rel, snap_increment) - rel;
+		} else {
+			p_value = Math::stepify(p_value, snap_increment);
+		}
 	}
 
 	return p_value;

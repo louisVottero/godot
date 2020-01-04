@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -85,7 +85,9 @@ GLuint RasterizerStorageGLES2::system_fbo = 0;
 #define glClearDepth glClearDepthf
 
 // enable extensions manually for android and ios
+#ifndef UWP_ENABLED
 #include <dlfcn.h> // needed to load extensions
+#endif
 
 #ifdef IPHONE_ENABLED
 
@@ -93,13 +95,18 @@ GLuint RasterizerStorageGLES2::system_fbo = 0;
 //void *glRenderbufferStorageMultisampleAPPLE;
 //void *glResolveMultisampleFramebufferAPPLE;
 #define glRenderbufferStorageMultisample glRenderbufferStorageMultisampleAPPLE
-#elif ANDROID_ENABLED
+#elif defined(ANDROID_ENABLED)
 
 #include <GLES2/gl2ext.h>
 PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC glRenderbufferStorageMultisampleEXT;
 PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC glFramebufferTexture2DMultisampleEXT;
 #define glRenderbufferStorageMultisample glRenderbufferStorageMultisampleEXT
 #define glFramebufferTexture2DMultisample glFramebufferTexture2DMultisampleEXT
+
+#elif defined(UWP_ENABLED)
+#include <GLES2/gl2ext.h>
+#define glRenderbufferStorageMultisample glRenderbufferStorageMultisampleANGLE
+#define glFramebufferTexture2DMultisample glFramebufferTexture2DMultisampleANGLE
 #endif
 
 #define GL_MAX_SAMPLES 0x8D57
@@ -2428,22 +2435,10 @@ void RasterizerStorageGLES2::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 	if (surface->blend_shape_data.size()) {
 		ERR_PRINT_ONCE("Blend shapes are not supported in OpenGL ES 2.0");
 	}
-	surface->data = array;
-	surface->index_data = p_index_array;
-#else
-	// Even on non-tools builds, a copy of the surface->data is needed in certain circumstances.
-	// Rigged meshes using the USE_SKELETON_SOFTWARE path need to read bone data
-	// from surface->data.
-
-	// if USE_SKELETON_SOFTWARE is active
-	if (config.use_skeleton_software) {
-		// if this geometry is used specifically for skinning
-		if (p_format & (VS::ARRAY_FORMAT_BONES | VS::ARRAY_FORMAT_WEIGHTS))
-			surface->data = array;
-	}
-	// An alternative is to always make a copy of surface->data.
 #endif
 
+	surface->data = array;
+	surface->index_data = p_index_array;
 	surface->total_data_size += surface->array_byte_size + surface->index_array_byte_size;
 
 	for (int i = 0; i < surface->skeleton_bone_used.size(); i++) {
@@ -4583,13 +4578,24 @@ void RasterizerStorageGLES2::_render_target_allocate(RenderTarget *rt) {
 	GLuint color_internal_format;
 	GLuint color_format;
 	GLuint color_type = GL_UNSIGNED_BYTE;
+	Image::Format image_format;
 
 	if (rt->flags[RasterizerStorage::RENDER_TARGET_TRANSPARENT]) {
+#ifdef GLES_OVER_GL
+		color_internal_format = GL_RGBA8;
+#else
 		color_internal_format = GL_RGBA;
+#endif
 		color_format = GL_RGBA;
+		image_format = Image::FORMAT_RGBA8;
 	} else {
+#ifdef GLES_OVER_GL
+		color_internal_format = GL_RGB8;
+#else
 		color_internal_format = GL_RGB;
+#endif
 		color_format = GL_RGB;
+		image_format = Image::FORMAT_RGB8;
 	}
 
 	rt->used_dof_blur_near = false;
@@ -4646,7 +4652,7 @@ void RasterizerStorageGLES2::_render_target_allocate(RenderTarget *rt) {
 			glGenRenderbuffers(1, &rt->depth);
 			glBindRenderbuffer(GL_RENDERBUFFER, rt->depth);
 
-			glRenderbufferStorage(GL_RENDERBUFFER, config.depth_internalformat, rt->width, rt->height);
+			glRenderbufferStorage(GL_RENDERBUFFER, config.depth_buffer_internalformat, rt->width, rt->height);
 
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rt->depth);
 		}
@@ -4676,10 +4682,10 @@ void RasterizerStorageGLES2::_render_target_allocate(RenderTarget *rt) {
 			return;
 		}
 
-		texture->format = Image::FORMAT_RGBA8;
-		texture->gl_format_cache = GL_RGBA;
+		texture->format = image_format;
+		texture->gl_format_cache = color_format;
 		texture->gl_type_cache = GL_UNSIGNED_BYTE;
-		texture->gl_internal_format_cache = GL_RGBA;
+		texture->gl_internal_format_cache = color_internal_format;
 		texture->tex_id = rt->color;
 		texture->width = rt->width;
 		texture->alloc_width = rt->width;
@@ -4714,7 +4720,7 @@ void RasterizerStorageGLES2::_render_target_allocate(RenderTarget *rt) {
 
 		glGenRenderbuffers(1, &rt->multisample_depth);
 		glBindRenderbuffer(GL_RENDERBUFFER, rt->multisample_depth);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, config.depth_internalformat, rt->width, rt->height);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, config.depth_buffer_internalformat, rt->width, rt->height);
 
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rt->multisample_depth);
 
@@ -4896,7 +4902,11 @@ void RasterizerStorageGLES2::_render_target_allocate(RenderTarget *rt) {
 
 				bool used_depth = false;
 				if (j == 0 && i == 0) { //use always
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rt->depth, 0);
+					if (config.support_depth_texture) {
+						glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rt->depth, 0);
+					} else {
+						glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rt->depth);
+					}
 					used_depth = true;
 				}
 
@@ -5178,7 +5188,7 @@ void RasterizerStorageGLES2::render_target_set_external_texture(RID p_render_tar
 				// create a multisample depth buffer, we're not reusing Godots because Godot's didn't get created..
 				glGenRenderbuffers(1, &rt->external.depth);
 				glBindRenderbuffer(GL_RENDERBUFFER, rt->external.depth);
-				glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, config.depth_internalformat, rt->width, rt->height);
+				glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, config.depth_buffer_internalformat, rt->width, rt->height);
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rt->external.depth);
 			}
 
@@ -5291,7 +5301,7 @@ RID RasterizerStorageGLES2::canvas_light_shadow_buffer_create(int p_width) {
 
 	glGenRenderbuffers(1, &cls->depth);
 	glBindRenderbuffer(GL_RENDERBUFFER, cls->depth);
-	glRenderbufferStorage(GL_RENDERBUFFER, config.depth_internalformat, cls->size, cls->height);
+	glRenderbufferStorage(GL_RENDERBUFFER, config.depth_buffer_internalformat, cls->size, cls->height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, cls->depth);
 
 	glGenTextures(1, &cls->distance);
@@ -5772,6 +5782,8 @@ void RasterizerStorageGLES2::initialize() {
 
 	config.keep_original_textures = false;
 	config.shrink_textures_x2 = false;
+	config.depth_internalformat = GL_DEPTH_COMPONENT;
+	config.depth_type = GL_UNSIGNED_INT;
 
 #ifdef GLES_OVER_GL
 	config.float_texture_supported = true;
@@ -5779,22 +5791,31 @@ void RasterizerStorageGLES2::initialize() {
 	config.pvrtc_supported = false;
 	config.etc1_supported = false;
 	config.support_npot_repeat_mipmap = true;
-	config.depth_internalformat = GL_DEPTH_COMPONENT;
-	config.depth_type = GL_UNSIGNED_INT;
+	config.depth_buffer_internalformat = GL_DEPTH_COMPONENT24;
 #else
 	config.float_texture_supported = config.extensions.has("GL_ARB_texture_float") || config.extensions.has("GL_OES_texture_float");
 	config.s3tc_supported = config.extensions.has("GL_EXT_texture_compression_s3tc") || config.extensions.has("WEBGL_compressed_texture_s3tc");
 	config.etc1_supported = config.extensions.has("GL_OES_compressed_ETC1_RGB8_texture") || config.extensions.has("WEBGL_compressed_texture_etc1");
 	config.pvrtc_supported = config.extensions.has("IMG_texture_compression_pvrtc") || config.extensions.has("WEBGL_compressed_texture_pvrtc");
 	config.support_npot_repeat_mipmap = config.extensions.has("GL_OES_texture_npot");
-	// on mobile check for 24 bit depth support
+
+#ifdef JAVASCRIPT_ENABLED
+	// RenderBuffer internal format must be 16 bits in WebGL,
+	// but depth_texture should default to 32 always
+	// if the implementation doesn't support 32, it should just quietly use 16 instead
+	// https://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/
+	config.depth_buffer_internalformat = GL_DEPTH_COMPONENT16;
+	config.depth_type = GL_UNSIGNED_INT;
+#else
+	// on mobile check for 24 bit depth support for RenderBufferStorage
 	if (config.extensions.has("GL_OES_depth24")) {
-		config.depth_internalformat = _DEPTH_COMPONENT24_OES;
+		config.depth_buffer_internalformat = _DEPTH_COMPONENT24_OES;
 		config.depth_type = GL_UNSIGNED_INT;
 	} else {
-		config.depth_internalformat = GL_DEPTH_COMPONENT16;
+		config.depth_buffer_internalformat = GL_DEPTH_COMPONENT16;
 		config.depth_type = GL_UNSIGNED_SHORT;
 	}
+#endif
 #endif
 
 #ifndef GLES_OVER_GL
@@ -5871,7 +5892,7 @@ void RasterizerStorageGLES2::initialize() {
 		GLuint depth;
 		glGenTextures(1, &depth);
 		glBindTexture(GL_TEXTURE_2D, depth);
-		glTexImage2D(GL_TEXTURE_2D, 0, config.depth_internalformat, 32, 32, 0, config.depth_internalformat, config.depth_type, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, config.depth_internalformat, 32, 32, 0, GL_DEPTH_COMPONENT, config.depth_type, NULL);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -5890,8 +5911,12 @@ void RasterizerStorageGLES2::initialize() {
 		if (status != GL_FRAMEBUFFER_COMPLETE) {
 			// If it fails, test to see if it supports a framebuffer texture using UNSIGNED_SHORT
 			// This is needed because many OSX devices don't support either UNSIGNED_INT or UNSIGNED_SHORT
-
+#ifdef GLES_OVER_GL
 			config.depth_internalformat = GL_DEPTH_COMPONENT16;
+#else
+			// OES_depth_texture extension only specifies GL_DEPTH_COMPONENT.
+			config.depth_internalformat = GL_DEPTH_COMPONENT;
+#endif
 			config.depth_type = GL_UNSIGNED_SHORT;
 
 			glGenFramebuffers(1, &fbo);
@@ -5899,7 +5924,7 @@ void RasterizerStorageGLES2::initialize() {
 
 			glGenTextures(1, &depth);
 			glBindTexture(GL_TEXTURE_2D, depth);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 32, 32, 0, GL_DEPTH_COMPONENT16, GL_UNSIGNED_SHORT, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, config.depth_internalformat, 32, 32, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1215,7 +1215,9 @@ Error Object::emit_signal(const StringName &p_name, const Variant **p_args, int 
 			MessageQueue::get_singleton()->push_call(target->get_instance_id(), c.method, args, argc, true);
 		} else {
 			Variant::CallError ce;
+			s->lock++;
 			target->call(c.method, args, argc, ce);
+			s->lock--;
 
 			if (ce.error != Variant::CallError::CALL_OK) {
 #ifdef DEBUG_ENABLED
@@ -1515,9 +1517,11 @@ void Object::_disconnect(const StringName &p_signal, Object *p_to_object, const 
 
 	ERR_FAIL_NULL(p_to_object);
 	Signal *s = signal_map.getptr(p_signal);
-	ERR_FAIL_COND_MSG(!s, "Nonexistent signal: " + p_signal + ".");
+	ERR_FAIL_COND_MSG(!s, vformat("Nonexistent signal '%s' in %s.", p_signal, to_string()));
 
-	ERR_FAIL_COND_MSG(s->lock > 0, "Attempt to disconnect signal '" + p_signal + "' while emitting (locks: " + itos(s->lock) + ").");
+	ERR_FAIL_COND_MSG(s->lock > 0,
+			vformat("Attempt to disconnect %s signal '%s' while in emission callback '%s' (in target %s). Use CONNECT_DEFERRED (to be able to safely disconnect) or CONNECT_ONESHOT (for automatic disconnection) as connection flags.",
+					to_string(), p_signal, p_to_method, p_to_object->to_string()));
 
 	Signal::Target target(p_to_object->get_instance_id(), p_to_method);
 
@@ -1684,7 +1688,7 @@ void Object::_bind_methods() {
 		mi.name = "emit_signal";
 		mi.arguments.push_back(PropertyInfo(Variant::STRING, "signal"));
 
-		ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "emit_signal", &Object::_emit_signal, mi);
+		ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "emit_signal", &Object::_emit_signal, mi, varray(), false);
 	}
 
 	{
@@ -1700,7 +1704,7 @@ void Object::_bind_methods() {
 		mi.name = "call_deferred";
 		mi.arguments.push_back(PropertyInfo(Variant::STRING, "method"));
 
-		ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "call_deferred", &Object::_call_deferred_bind, mi);
+		ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "call_deferred", &Object::_call_deferred_bind, mi, varray(), false);
 	}
 
 	ClassDB::bind_method(D_METHOD("set_deferred", "property", "value"), &Object::set_deferred);
@@ -1948,7 +1952,10 @@ Object::~Object() {
 
 		Signal *s = &signal_map[*S];
 
-		ERR_CONTINUE_MSG(s->lock > 0, "Attempt to delete an object in the middle of a signal emission from it.");
+		if (s->lock > 0) {
+			//@todo this may need to actually reach the debugger prioritarily somehow because it may crash before
+			ERR_PRINTS("Object was freed or unreferenced while signal '" + String(*S) + "' is being emitted from it. Try connecting to the signal using 'CONNECT_DEFERRED' flag, or use queue_free() to free the object (if this object is a Node) to avoid this error and potential crashes.");
+		}
 
 		//brute force disconnect for performance
 		int slot_count = s->slot_map.size();

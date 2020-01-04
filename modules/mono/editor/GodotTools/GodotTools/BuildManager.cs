@@ -172,7 +172,7 @@ namespace GodotTools
             }
 
             var editorSettings = GodotSharpEditor.Instance.GetEditorInterface().GetEditorSettings();
-            var buildTool = (BuildTool) editorSettings.GetSetting("mono/builds/build_tool");
+            var buildTool = (BuildTool)editorSettings.GetSetting("mono/builds/build_tool");
 
             using (var pr = new EditorProgress("mono_project_debug_build", "Building project solution...", 1))
             {
@@ -246,7 +246,7 @@ namespace GodotTools
         {
             // Build tool settings
 
-            EditorDef("mono/builds/build_tool", OS.IsWindows() ? BuildTool.MsBuildVs : BuildTool.MsBuildMono);
+            EditorDef("mono/builds/build_tool", OS.IsWindows ? BuildTool.MsBuildVs : BuildTool.MsBuildMono);
 
             var editorSettings = GodotSharpEditor.Instance.GetEditorInterface().GetEditorSettings();
 
@@ -255,7 +255,7 @@ namespace GodotTools
                 ["type"] = Godot.Variant.Type.Int,
                 ["name"] = "mono/builds/build_tool",
                 ["hint"] = Godot.PropertyHint.Enum,
-                ["hint_string"] = OS.IsWindows() ?
+                ["hint_string"] = OS.IsWindows ?
                     $"{PropNameMsbuildMono},{PropNameMsbuildVs}" :
                     $"{PropNameMsbuildMono}"
             });
