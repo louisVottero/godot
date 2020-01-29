@@ -531,11 +531,10 @@ public:
 	BIND2(scenario_set_fallback_environment, RID, RID)
 
 	/* INSTANCING API */
-	// from can be mesh, light,  area and portal so far.
 	BIND0R(RID, instance_create)
 
-	BIND2(instance_set_base, RID, RID) // from can be mesh, light, poly, area and portal so far.
-	BIND2(instance_set_scenario, RID, RID) // from can be mesh, light, poly, area and portal so far.
+	BIND2(instance_set_base, RID, RID)
+	BIND2(instance_set_scenario, RID, RID)
 	BIND2(instance_set_layer_mask, RID, uint32_t)
 	BIND2(instance_set_transform, RID, const Transform &)
 	BIND2(instance_attach_object_instance_id, RID, ObjectID)
@@ -680,6 +679,8 @@ public:
 	/* STATUS INFORMATION */
 
 	virtual int get_render_info(RenderInfo p_info);
+	virtual String get_video_adapter_name() const;
+	virtual String get_video_adapter_vendor() const;
 
 	virtual RID get_test_cube();
 

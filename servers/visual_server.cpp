@@ -2032,6 +2032,8 @@ void VisualServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("init"), &VisualServer::init);
 	ClassDB::bind_method(D_METHOD("finish"), &VisualServer::finish);
 	ClassDB::bind_method(D_METHOD("get_render_info", "info"), &VisualServer::get_render_info);
+	ClassDB::bind_method(D_METHOD("get_video_adapter_name"), &VisualServer::get_video_adapter_name);
+	ClassDB::bind_method(D_METHOD("get_video_adapter_vendor"), &VisualServer::get_video_adapter_vendor);
 #ifndef _3D_DISABLED
 
 	ClassDB::bind_method(D_METHOD("make_sphere_mesh", "latitudes", "longitudes", "radius"), &VisualServer::make_sphere_mesh);
@@ -2395,6 +2397,8 @@ VisualServer::VisualServer() {
 	GLOBAL_DEF("rendering/quality/reflections/texture_array_reflections.mobile", false);
 	GLOBAL_DEF("rendering/quality/reflections/high_quality_ggx", true);
 	GLOBAL_DEF("rendering/quality/reflections/high_quality_ggx.mobile", false);
+	GLOBAL_DEF("rendering/quality/reflections/irradiance_max_size", 128);
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/reflections/irradiance_max_size", PropertyInfo(Variant::INT, "rendering/quality/reflections/irradiance_max_size", PROPERTY_HINT_RANGE, "32,2048"));
 
 	GLOBAL_DEF("rendering/quality/shading/force_vertex_shading", false);
 	GLOBAL_DEF("rendering/quality/shading/force_vertex_shading.mobile", true);
