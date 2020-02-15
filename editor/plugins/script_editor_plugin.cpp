@@ -62,6 +62,7 @@ void ScriptEditorBase::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("go_to_help", PropertyInfo(Variant::STRING, "what")));
 	// TODO: This signal is no use for VisualScript.
 	ADD_SIGNAL(MethodInfo("search_in_files_requested", PropertyInfo(Variant::STRING, "text")));
+	ADD_SIGNAL(MethodInfo("replace_in_files_requested", PropertyInfo(Variant::STRING, "text")));
 }
 
 static bool _is_built_in_script(Script *p_script) {
@@ -1093,6 +1094,10 @@ void ScriptEditor::_menu_option(int p_option) {
 
 			_on_find_in_files_requested("");
 		} break;
+		case REPLACE_IN_FILES: {
+
+			_on_replace_in_files_requested("");
+		} break;
 		case SEARCH_HELP: {
 
 			help_search_dialog->popup_dialog();
@@ -1647,7 +1652,7 @@ struct _ScriptEditorItemData {
 
 	String name;
 	String sort_key;
-	Ref<Texture> icon;
+	Ref<Texture2D> icon;
 	int index;
 	String tooltip;
 	bool used;
@@ -1832,7 +1837,7 @@ void ScriptEditor::_update_script_names() {
 		ScriptEditorBase *se = Object::cast_to<ScriptEditorBase>(tab_container->get_child(i));
 		if (se) {
 
-			Ref<Texture> icon = se->get_icon();
+			Ref<Texture2D> icon = se->get_icon();
 			String path = se->get_edited_resource()->get_path();
 			bool built_in = !path.is_resource_file();
 			String name;
@@ -1893,7 +1898,7 @@ void ScriptEditor::_update_script_names() {
 		if (eh) {
 
 			String name = eh->get_class();
-			Ref<Texture> icon = get_icon("Help", "EditorIcons");
+			Ref<Texture2D> icon = get_icon("Help", "EditorIcons");
 			String tooltip = vformat(TTR("%s Class Reference"), name);
 
 			_ScriptEditorItemData sd;
@@ -2196,6 +2201,7 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 	se->connect("go_to_help", this, "_help_class_goto");
 	se->connect("request_save_history", this, "_save_history");
 	se->connect("search_in_files_requested", this, "_on_find_in_files_requested");
+	se->connect("replace_in_files_requested", this, "_on_replace_in_files_requested");
 
 	//test for modification, maybe the script was not edited but was loaded
 
@@ -2416,7 +2422,7 @@ Variant ScriptEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
 
 	HBoxContainer *drag_preview = memnew(HBoxContainer);
 	String preview_name = "";
-	Ref<Texture> preview_icon;
+	Ref<Texture2D> preview_icon;
 
 	ScriptEditorBase *se = Object::cast_to<ScriptEditorBase>(cur_node);
 	if (se) {
@@ -3025,7 +3031,16 @@ void ScriptEditor::_script_changed() {
 
 void ScriptEditor::_on_find_in_files_requested(String text) {
 
+	find_in_files_dialog->set_find_in_files_mode(FindInFilesDialog::SEARCH_MODE);
 	find_in_files_dialog->set_search_text(text);
+	find_in_files_dialog->popup_centered_minsize();
+}
+
+void ScriptEditor::_on_replace_in_files_requested(String text) {
+
+	find_in_files_dialog->set_find_in_files_mode(FindInFilesDialog::REPLACE_MODE);
+	find_in_files_dialog->set_search_text(text);
+	find_in_files_dialog->set_replace_text("");
 	find_in_files_dialog->popup_centered_minsize();
 }
 
@@ -3078,6 +3093,7 @@ void ScriptEditor::_start_find_in_files(bool with_replace) {
 	f->set_filter(find_in_files_dialog->get_filter());
 
 	find_in_files->set_with_replace(with_replace);
+	find_in_files->set_replace_text(find_in_files_dialog->get_replace_text());
 	find_in_files->start_search();
 
 	editor->make_bottom_panel_item_visible(find_in_files);
@@ -3153,6 +3169,7 @@ void ScriptEditor::_bind_methods() {
 	ClassDB::bind_method("_filter_methods_text_changed", &ScriptEditor::_filter_methods_text_changed);
 	ClassDB::bind_method("_update_recent_scripts", &ScriptEditor::_update_recent_scripts);
 	ClassDB::bind_method("_on_find_in_files_requested", &ScriptEditor::_on_find_in_files_requested);
+	ClassDB::bind_method("_on_replace_in_files_requested", &ScriptEditor::_on_replace_in_files_requested);
 	ClassDB::bind_method("_start_find_in_files", &ScriptEditor::_start_find_in_files);
 	ClassDB::bind_method("_on_find_in_files_result_selected", &ScriptEditor::_on_find_in_files_result_selected);
 	ClassDB::bind_method("_on_find_in_files_modified_files", &ScriptEditor::_on_find_in_files_modified_files);
@@ -3209,7 +3226,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 
 	script_list = memnew(ItemList);
 	scripts_vbox->add_child(script_list);
-	script_list->set_custom_minimum_size(Size2(150, 90) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
+	script_list->set_custom_minimum_size(Size2(150, 60) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
 	script_list->set_v_size_flags(SIZE_EXPAND_FILL);
 	script_split->set_split_offset(140);
 	_sort_list_on_update = true;
@@ -3254,14 +3271,14 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	overview_vbox->add_child(members_overview);
 
 	members_overview->set_allow_reselect(true);
-	members_overview->set_custom_minimum_size(Size2(0, 90) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
+	members_overview->set_custom_minimum_size(Size2(0, 60) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
 	members_overview->set_v_size_flags(SIZE_EXPAND_FILL);
 	members_overview->set_allow_rmb_select(true);
 
 	help_overview = memnew(ItemList);
 	overview_vbox->add_child(help_overview);
 	help_overview->set_allow_reselect(true);
-	help_overview->set_custom_minimum_size(Size2(0, 90) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
+	help_overview->set_custom_minimum_size(Size2(0, 60) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
 	help_overview->set_v_size_flags(SIZE_EXPAND_FILL);
 
 	tab_container = memnew(TabContainer);

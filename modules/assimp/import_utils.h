@@ -189,7 +189,7 @@ public:
 	}
 
 	/**
-     * Converts aiMatrix4x4 to godot Transform 
+     * Converts aiMatrix4x4 to godot Transform
     */
 	static const Transform assimp_matrix_transform(const aiMatrix4x4 p_matrix) {
 		aiMatrix4x4 matrix = p_matrix;
@@ -320,17 +320,20 @@ public:
 	static void set_texture_mapping_mode(aiTextureMapMode *map_mode, Ref<ImageTexture> texture) {
 		ERR_FAIL_COND(texture.is_null());
 		ERR_FAIL_COND(map_mode == NULL);
+		// FIXME: Commented out during Vulkan port.
+		/*
 		aiTextureMapMode tex_mode = map_mode[0];
 
-		int32_t flags = Texture::FLAGS_DEFAULT;
+		int32_t flags = Texture2D::FLAGS_DEFAULT;
 		if (tex_mode == aiTextureMapMode_Wrap) {
 			//Default
 		} else if (tex_mode == aiTextureMapMode_Clamp) {
-			flags = flags & ~Texture::FLAG_REPEAT;
+			flags = flags & ~Texture2D::FLAG_REPEAT;
 		} else if (tex_mode == aiTextureMapMode_Mirror) {
-			flags = flags | Texture::FLAG_MIRRORED_REPEAT;
+			flags = flags | Texture2D::FLAG_MIRRORED_REPEAT;
 		}
 		texture->set_flags(flags);
+		*/
 	}
 
 	/**
@@ -391,7 +394,7 @@ public:
 			}
 			return Ref<Image>();
 		} else {
-			Ref<Texture> texture = ResourceLoader::load(p_path);
+			Ref<Texture2D> texture = ResourceLoader::load(p_path);
 			ERR_FAIL_COND_V(texture.is_null(), Ref<Image>());
 			Ref<Image> image = texture->get_data();
 			ERR_FAIL_COND_V(image.is_null(), Ref<Image>());
@@ -418,7 +421,8 @@ public:
 			if (image_state.raw_image.is_valid()) {
 				image_state.texture.instance();
 				image_state.texture->create_from_image(image_state.raw_image);
-				image_state.texture->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
+				// FIXME: Commented out during Vulkan port.
+				//image_state.texture->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
 				return true;
 			}
 		}

@@ -55,9 +55,6 @@ public:
 	PoolVector<String> get_recognized_extensions_for_type(const String &p_type);
 	void set_abort_on_missing_resources(bool p_abort);
 	PoolStringArray get_dependencies(const String &p_path);
-#ifndef DISABLE_DEPRECATED
-	bool has(const String &p_path);
-#endif // DISABLE_DEPRECATED
 	bool has_cached(const String &p_path);
 	bool exists(const String &p_path, const String &p_type_hint = "");
 
@@ -104,16 +101,8 @@ protected:
 
 public:
 	enum VideoDriver {
-		VIDEO_DRIVER_GLES3,
 		VIDEO_DRIVER_GLES2,
-	};
-
-	enum PowerState {
-		POWERSTATE_UNKNOWN, // Cannot determine power status.
-		POWERSTATE_ON_BATTERY, // Not plugged in, running on the battery.
-		POWERSTATE_NO_BATTERY, // Plugged in, no battery available.
-		POWERSTATE_CHARGING, // Plugged in, charging battery.
-		POWERSTATE_CHARGED // Plugged in, battery charged.
+		VIDEO_DRIVER_VULKAN,
 	};
 
 	enum Weekday {
@@ -349,10 +338,6 @@ public:
 	void set_vsync_via_compositor(bool p_enable);
 	bool is_vsync_via_compositor_enabled() const;
 
-	PowerState get_power_state();
-	int get_power_seconds_left();
-	int get_power_percent_left();
-
 	bool has_feature(const String &p_feature) const;
 
 	bool request_permission(const String &p_name);
@@ -365,7 +350,6 @@ public:
 };
 
 VARIANT_ENUM_CAST(_OS::VideoDriver);
-VARIANT_ENUM_CAST(_OS::PowerState);
 VARIANT_ENUM_CAST(_OS::Weekday);
 VARIANT_ENUM_CAST(_OS::Month);
 VARIANT_ENUM_CAST(_OS::SystemDir);
@@ -642,7 +626,7 @@ public:
 class _Semaphore : public Reference {
 
 	GDCLASS(_Semaphore, Reference);
-	Semaphore *semaphore;
+	SemaphoreOld *semaphore;
 
 	static void _bind_methods();
 
