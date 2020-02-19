@@ -873,11 +873,11 @@ Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
 	};
 	/* clang-format on */
 
-	PoolVector<int> indices;
+	Vector<int> indices;
 	for (int i = 0; i < 8 * 3; i++)
 		indices.push_back(diamond_faces[i]);
 
-	PoolVector<Vector3> vertices;
+	Vector<Vector3> vertices;
 	for (int i = 0; i < 6; i++)
 		vertices.push_back(diamond[i] * 0.1);
 
@@ -1933,7 +1933,7 @@ void SceneTree::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("idle_frame"));
 	ADD_SIGNAL(MethodInfo("physics_frame"));
 
-	ADD_SIGNAL(MethodInfo("files_dropped", PropertyInfo(Variant::POOL_STRING_ARRAY, "files"), PropertyInfo(Variant::INT, "screen")));
+	ADD_SIGNAL(MethodInfo("files_dropped", PropertyInfo(Variant::PACKED_STRING_ARRAY, "files"), PropertyInfo(Variant::INT, "screen")));
 	ADD_SIGNAL(MethodInfo("global_menu_action", PropertyInfo(Variant::NIL, "id"), PropertyInfo(Variant::NIL, "meta")));
 	ADD_SIGNAL(MethodInfo("network_peer_connected", PropertyInfo(Variant::INT, "id")));
 	ADD_SIGNAL(MethodInfo("network_peer_disconnected", PropertyInfo(Variant::INT, "id")));
@@ -2073,8 +2073,6 @@ SceneTree::SceneTree() {
 	root->set_as_audio_listener_2d(true);
 	current_scene = NULL;
 
-	int ref_atlas_size = GLOBAL_DEF("rendering/quality/reflections/atlas_size", 2048);
-	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/reflections/atlas_size", PropertyInfo(Variant::INT, "rendering/quality/reflections/atlas_size", PROPERTY_HINT_RANGE, "0,8192,or_greater")); //next_power_of_2 will return a 0 as min value
 	int msaa_mode = GLOBAL_DEF("rendering/quality/filters/msaa", 0);
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/filters/msaa", PropertyInfo(Variant::INT, "rendering/quality/filters/msaa", PROPERTY_HINT_ENUM, "Disabled,2x,4x,8x,16x,AndroidVR 2x,AndroidVR 4x"));
 	root->set_msaa(Viewport::MSAA(msaa_mode));

@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  pool_vector.cpp                                                      */
+/*  dtls_server_mbedtls.h                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,43 +28,31 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "pool_vector.h"
+#ifndef MBED_DTLS_SERVER_H
+#define MBED_DTLS_SERVER_H
 
-Mutex *pool_vector_lock = NULL;
+#include "core/io/dtls_server.h"
+#include "ssl_context_mbedtls.h"
 
-PoolAllocator *MemoryPool::memory_pool = NULL;
-uint8_t *MemoryPool::pool_memory = NULL;
-size_t *MemoryPool::pool_size = NULL;
+class DTLSServerMbedTLS : public DTLSServer {
 
-MemoryPool::Alloc *MemoryPool::allocs = NULL;
-MemoryPool::Alloc *MemoryPool::free_list = NULL;
-uint32_t MemoryPool::alloc_count = 0;
-uint32_t MemoryPool::allocs_used = 0;
-Mutex *MemoryPool::alloc_mutex = NULL;
+private:
+	static DTLSServer *_create_func();
+	Ref<CryptoKey> _key;
+	Ref<X509Certificate> _cert;
+	Ref<X509Certificate> _ca_chain;
+	Ref<CookieContextMbedTLS> _cookies;
 
-size_t MemoryPool::total_memory = 0;
-size_t MemoryPool::max_memory = 0;
+public:
+	static void initialize();
+	static void finalize();
 
-void MemoryPool::setup(uint32_t p_max_allocs) {
+	virtual Error setup(Ref<CryptoKey> p_key, Ref<X509Certificate> p_cert, Ref<X509Certificate> p_ca_chain = Ref<X509Certificate>());
+	virtual void stop();
+	virtual Ref<PacketPeerDTLS> take_connection(Ref<PacketPeerUDP> p_peer);
 
-	allocs = memnew_arr(Alloc, p_max_allocs);
-	alloc_count = p_max_allocs;
-	allocs_used = 0;
+	DTLSServerMbedTLS();
+	~DTLSServerMbedTLS();
+};
 
-	for (uint32_t i = 0; i < alloc_count - 1; i++) {
-
-		allocs[i].free_list = &allocs[i + 1];
-	}
-
-	free_list = &allocs[0];
-
-	alloc_mutex = Mutex::create();
-}
-
-void MemoryPool::cleanup() {
-
-	memdelete_arr(allocs);
-	memdelete(alloc_mutex);
-
-	ERR_FAIL_COND_MSG(allocs_used > 0, "There are still MemoryPool allocs in use at exit!");
-}
+#endif // MBED_DTLS_SERVER_H
