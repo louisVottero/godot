@@ -128,6 +128,19 @@ String Variant::get_type_name(Variant::Type p_type) {
 
 			return "Object";
 		} break;
+		case CALLABLE: {
+
+			return "Callable";
+		} break;
+		case SIGNAL: {
+
+			return "Signal";
+		} break;
+		case STRING_NAME: {
+
+			return "StringName";
+
+		} break;
 		case NODE_PATH: {
 
 			return "NodePath";
@@ -317,6 +330,15 @@ bool Variant::can_convert(Variant::Type p_type_from, Variant::Type p_type_to) {
 
 			valid_types = valid;
 		} break;
+		case STRING_NAME: {
+
+			static const Type valid[] = {
+				STRING,
+				NIL
+			};
+
+			valid_types = valid;
+		} break;
 		case NODE_PATH: {
 
 			static const Type valid[] = {
@@ -487,6 +509,7 @@ bool Variant::can_convert_strict(Variant::Type p_type_from, Variant::Type p_type
 
 			static const Type valid[] = {
 				NODE_PATH,
+				STRING_NAME,
 				NIL
 			};
 
@@ -559,6 +582,15 @@ bool Variant::can_convert_strict(Variant::Type p_type_from, Variant::Type p_type
 		case OBJECT: {
 
 			static const Type valid[] = {
+				NIL
+			};
+
+			valid_types = valid;
+		} break;
+		case STRING_NAME: {
+
+			static const Type valid[] = {
+				STRING,
 				NIL
 			};
 
@@ -792,6 +824,19 @@ bool Variant::is_zero() const {
 
 			return _get_obj().obj == NULL;
 		} break;
+		case CALLABLE: {
+
+			return reinterpret_cast<const Callable *>(_data._mem)->is_null();
+		} break;
+		case SIGNAL: {
+
+			return reinterpret_cast<const Signal *>(_data._mem)->is_null();
+		} break;
+		case STRING_NAME: {
+
+			return *reinterpret_cast<const StringName *>(_data._mem) != StringName();
+
+		} break;
 		case NODE_PATH: {
 
 			return reinterpret_cast<const NodePath *>(_data._mem)->is_empty();
@@ -1022,6 +1067,19 @@ void Variant::reference(const Variant &p_variant) {
 			_get_obj().id = p_variant._get_obj().id;
 
 		} break;
+		case CALLABLE: {
+
+			memnew_placement(_data._mem, Callable(*reinterpret_cast<const Callable *>(p_variant._data._mem)));
+		} break;
+		case SIGNAL: {
+
+			memnew_placement(_data._mem, Signal(*reinterpret_cast<const Signal *>(p_variant._data._mem)));
+		} break;
+		case STRING_NAME: {
+
+			memnew_placement(_data._mem, StringName(*reinterpret_cast<const StringName *>(p_variant._data._mem)));
+
+		} break;
 		case NODE_PATH: {
 
 			memnew_placement(_data._mem, NodePath(*reinterpret_cast<const NodePath *>(p_variant._data._mem)));
@@ -1128,7 +1186,11 @@ void Variant::clear() {
 			memdelete(_data._transform);
 		} break;
 
-		// misc types
+			// misc types
+		case STRING_NAME: {
+
+			reinterpret_cast<StringName *>(_data._mem)->~StringName();
+		} break;
 		case NODE_PATH: {
 
 			reinterpret_cast<NodePath *>(_data._mem)->~NodePath();
@@ -1148,6 +1210,14 @@ void Variant::clear() {
 		case _RID: {
 			// not much need probably
 			reinterpret_cast<RID *>(_data._mem)->~RID();
+		} break;
+		case CALLABLE: {
+
+			reinterpret_cast<Callable *>(_data._mem)->~Callable();
+		} break;
+		case SIGNAL: {
+
+			reinterpret_cast<Signal *>(_data._mem)->~Signal();
 		} break;
 		case DICTIONARY: {
 
@@ -1421,10 +1491,13 @@ Variant::operator double() const {
 
 Variant::operator StringName() const {
 
-	if (type == NODE_PATH) {
-		return reinterpret_cast<const NodePath *>(_data._mem)->get_sname();
+	if (type == STRING_NAME) {
+		return *reinterpret_cast<const StringName *>(_data._mem);
+	} else if (type == STRING) {
+		return *reinterpret_cast<const String *>(_data._mem);
 	}
-	return StringName(operator String());
+
+	return StringName();
 }
 
 struct _VariantStrPair {
@@ -1491,6 +1564,7 @@ String Variant::stringify(List<const void *> &stack) const {
 			return mtx + ")";
 		} break;
 		case TRANSFORM: return operator Transform();
+		case STRING_NAME: return operator StringName();
 		case NODE_PATH: return operator NodePath();
 		case COLOR: return String::num(operator Color().r) + "," + String::num(operator Color().g) + "," + String::num(operator Color().b) + "," + String::num(operator Color().a);
 		case DICTIONARY: {
@@ -1626,6 +1700,18 @@ String Variant::stringify(List<const void *> &stack) const {
 			} else
 				return "[Object:null]";
 
+		} break;
+		case CALLABLE: {
+			const Callable &c = *reinterpret_cast<const Callable *>(_data._mem);
+			return c;
+		} break;
+		case SIGNAL: {
+			const Signal &s = *reinterpret_cast<const Signal *>(_data._mem);
+			return s;
+		} break;
+		case _RID: {
+			const RID &s = *reinterpret_cast<const RID *>(_data._mem);
+			return "RID(" + itos(s.get_id()) + ")";
 		} break;
 		default: {
 			return "[" + get_type_name(type) + "]";
@@ -1776,9 +1862,9 @@ Variant::operator RID() const {
 			ERR_FAIL_COND_V_MSG(ObjectDB::get_instance(_get_obj().id) == nullptr, RID(), "Invalid pointer (object was freed).");
 		};
 #endif
-		Variant::CallError ce;
+		Callable::CallError ce;
 		Variant ret = _get_obj().obj->call(CoreStringNames::get_singleton()->get_rid, NULL, 0, ce);
-		if (ce.error == Variant::CallError::CALL_OK && ret.get_type() == Variant::_RID) {
+		if (ce.error == Callable::CallError::CALL_OK && ret.get_type() == Variant::_RID) {
 			return ret;
 		}
 		return RID();
@@ -1834,6 +1920,22 @@ Variant::operator Dictionary() const {
 		return *reinterpret_cast<const Dictionary *>(_data._mem);
 	else
 		return Dictionary();
+}
+
+Variant::operator Callable() const {
+
+	if (type == CALLABLE)
+		return *reinterpret_cast<const Callable *>(_data._mem);
+	else
+		return Callable();
+}
+
+Variant::operator Signal() const {
+
+	if (type == SIGNAL)
+		return *reinterpret_cast<const Signal *>(_data._mem);
+	else
+		return Signal();
 }
 
 template <class DA, class SA>
@@ -2131,8 +2233,8 @@ Variant::Variant(const ObjectID &p_id) {
 
 Variant::Variant(const StringName &p_string) {
 
-	type = STRING;
-	memnew_placement(_data._mem, String(p_string.operator String()));
+	type = STRING_NAME;
+	memnew_placement(_data._mem, StringName(p_string));
 }
 Variant::Variant(const String &p_string) {
 
@@ -2241,6 +2343,17 @@ Variant::Variant(const Object *p_object) {
 		_get_obj().obj = nullptr;
 		_get_obj().id = ObjectID();
 	}
+}
+
+Variant::Variant(const Callable &p_callable) {
+
+	type = CALLABLE;
+	memnew_placement(_data._mem, Callable(p_callable));
+}
+Variant::Variant(const Signal &p_callable) {
+
+	type = SIGNAL;
+	memnew_placement(_data._mem, Signal(p_callable));
 }
 
 Variant::Variant(const Dictionary &p_dictionary) {
@@ -2469,6 +2582,19 @@ void Variant::operator=(const Variant &p_variant) {
 			_get_obj().id = p_variant._get_obj().id;
 
 		} break;
+		case CALLABLE: {
+
+			*reinterpret_cast<Callable *>(_data._mem) = *reinterpret_cast<const Callable *>(p_variant._data._mem);
+		} break;
+		case SIGNAL: {
+
+			*reinterpret_cast<Signal *>(_data._mem) = *reinterpret_cast<const Signal *>(p_variant._data._mem);
+		} break;
+
+		case STRING_NAME: {
+
+			*reinterpret_cast<StringName *>(_data._mem) = *reinterpret_cast<const StringName *>(p_variant._data._mem);
+		} break;
 		case NODE_PATH: {
 
 			*reinterpret_cast<NodePath *>(_data._mem) = *reinterpret_cast<const NodePath *>(p_variant._data._mem);
@@ -2667,6 +2793,10 @@ uint32_t Variant::hash() const {
 
 			return hash_djb2_one_64(make_uint64_t(_get_obj().obj));
 		} break;
+		case STRING_NAME: {
+
+			return reinterpret_cast<const StringName *>(_data._mem)->hash();
+		} break;
 		case NODE_PATH: {
 
 			return reinterpret_cast<const NodePath *>(_data._mem)->hash();
@@ -2675,6 +2805,17 @@ uint32_t Variant::hash() const {
 
 			return reinterpret_cast<const Dictionary *>(_data._mem)->hash();
 
+		} break;
+		case CALLABLE: {
+
+			return reinterpret_cast<const Callable *>(_data._mem)->hash();
+
+		} break;
+		case SIGNAL: {
+
+			const Signal &s = *reinterpret_cast<const Signal *>(_data._mem);
+			uint32_t hash = s.get_name().hash();
+			return hash_djb2_one_64(s.get_object_id(), hash);
 		} break;
 		case ARRAY: {
 
@@ -3054,24 +3195,24 @@ Variant Variant::call(const StringName &p_method, VARIANT_ARG_DECLARE) {
 		argc++;
 	}
 
-	CallError error;
+	Callable::CallError error;
 
 	Variant ret = call(p_method, argptr, argc, error);
 
 	switch (error.error) {
 
-		case CallError::CALL_ERROR_INVALID_ARGUMENT: {
+		case Callable::CallError::CALL_ERROR_INVALID_ARGUMENT: {
 
-			String err = "Invalid type for argument #" + itos(error.argument) + ", expected '" + Variant::get_type_name(error.expected) + "'.";
+			String err = "Invalid type for argument #" + itos(error.argument) + ", expected '" + Variant::get_type_name(Variant::Type(error.expected)) + "'.";
 			ERR_PRINT(err.utf8().get_data());
 
 		} break;
-		case CallError::CALL_ERROR_INVALID_METHOD: {
+		case Callable::CallError::CALL_ERROR_INVALID_METHOD: {
 
 			String err = "Invalid method '" + p_method + "' for type '" + Variant::get_type_name(type) + "'.";
 			ERR_PRINT(err.utf8().get_data());
 		} break;
-		case CallError::CALL_ERROR_TOO_MANY_ARGUMENTS: {
+		case Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS: {
 
 			String err = "Too many arguments for method '" + p_method + "'";
 			ERR_PRINT(err.utf8().get_data());
@@ -3096,26 +3237,26 @@ String Variant::get_construct_string() const {
 	return vars;
 }
 
-String Variant::get_call_error_text(Object *p_base, const StringName &p_method, const Variant **p_argptrs, int p_argcount, const Variant::CallError &ce) {
+String Variant::get_call_error_text(Object *p_base, const StringName &p_method, const Variant **p_argptrs, int p_argcount, const Callable::CallError &ce) {
 
 	String err_text;
 
-	if (ce.error == Variant::CallError::CALL_ERROR_INVALID_ARGUMENT) {
+	if (ce.error == Callable::CallError::CALL_ERROR_INVALID_ARGUMENT) {
 		int errorarg = ce.argument;
 		if (p_argptrs) {
-			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from " + Variant::get_type_name(p_argptrs[errorarg]->get_type()) + " to " + Variant::get_type_name(ce.expected) + ".";
+			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from " + Variant::get_type_name(p_argptrs[errorarg]->get_type()) + " to " + Variant::get_type_name(Variant::Type(ce.expected)) + ".";
 		} else {
-			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from [missing argptr, type unknown] to " + Variant::get_type_name(ce.expected) + ".";
+			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from [missing argptr, type unknown] to " + Variant::get_type_name(Variant::Type(ce.expected)) + ".";
 		}
-	} else if (ce.error == Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS) {
+	} else if (ce.error == Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS) {
 		err_text = "Method expected " + itos(ce.argument) + " arguments, but called with " + itos(p_argcount) + ".";
-	} else if (ce.error == Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS) {
+	} else if (ce.error == Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS) {
 		err_text = "Method expected " + itos(ce.argument) + " arguments, but called with " + itos(p_argcount) + ".";
-	} else if (ce.error == Variant::CallError::CALL_ERROR_INVALID_METHOD) {
+	} else if (ce.error == Callable::CallError::CALL_ERROR_INVALID_METHOD) {
 		err_text = "Method not found.";
-	} else if (ce.error == Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL) {
+	} else if (ce.error == Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL) {
 		err_text = "Instance is null";
-	} else if (ce.error == Variant::CallError::CALL_OK) {
+	} else if (ce.error == Callable::CallError::CALL_OK) {
 		return "Call OK";
 	}
 
@@ -3126,6 +3267,32 @@ String Variant::get_call_error_text(Object *p_base, const StringName &p_method, 
 		class_name += "(" + script->get_path().get_file() + ")";
 	}
 	return "'" + class_name + "::" + String(p_method) + "': " + err_text;
+}
+
+String Variant::get_callable_error_text(const Callable &p_callable, const Variant **p_argptrs, int p_argcount, const Callable::CallError &ce) {
+
+	String err_text;
+
+	if (ce.error == Callable::CallError::CALL_ERROR_INVALID_ARGUMENT) {
+		int errorarg = ce.argument;
+		if (p_argptrs) {
+			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from " + Variant::get_type_name(p_argptrs[errorarg]->get_type()) + " to " + Variant::get_type_name(Variant::Type(ce.expected)) + ".";
+		} else {
+			err_text = "Cannot convert argument " + itos(errorarg + 1) + " from [missing argptr, type unknown] to " + Variant::get_type_name(Variant::Type(ce.expected)) + ".";
+		}
+	} else if (ce.error == Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS) {
+		err_text = "Method expected " + itos(ce.argument) + " arguments, but called with " + itos(p_argcount) + ".";
+	} else if (ce.error == Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS) {
+		err_text = "Method expected " + itos(ce.argument) + " arguments, but called with " + itos(p_argcount) + ".";
+	} else if (ce.error == Callable::CallError::CALL_ERROR_INVALID_METHOD) {
+		err_text = "Method not found.";
+	} else if (ce.error == Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL) {
+		err_text = "Instance is null";
+	} else if (ce.error == Callable::CallError::CALL_OK) {
+		return "Call OK";
+	}
+
+	return String(p_callable) + " : " + err_text;
 }
 
 String vformat(const String &p_text, const Variant &p1, const Variant &p2, const Variant &p3, const Variant &p4, const Variant &p5) {

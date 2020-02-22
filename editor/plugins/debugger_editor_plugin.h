@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_driver_dummy.h                                                 */
+/*  debugger_editor_plugin.h                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,31 +28,23 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef AUDIO_DRIVER_DUMMY_H
-#define AUDIO_DRIVER_DUMMY_H
+#ifndef DEBUGGER_EDITOR_PLUGIN_H
+#define DEBUGGER_EDITOR_PLUGIN_H
 
-#include "core/os/mutex.h"
-#include "core/os/thread.h"
-#include "servers/audio_server.h"
+#include "editor/debugger/editor_debugger_node.h"
+#include "editor/editor_node.h"
+#include "editor/editor_plugin.h"
 
-class AudioDriverDummy : public AudioDriver {
+class DebuggerEditorPlugin : public EditorPlugin {
+
+	GDCLASS(DebuggerEditorPlugin, EditorPlugin);
+
 public:
-	const char *get_name() const {
-		return "Dummy";
-	};
+	virtual String get_name() const { return "Debugger"; }
+	bool has_main_screen() const { return false; }
 
-	virtual Error init() { return OK; }
-	virtual void start(){};
-	virtual int get_mix_rate() const { return DEFAULT_MIX_RATE; };
-	virtual SpeakerMode get_speaker_mode() const { return SPEAKER_MODE_STEREO; };
-	virtual void lock(){};
-	virtual void unlock(){};
-	virtual void finish(){};
-
-	virtual float get_latency() { return 0; };
-
-	AudioDriverDummy(){};
-	~AudioDriverDummy(){};
+	DebuggerEditorPlugin(EditorNode *p_node);
+	~DebuggerEditorPlugin();
 };
 
-#endif // AUDIO_DRIVER_DUMMY_H
+#endif // DEBUGGER_EDITOR_PLUGIN_H
