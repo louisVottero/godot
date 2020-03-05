@@ -1134,15 +1134,17 @@ String _OS::get_system_dir(SystemDir p_dir) const {
 	return OS::get_singleton()->get_system_dir(OS::SystemDir(p_dir));
 }
 
-String _OS::get_scancode_string(uint32_t p_code) const {
+String _OS::get_keycode_string(uint32_t p_code) const {
 
 	return keycode_get_string(p_code);
 }
-bool _OS::is_scancode_unicode(uint32_t p_unicode) const {
+
+bool _OS::is_keycode_unicode(uint32_t p_unicode) const {
 
 	return keycode_has_unicode(p_unicode);
 }
-int _OS::find_scancode_from_string(const String &p_code) const {
+
+int _OS::find_keycode_from_string(const String &p_code) const {
 
 	return find_keycode(p_code);
 }
@@ -1333,9 +1335,9 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("native_video_pause"), &_OS::native_video_pause);
 	ClassDB::bind_method(D_METHOD("native_video_unpause"), &_OS::native_video_unpause);
 
-	ClassDB::bind_method(D_METHOD("get_scancode_string", "code"), &_OS::get_scancode_string);
-	ClassDB::bind_method(D_METHOD("is_scancode_unicode", "code"), &_OS::is_scancode_unicode);
-	ClassDB::bind_method(D_METHOD("find_scancode_from_string", "string"), &_OS::find_scancode_from_string);
+	ClassDB::bind_method(D_METHOD("get_keycode_string", "code"), &_OS::get_keycode_string);
+	ClassDB::bind_method(D_METHOD("is_keycode_unicode", "code"), &_OS::is_keycode_unicode);
+	ClassDB::bind_method(D_METHOD("find_keycode_from_string", "string"), &_OS::find_keycode_from_string);
 
 	ClassDB::bind_method(D_METHOD("set_use_file_access_save_and_swap", "enabled"), &_OS::set_use_file_access_save_and_swap);
 
@@ -2342,10 +2344,10 @@ Error _Directory::change_dir(String p_dir) {
 	ERR_FAIL_COND_V_MSG(!d, ERR_UNCONFIGURED, "Directory must be opened before use.");
 	return d->change_dir(p_dir);
 }
-String _Directory::get_current_dir() {
+String _Directory::get_current_dir(bool p_include_drive) {
 
 	ERR_FAIL_COND_V_MSG(!d, "", "Directory must be opened before use.");
-	return d->get_current_dir();
+	return d->get_current_dir(p_include_drive);
 }
 Error _Directory::make_dir(String p_dir) {
 
@@ -2442,7 +2444,7 @@ void _Directory::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_drive", "idx"), &_Directory::get_drive);
 	ClassDB::bind_method(D_METHOD("get_current_drive"), &_Directory::get_current_drive);
 	ClassDB::bind_method(D_METHOD("change_dir", "todir"), &_Directory::change_dir);
-	ClassDB::bind_method(D_METHOD("get_current_dir"), &_Directory::get_current_dir);
+	ClassDB::bind_method(D_METHOD("get_current_dir", "include_drive"), &_Directory::get_current_dir, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("make_dir", "path"), &_Directory::make_dir);
 	ClassDB::bind_method(D_METHOD("make_dir_recursive", "path"), &_Directory::make_dir_recursive);
 	ClassDB::bind_method(D_METHOD("file_exists", "path"), &_Directory::file_exists);

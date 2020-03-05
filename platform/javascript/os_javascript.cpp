@@ -250,7 +250,8 @@ static Ref<InputEventKey> setup_key_event(const EmscriptenKeyboardEvent *emscrip
 	ev.instance();
 	ev->set_echo(emscripten_event->repeat);
 	dom2godot_mod(emscripten_event, ev);
-	ev->set_scancode(dom2godot_scancode(emscripten_event->keyCode));
+	ev->set_keycode(dom2godot_keycode(emscripten_event->keyCode));
+	ev->set_physical_keycode(dom2godot_keycode(emscripten_event->keyCode));
 
 	String unicode = String::utf8(emscripten_event->key);
 	// Check if empty or multi-character (e.g. `CapsLock`).
@@ -270,7 +271,7 @@ EM_BOOL OS_JavaScript::keydown_callback(int p_event_type, const EmscriptenKeyboa
 	OS_JavaScript *os = get_singleton();
 	Ref<InputEventKey> ev = setup_key_event(p_event);
 	ev->set_pressed(true);
-	if (ev->get_unicode() == 0 && keycode_has_unicode(ev->get_scancode())) {
+	if (ev->get_unicode() == 0 && keycode_has_unicode(ev->get_keycode())) {
 		// Defer to keypress event for legacy unicode retrieval.
 		os->deferred_key_event = ev;
 		// Do not suppress keypress event.
@@ -295,7 +296,7 @@ EM_BOOL OS_JavaScript::keyup_callback(int p_event_type, const EmscriptenKeyboard
 	Ref<InputEventKey> ev = setup_key_event(p_event);
 	ev->set_pressed(false);
 	get_singleton()->input->parse_input_event(ev);
-	return ev->get_scancode() != KEY_UNKNOWN && ev->get_scancode() != 0;
+	return ev->get_keycode() != KEY_UNKNOWN && ev->get_keycode() != 0;
 }
 
 // Mouse
@@ -981,10 +982,10 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, mousedown, mouse_button_callback)
 	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, mouseup, mouse_button_callback)
 	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, wheel, wheel_callback)
-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchstart, touch_press_callback)
-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchmove, touchmove_callback)
-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchend, touch_press_callback)
-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchcancel, touch_press_callback)
+	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchstart, touch_press_callback)
+	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchmove, touchmove_callback)
+	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchend, touch_press_callback)
+	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchcancel, touch_press_callback)
 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keydown, keydown_callback)
 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keypress, keypress_callback)
 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keyup, keyup_callback)

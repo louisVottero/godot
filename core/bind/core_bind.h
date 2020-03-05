@@ -266,9 +266,9 @@ public:
 
 	String get_unique_id() const;
 
-	String get_scancode_string(uint32_t p_code) const;
-	bool is_scancode_unicode(uint32_t p_unicode) const;
-	int find_scancode_from_string(const String &p_code) const;
+	String get_keycode_string(uint32_t p_code) const;
+	bool is_keycode_unicode(uint32_t p_unicode) const;
+	int find_keycode_from_string(const String &p_code) const;
 
 	void set_use_file_access_save_and_swap(bool p_enable);
 
@@ -572,7 +572,7 @@ public:
 	int get_current_drive();
 
 	Error change_dir(String p_dir); // Can be relative or absolute, return false on success.
-	String get_current_dir(); // Return current dir location.
+	String get_current_dir(bool p_include_drive = true); // Return current dir location.
 
 	Error make_dir(String p_dir);
 	Error make_dir_recursive(String p_dir);

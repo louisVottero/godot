@@ -617,7 +617,7 @@ void EditorAssetLibrary::_unhandled_input(const Ref<InputEvent> &p_event) {
 
 	if (key.is_valid() && key->is_pressed()) {
 
-		if (key->get_scancode_with_modifiers() == (KEY_MASK_CMD | KEY_F) && is_visible_in_tree()) {
+		if (key->get_keycode_with_modifiers() == (KEY_MASK_CMD | KEY_F) && is_visible_in_tree()) {
 
 			filter->grab_focus();
 			filter->select_all();
@@ -1360,7 +1360,7 @@ EditorAssetLibrary::EditorAssetLibrary(bool p_templates_only) {
 	filter->set_h_size_flags(SIZE_EXPAND_FILL);
 	filter->connect("text_entered", callable_mp(this, &EditorAssetLibrary::_search_text_entered));
 	search = memnew(Button(TTR("Search")));
-	search->connect("pressed", callable_mp(this, &EditorAssetLibrary::_search));
+	search->connect("pressed", callable_mp(this, &EditorAssetLibrary::_search), make_binds(0));
 	search_hb->add_child(search);
 
 	if (!p_templates_only)
