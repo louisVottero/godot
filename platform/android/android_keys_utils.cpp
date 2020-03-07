@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  semaphore_osx.h                                                      */
+/*  android_keys_utils.cpp                                               */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,32 +28,16 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef SEMAPHORE_OSX_H
-#define SEMAPHORE_OSX_H
+#include "android_keys_utils.h"
 
-struct cgsem {
-	int pipefd[2];
-};
+unsigned int android_get_keysym(unsigned int p_code) {
+	for (int i = 0; _ak_to_keycode[i].keysym != KEY_UNKNOWN; i++) {
 
-typedef struct cgsem cgsem_t;
+		if (_ak_to_keycode[i].keycode == p_code) {
 
-#include "core/os/semaphore.h"
+			return _ak_to_keycode[i].keysym;
+		}
+	}
 
-class SemaphoreOSX : public SemaphoreOld {
-
-	mutable cgsem_t sem;
-
-	static SemaphoreOld *create_semaphore_osx();
-
-public:
-	virtual Error wait();
-	virtual Error post();
-	virtual int get() const;
-
-	static void make_default();
-	SemaphoreOSX();
-
-	~SemaphoreOSX();
-};
-
-#endif // SEMAPHORE_OSX_H
+	return KEY_UNKNOWN;
+}
