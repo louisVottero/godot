@@ -242,7 +242,7 @@ struct MethodInfo {
 //if ( is_type(T::get_class_static()) )
 //return static_cast<T*>(this);
 ////else
-//return NULL;
+//return nullptr;
 
 /*
    the following is an incomprehensible blob of hacks and workarounds to compensate for many of the fallencies in C++. As a plus, this macro pretty much alone defines the object model.
@@ -591,11 +591,11 @@ public:
 		return dynamic_cast<T *>(p_object);
 #else
 		if (!p_object)
-			return NULL;
+			return nullptr;
 		if (p_object->is_class_ptr(T::get_class_ptr_static()))
 			return static_cast<T *>(p_object);
 		else
-			return NULL;
+			return nullptr;
 #endif
 	}
 
@@ -605,11 +605,11 @@ public:
 		return dynamic_cast<const T *>(p_object);
 #else
 		if (!p_object)
-			return NULL;
+			return nullptr;
 		if (p_object->is_class_ptr(T::get_class_ptr_static()))
 			return static_cast<const T *>(p_object);
 		else
-			return NULL;
+			return nullptr;
 #endif
 	}
 
@@ -644,10 +644,10 @@ public:
 	//void set(const String& p_name, const Variant& p_value);
 	//Variant get(const String& p_name) const;
 
-	void set(const StringName &p_name, const Variant &p_value, bool *r_valid = NULL);
-	Variant get(const StringName &p_name, bool *r_valid = NULL) const;
-	void set_indexed(const Vector<StringName> &p_names, const Variant &p_value, bool *r_valid = NULL);
-	Variant get_indexed(const Vector<StringName> &p_names, bool *r_valid = NULL) const;
+	void set(const StringName &p_name, const Variant &p_value, bool *r_valid = nullptr);
+	Variant get(const StringName &p_name, bool *r_valid = nullptr) const;
+	void set_indexed(const Vector<StringName> &p_names, const Variant &p_value, bool *r_valid = nullptr);
+	Variant get_indexed(const Vector<StringName> &p_names, bool *r_valid = nullptr) const;
 
 	void get_property_list(List<PropertyInfo> *p_list, bool p_reversed = false) const;
 
@@ -664,8 +664,8 @@ public:
 	String to_string();
 
 	//used mainly by script, get and set all INCLUDING string
-	virtual Variant getvar(const Variant &p_key, bool *r_valid = NULL) const;
-	virtual void setvar(const Variant &p_key, const Variant &p_value, bool *r_valid = NULL);
+	virtual Variant getvar(const Variant &p_key, bool *r_valid = nullptr) const;
+	virtual void setvar(const Variant &p_key, const Variant &p_value, bool *r_valid = nullptr);
 
 	/* SCRIPT */
 
@@ -694,6 +694,7 @@ public:
 	void add_user_signal(const MethodInfo &p_signal);
 	Error emit_signal(const StringName &p_name, VARIANT_ARG_LIST);
 	Error emit_signal(const StringName &p_name, const Variant **p_args, int p_argcount);
+	bool has_signal(const StringName &p_name) const;
 	void get_signal_list(List<MethodInfo> *p_signals) const;
 	void get_signal_connection_list(const StringName &p_signal, List<Connection> *p_connections) const;
 	void get_all_signal_connections(List<Connection> *p_connections) const;
@@ -714,8 +715,8 @@ public:
 	void set_block_signals(bool p_block);
 	bool is_blocking_signals() const;
 
-	Variant::Type get_static_property_type(const StringName &p_property, bool *r_valid = NULL) const;
-	Variant::Type get_static_property_type_indexed(const Vector<StringName> &p_path, bool *r_valid = NULL) const;
+	Variant::Type get_static_property_type(const StringName &p_property, bool *r_valid = nullptr) const;
+	Variant::Type get_static_property_type_indexed(const Vector<StringName> &p_path, bool *r_valid = nullptr) const;
 
 	virtual void get_translatable_strings(List<String> *p_strings) const;
 
@@ -816,4 +817,4 @@ public:
 //needed by macros
 #include "core/class_db.h"
 
-#endif
+#endif // OBJECT_H

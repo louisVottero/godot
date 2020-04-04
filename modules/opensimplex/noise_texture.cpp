@@ -34,7 +34,7 @@
 
 NoiseTexture::NoiseTexture() {
 	update_queued = false;
-	noise_thread = NULL;
+	noise_thread = nullptr;
 	regen_queued = false;
 	first_time = true;
 
@@ -50,7 +50,7 @@ NoiseTexture::NoiseTexture() {
 
 NoiseTexture::~NoiseTexture() {
 	if (texture.is_valid()) {
-		VS::get_singleton()->free(texture);
+		RS::get_singleton()->free(texture);
 	}
 	if (noise_thread) {
 		Thread::wait_to_finish(noise_thread);
@@ -100,10 +100,10 @@ void NoiseTexture::_set_texture_data(const Ref<Image> &p_image) {
 	data = p_image;
 	if (data.is_valid()) {
 		if (texture.is_valid()) {
-			RID new_texture = VS::get_singleton()->texture_2d_create(p_image);
-			VS::get_singleton()->texture_replace(texture, new_texture);
+			RID new_texture = RS::get_singleton()->texture_2d_create(p_image);
+			RS::get_singleton()->texture_replace(texture, new_texture);
 		} else {
-			texture = VS::get_singleton()->texture_2d_create(p_image);
+			texture = RS::get_singleton()->texture_2d_create(p_image);
 		}
 	}
 	emit_changed();
@@ -114,7 +114,7 @@ void NoiseTexture::_thread_done(const Ref<Image> &p_image) {
 	_set_texture_data(p_image);
 	Thread::wait_to_finish(noise_thread);
 	memdelete(noise_thread);
-	noise_thread = NULL;
+	noise_thread = nullptr;
 	if (regen_queued) {
 		noise_thread = Thread::create(_thread_function, this);
 		regen_queued = false;
@@ -254,7 +254,7 @@ int NoiseTexture::get_height() const {
 
 RID NoiseTexture::get_rid() const {
 	if (!texture.is_valid()) {
-		texture = VS::get_singleton()->texture_2d_placeholder_create();
+		texture = RS::get_singleton()->texture_2d_placeholder_create();
 	}
 
 	return texture;

@@ -31,8 +31,8 @@
 #include "variant.h"
 
 #include "core/core_string_names.h"
+#include "core/debugger/engine_debugger.h"
 #include "core/object.h"
-#include "core/script_language.h"
 
 #define CASE_TYPE_ALL(PREFIX, OP) \
 	CASE_TYPE(PREFIX, OP, INT)    \
@@ -438,7 +438,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a,
 			CASE_TYPE(math, OP_EQUAL, NIL) {
 				if (p_b.type == NIL) _RETURN(true);
 				if (p_b.type == OBJECT)
-					_RETURN(p_b._get_obj().obj == NULL);
+					_RETURN(p_b._get_obj().obj == nullptr);
 
 				_RETURN(false);
 			}
@@ -457,7 +457,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a,
 				if (p_b.type == OBJECT)
 					_RETURN((p_a._get_obj().obj == p_b._get_obj().obj));
 				if (p_b.type == NIL)
-					_RETURN(p_a._get_obj().obj == NULL);
+					_RETURN(p_a._get_obj().obj == nullptr);
 
 				_RETURN_FAIL;
 			}
@@ -534,7 +534,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a,
 			CASE_TYPE(math, OP_NOT_EQUAL, NIL) {
 				if (p_b.type == NIL) _RETURN(false);
 				if (p_b.type == OBJECT)
-					_RETURN(p_b._get_obj().obj != NULL);
+					_RETURN(p_b._get_obj().obj != nullptr);
 
 				_RETURN(true);
 			}
@@ -554,7 +554,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a,
 				if (p_b.type == OBJECT)
 					_RETURN((p_a._get_obj().obj != p_b._get_obj().obj));
 				if (p_b.type == NIL)
-					_RETURN(p_a._get_obj().obj != NULL);
+					_RETURN(p_a._get_obj().obj != nullptr);
 
 				_RETURN_FAIL;
 			}
@@ -1739,7 +1739,7 @@ void Variant::set_named(const StringName &p_index, const Variant &p_value, bool 
 #ifdef DEBUG_ENABLED
 			if (!_get_obj().obj) {
 				break;
-			} else if (ScriptDebugger::get_singleton() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+			} else if (EngineDebugger::is_active() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 				break;
 			}
 
@@ -1941,7 +1941,7 @@ Variant Variant::get_named(const StringName &p_index, bool *r_valid) const {
 				return "Instance base is null.";
 			} else {
 
-				if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+				if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 					if (r_valid)
 						*r_valid = false;
 					return "Attempted use of stray pointer object.";
@@ -2556,7 +2556,7 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 
 			if (obj) {
 #ifdef DEBUG_ENABLED
-				if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+				if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 
 					WARN_PRINT("Attempted use of previously freed pointer object.");
 					valid = false;
@@ -3011,7 +3011,7 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 
 #ifdef DEBUG_ENABLED
 
-				if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+				if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 					valid = false;
 					return "Attempted get on previously freed instance.";
 				}
@@ -3076,7 +3076,7 @@ bool Variant::in(const Variant &p_index, bool *r_valid) const {
 				bool valid = false;
 #ifdef DEBUG_ENABLED
 
-				if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+				if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 					if (r_valid) {
 						*r_valid = false;
 					}
@@ -3405,7 +3405,7 @@ void Variant::get_property_list(List<PropertyInfo> *p_list) const {
 			if (obj) {
 #ifdef DEBUG_ENABLED
 
-				if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+				if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 					WARN_PRINT("Attempted get_property list on previously freed instance.");
 					return;
 				}
@@ -3490,7 +3490,7 @@ bool Variant::iter_init(Variant &r_iter, bool &valid) const {
 
 #ifdef DEBUG_ENABLED
 
-			if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+			if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 				valid = false;
 				return false;
 			}
@@ -3527,7 +3527,7 @@ bool Variant::iter_init(Variant &r_iter, bool &valid) const {
 			if (dic->empty())
 				return false;
 
-			const Variant *next = dic->next(NULL);
+			const Variant *next = dic->next(nullptr);
 			r_iter = *next;
 			return true;
 
@@ -3676,7 +3676,7 @@ bool Variant::iter_next(Variant &r_iter, bool &valid) const {
 
 #ifdef DEBUG_ENABLED
 
-			if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+			if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 				valid = false;
 				return false;
 			}
@@ -3855,7 +3855,7 @@ Variant Variant::iter_get(const Variant &r_iter, bool &r_valid) const {
 				return Variant();
 			}
 #ifdef DEBUG_ENABLED
-			if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+			if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 				r_valid = false;
 				return Variant();
 			}

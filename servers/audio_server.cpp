@@ -30,6 +30,7 @@
 
 #include "audio_server.h"
 
+#include "core/debugger/engine_debugger.h"
 #include "core/io/resource_loader.h"
 #include "core/os/file_access.h"
 #include "core/os/os.h"
@@ -44,7 +45,7 @@
 #define MARK_EDITED
 #endif
 
-AudioDriver *AudioDriver::singleton = NULL;
+AudioDriver *AudioDriver::singleton = nullptr;
 AudioDriver *AudioDriver::get_singleton() {
 
 	return singleton;
@@ -214,7 +215,7 @@ void AudioDriverManager::initialize(int p_driver) {
 
 AudioDriver *AudioDriverManager::get_driver(int p_driver) {
 
-	ERR_FAIL_INDEX_V(p_driver, driver_count, NULL);
+	ERR_FAIL_INDEX_V(p_driver, driver_count, nullptr);
 	return drivers[p_driver];
 }
 
@@ -321,7 +322,7 @@ void AudioServer::_mix_step() {
 
 					bus->soloed = true;
 				} else {
-					bus = NULL;
+					bus = nullptr;
 				}
 
 			} while (bus);
@@ -387,7 +388,7 @@ void AudioServer::_mix_step() {
 
 		//process send
 
-		Bus *send = NULL;
+		Bus *send = nullptr;
 
 		if (i > 0) {
 			//everything has a send save for master bus
@@ -475,8 +476,8 @@ bool AudioServer::thread_has_channel_mix_buffer(int p_bus, int p_buffer) const {
 
 AudioFrame *AudioServer::thread_get_channel_mix_buffer(int p_bus, int p_buffer) {
 
-	ERR_FAIL_INDEX_V(p_bus, buses.size(), NULL);
-	ERR_FAIL_INDEX_V(p_buffer, buses[p_bus]->channels.size(), NULL);
+	ERR_FAIL_INDEX_V(p_bus, buses.size(), nullptr);
+	ERR_FAIL_INDEX_V(p_buffer, buses[p_bus]->channels.size(), nullptr);
 
 	AudioFrame *data = buses.write[p_bus]->channels.write[p_buffer].buffer.ptrw();
 
@@ -992,7 +993,7 @@ void AudioServer::init() {
 
 void AudioServer::update() {
 #ifdef DEBUG_ENABLED
-	if (ScriptDebugger::get_singleton() && ScriptDebugger::get_singleton()->is_profiling()) {
+	if (EngineDebugger::is_profiling("servers")) {
 
 		// Driver time includes server time + effects times
 		// Server time includes effects times
@@ -1030,7 +1031,8 @@ void AudioServer::update() {
 		values.push_back("audio_driver");
 		values.push_back(USEC_TO_SEC(driver_time));
 
-		ScriptDebugger::get_singleton()->add_profiling_frame_data("audio_thread", values);
+		values.push_front("audio_thread");
+		EngineDebugger::profiler_add_frame_data("servers", values);
 	}
 
 	// Reset profiling times
@@ -1127,48 +1129,7 @@ double AudioServer::get_time_since_last_mix() const {
 	return AudioDriver::get_singleton()->get_time_since_last_mix();
 }
 
-AudioServer *AudioServer::singleton = NULL;
-
-void *AudioServer::audio_data_alloc(uint32_t p_data_len, const uint8_t *p_from_data) {
-
-	void *ad = memalloc(p_data_len);
-	ERR_FAIL_COND_V(!ad, NULL);
-	if (p_from_data) {
-		copymem(ad, p_from_data, p_data_len);
-	}
-
-	{
-		MutexLock lock(audio_data_lock);
-
-		audio_data[ad] = p_data_len;
-		audio_data_total_mem += p_data_len;
-		audio_data_max_mem = MAX(audio_data_total_mem, audio_data_max_mem);
-	}
-
-	return ad;
-}
-
-void AudioServer::audio_data_free(void *p_data) {
-
-	MutexLock lock(audio_data_lock);
-
-	if (!audio_data.has(p_data)) {
-		ERR_FAIL();
-	}
-
-	audio_data_total_mem -= audio_data[p_data];
-	audio_data.erase(p_data);
-	memfree(p_data);
-}
-
-size_t AudioServer::audio_data_get_total_memory_usage() const {
-
-	return audio_data_total_mem;
-}
-size_t AudioServer::audio_data_get_max_memory_usage() const {
-
-	return audio_data_max_mem;
-}
+AudioServer *AudioServer::singleton = nullptr;
 
 void AudioServer::add_callback(AudioCallback p_callback, void *p_userdata) {
 	lock();
@@ -1398,8 +1359,6 @@ void AudioServer::_bind_methods() {
 AudioServer::AudioServer() {
 
 	singleton = this;
-	audio_data_total_mem = 0;
-	audio_data_max_mem = 0;
 	mix_frames = 0;
 	channel_count = 0;
 	to_mix = 0;
@@ -1413,7 +1372,7 @@ AudioServer::AudioServer() {
 
 AudioServer::~AudioServer() {
 
-	singleton = NULL;
+	singleton = nullptr;
 }
 
 /////////////////////////////////

@@ -69,7 +69,7 @@ Error ResourceFormatImporter::_get_path_and_type(const String &p_path, PathAndTy
 		next_tag.fields.clear();
 		next_tag.name = String();
 
-		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, NULL, true);
+		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, nullptr, true);
 		if (err == ERR_FILE_EOF) {
 			memdelete(f);
 			return OK;
@@ -274,7 +274,7 @@ void ResourceFormatImporter::get_internal_resource_path_list(const String &p_pat
 		next_tag.fields.clear();
 		next_tag.name = String();
 
-		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, NULL, true);
+		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, nullptr, true);
 		if (err == ERR_FILE_EOF) {
 			memdelete(f);
 			return;
@@ -362,7 +362,7 @@ Ref<ResourceImporter> ResourceFormatImporter::get_importer_by_name(const String 
 	return Ref<ResourceImporter>();
 }
 
-void ResourceFormatImporter::get_importers_for_extension(const String &p_extension, List<Ref<ResourceImporter> > *r_importers) {
+void ResourceFormatImporter::get_importers_for_extension(const String &p_extension, List<Ref<ResourceImporter>> *r_importers) {
 
 	for (int i = 0; i < importers.size(); i++) {
 		List<String> local_exts;
@@ -423,7 +423,7 @@ bool ResourceFormatImporter::are_import_settings_valid(const String &p_path) con
 
 String ResourceFormatImporter::get_import_settings_hash() const {
 
-	Vector<Ref<ResourceImporter> > sorted_importers = importers;
+	Vector<Ref<ResourceImporter>> sorted_importers = importers;
 
 	sorted_importers.sort_custom<SortImporterByName>();
 
@@ -434,7 +434,7 @@ String ResourceFormatImporter::get_import_settings_hash() const {
 	return hash.md5_text();
 }
 
-ResourceFormatImporter *ResourceFormatImporter::singleton = NULL;
+ResourceFormatImporter *ResourceFormatImporter::singleton = nullptr;
 
 ResourceFormatImporter::ResourceFormatImporter() {
 	singleton = this;

@@ -44,15 +44,16 @@
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "core/version.h"
+#include "editor/doc_translations.gen.h"
 #include "editor/editor_node.h"
-#include "editor/translations.gen.h"
+#include "editor/editor_translations.gen.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
-#include "scene/main/viewport.h"
+#include "scene/main/window.h"
 
 // PRIVATE METHODS
 
-Ref<EditorSettings> EditorSettings::singleton = NULL;
+Ref<EditorSettings> EditorSettings::singleton = nullptr;
 
 // Properties
 
@@ -125,7 +126,7 @@ bool EditorSettings::_get(const StringName &p_name, Variant &r_ret) const {
 	if (p_name.operator String() == "shortcuts") {
 
 		Array arr;
-		for (const Map<String, Ref<ShortCut> >::Element *E = shortcuts.front(); E; E = E->next()) {
+		for (const Map<String, Ref<ShortCut>>::Element *E = shortcuts.front(); E; E = E->next()) {
 
 			Ref<ShortCut> sc = E->get();
 
@@ -176,7 +177,7 @@ void EditorSettings::_get_property_list(List<PropertyInfo> *p_list) const {
 
 	_THREAD_SAFE_METHOD_
 
-	const String *k = NULL;
+	const String *k = nullptr;
 	Set<_EVCSort> vclist;
 
 	while ((k = props.next(k))) {
@@ -340,6 +341,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/editor/unfocused_low_processor_mode_sleep_usec"] = PropertyInfo(Variant::FLOAT, "interface/editor/unfocused_low_processor_mode_sleep_usec", PROPERTY_HINT_RANGE, "1,100000,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	_initial_set("interface/editor/separate_distraction_mode", false);
 	_initial_set("interface/editor/automatically_open_screenshots", true);
+	_initial_set("interface/editor/single_window_mode", false);
+	hints["interface/editor/single_window_mode"] = PropertyInfo(Variant::BOOL, "interface/editor/single_window_mode", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	_initial_set("interface/editor/hide_console_window", false);
 	_initial_set("interface/editor/save_each_scene_on_quit", true); // Regression
 	_initial_set("interface/editor/quit_confirmation", true);
@@ -598,7 +601,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("run/window_placement/rect", 1);
 	hints["run/window_placement/rect"] = PropertyInfo(Variant::INT, "run/window_placement/rect", PROPERTY_HINT_ENUM, "Top Left,Centered,Custom Position,Force Maximized,Force Fullscreen");
 	String screen_hints = "Same as Editor,Previous Monitor,Next Monitor";
-	for (int i = 0; i < OS::get_singleton()->get_screen_count(); i++) {
+	for (int i = 0; i < DisplayServer::get_singleton()->get_screen_count(); i++) {
 		screen_hints += ",Monitor " + itos(i + 1);
 	}
 	_initial_set("run/window_placement/rect_custom_position", Vector2());
@@ -777,7 +780,7 @@ void EditorSettings::create() {
 	if (singleton.ptr())
 		return; //pointless
 
-	DirAccess *dir = NULL;
+	DirAccess *dir = nullptr;
 
 	String data_path;
 	String data_dir;
@@ -982,14 +985,12 @@ void EditorSettings::setup_language() {
 
 	String lang = get("interface/editor/editor_language");
 	if (lang == "en")
-		return; //none to do
+		return; // Default, nothing to do.
 
+	// Load editor translation for configured/detected locale.
 	EditorTranslationList *etl = _editor_translations;
-
 	while (etl->data) {
-
 		if (etl->lang == lang) {
-
 			Vector<uint8_t> data;
 			data.resize(etl->uncomp_size);
 			Compression::decompress(data.ptrw(), etl->uncomp_size, etl->data, etl->comp_size, Compression::MODE_DEFLATE);
@@ -997,7 +998,7 @@ void EditorSettings::setup_language() {
 			FileAccessMemory *fa = memnew(FileAccessMemory);
 			fa->open_custom(data.ptr(), data.size());
 
-			Ref<Translation> tr = TranslationLoaderPO::load_translation(fa, NULL, "translation_" + String(etl->lang));
+			Ref<Translation> tr = TranslationLoaderPO::load_translation(fa);
 
 			if (tr.is_valid()) {
 				tr->set_locale(etl->lang);
@@ -1007,6 +1008,29 @@ void EditorSettings::setup_language() {
 		}
 
 		etl++;
+	}
+
+	// Load class reference translation.
+	DocTranslationList *dtl = _doc_translations;
+	while (dtl->data) {
+		if (dtl->lang == lang) {
+			Vector<uint8_t> data;
+			data.resize(dtl->uncomp_size);
+			Compression::decompress(data.ptrw(), dtl->uncomp_size, dtl->data, dtl->comp_size, Compression::MODE_DEFLATE);
+
+			FileAccessMemory *fa = memnew(FileAccessMemory);
+			fa->open_custom(data.ptr(), data.size());
+
+			Ref<Translation> tr = TranslationLoaderPO::load_translation(fa);
+
+			if (tr.is_valid()) {
+				tr->set_locale(dtl->lang);
+				TranslationServer::get_singleton()->set_doc_translation(tr);
+				break;
+			}
+		}
+
+		dtl++;
 	}
 }
 
@@ -1476,7 +1500,7 @@ void EditorSettings::add_shortcut(const String &p_name, Ref<ShortCut> &p_shortcu
 
 bool EditorSettings::is_shortcut(const String &p_name, const Ref<InputEvent> &p_event) const {
 
-	const Map<String, Ref<ShortCut> >::Element *E = shortcuts.find(p_name);
+	const Map<String, Ref<ShortCut>>::Element *E = shortcuts.find(p_name);
 	ERR_FAIL_COND_V_MSG(!E, false, "Unknown Shortcut: " + p_name + ".");
 
 	return E->get()->is_shortcut(p_event);
@@ -1484,7 +1508,7 @@ bool EditorSettings::is_shortcut(const String &p_name, const Ref<InputEvent> &p_
 
 Ref<ShortCut> EditorSettings::get_shortcut(const String &p_name) const {
 
-	const Map<String, Ref<ShortCut> >::Element *E = shortcuts.find(p_name);
+	const Map<String, Ref<ShortCut>>::Element *E = shortcuts.find(p_name);
 	if (!E)
 		return Ref<ShortCut>();
 
@@ -1493,7 +1517,7 @@ Ref<ShortCut> EditorSettings::get_shortcut(const String &p_name) const {
 
 void EditorSettings::get_shortcut_list(List<String> *r_shortcuts) {
 
-	for (const Map<String, Ref<ShortCut> >::Element *E = shortcuts.front(); E; E = E->next()) {
+	for (const Map<String, Ref<ShortCut>>::Element *E = shortcuts.front(); E; E = E->next()) {
 
 		r_shortcuts->push_back(E->key());
 	}
@@ -1502,7 +1526,7 @@ void EditorSettings::get_shortcut_list(List<String> *r_shortcuts) {
 Ref<ShortCut> ED_GET_SHORTCUT(const String &p_path) {
 
 	if (!EditorSettings::get_singleton()) {
-		return NULL;
+		return nullptr;
 	}
 
 	Ref<ShortCut> sc = EditorSettings::get_singleton()->get_shortcut(p_path);

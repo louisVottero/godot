@@ -225,7 +225,7 @@ bool AnimationNodeStateMachinePlayback::_travel(AnimationNodeStateMachine *p_sta
 		}
 
 		//find the last cost transition
-		List<int>::Element *least_cost_transition = NULL;
+		List<int>::Element *least_cost_transition = nullptr;
 		float least_cost = 1e20;
 
 		for (List<int>::Element *E = open_list.front(); E; E = E->next()) {
@@ -516,6 +516,11 @@ AnimationNodeStateMachinePlayback::AnimationNodeStateMachinePlayback() {
 	len_current = 0;
 	fading_time = 0;
 	stop_request = false;
+	len_total = 0.0;
+	pos_current = 0.0;
+	loops_current = 0;
+	fading_pos = 0.0;
+	start_request_travel = false;
 }
 
 ///////////////////////////////////////////////////////
@@ -525,7 +530,7 @@ void AnimationNodeStateMachine::get_parameter_list(List<PropertyInfo> *r_list) c
 	List<StringName> advance_conditions;
 	for (int i = 0; i < transitions.size(); i++) {
 		StringName ac = transitions[i].transition->get_advance_condition_name();
-		if (ac != StringName() && advance_conditions.find(ac) == NULL) {
+		if (ac != StringName() && advance_conditions.find(ac) == nullptr) {
 			advance_conditions.push_back(ac);
 		}
 	}
@@ -563,6 +568,27 @@ void AnimationNodeStateMachine::add_node(const StringName &p_name, Ref<Animation
 	emit_signal("tree_changed");
 
 	p_node->connect("tree_changed", callable_mp(this, &AnimationNodeStateMachine::_tree_changed), varray(), CONNECT_REFERENCE_COUNTED);
+}
+
+void AnimationNodeStateMachine::replace_node(const StringName &p_name, Ref<AnimationNode> p_node) {
+
+	ERR_FAIL_COND(states.has(p_name) == false);
+	ERR_FAIL_COND(p_node.is_null());
+	ERR_FAIL_COND(String(p_name).find("/") != -1);
+
+	{
+		Ref<AnimationNode> node = states[p_name].node;
+		if (node.is_valid()) {
+			node->disconnect_compat("tree_changed", this, "_tree_changed");
+		}
+	}
+
+	states[p_name].node = p_node;
+
+	emit_changed();
+	emit_signal("tree_changed");
+
+	p_node->connect_compat("tree_changed", this, "_tree_changed", varray(), CONNECT_REFERENCE_COUNTED);
 }
 
 Ref<AnimationNode> AnimationNodeStateMachine::get_node(const StringName &p_name) const {
@@ -949,6 +975,7 @@ void AnimationNodeStateMachine::_tree_changed() {
 void AnimationNodeStateMachine::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("add_node", "name", "node", "position"), &AnimationNodeStateMachine::add_node, DEFVAL(Vector2()));
+	ClassDB::bind_method(D_METHOD("replace_node", "name", "node"), &AnimationNodeStateMachine::replace_node);
 	ClassDB::bind_method(D_METHOD("get_node", "name"), &AnimationNodeStateMachine::get_node);
 	ClassDB::bind_method(D_METHOD("remove_node", "name"), &AnimationNodeStateMachine::remove_node);
 	ClassDB::bind_method(D_METHOD("rename_node", "name", "new_name"), &AnimationNodeStateMachine::rename_node);

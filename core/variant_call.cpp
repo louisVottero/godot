@@ -33,10 +33,10 @@
 #include "core/color_names.inc"
 #include "core/core_string_names.h"
 #include "core/crypto/crypto_core.h"
+#include "core/debugger/engine_debugger.h"
 #include "core/io/compression.h"
 #include "core/object.h"
 #include "core/os/os.h"
-#include "core/script_language.h"
 
 typedef void (*VariantFunc)(Variant &r_ret, Variant &p_self, const Variant **p_args);
 typedef void (*VariantConstructFunc)(Variant &r_ret, const Variant **p_args);
@@ -1191,9 +1191,9 @@ struct _VariantCall {
 	}
 };
 
-_VariantCall::TypeFunc *_VariantCall::type_funcs = NULL;
-_VariantCall::ConstructFunc *_VariantCall::construct_funcs = NULL;
-_VariantCall::ConstantData *_VariantCall::constant_data = NULL;
+_VariantCall::TypeFunc *_VariantCall::type_funcs = nullptr;
+_VariantCall::ConstructFunc *_VariantCall::construct_funcs = nullptr;
+_VariantCall::ConstantData *_VariantCall::constant_data = nullptr;
 
 Variant Variant::call(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error) {
 
@@ -1213,7 +1213,7 @@ void Variant::call_ptr(const StringName &p_method, const Variant **p_args, int p
 			return;
 		}
 #ifdef DEBUG_ENABLED
-		if (ScriptDebugger::get_singleton() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
+		if (EngineDebugger::is_active() && !_get_obj().id.is_reference() && ObjectDB::get_instance(_get_obj().id) == nullptr) {
 			r_error.error = Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL;
 			return;
 		}
@@ -1310,7 +1310,7 @@ Variant Variant::construct(const Variant::Type p_type, const Variant **p_args, i
 			case NODE_PATH:
 				return NodePath();
 			case _RID: return RID();
-			case OBJECT: return (Object *)NULL;
+			case OBJECT: return (Object *)nullptr;
 			case CALLABLE: return Callable();
 			case SIGNAL: return Signal();
 			case DICTIONARY: return Dictionary();
@@ -1526,8 +1526,11 @@ void Variant::get_method_list(List<MethodInfo> *p_list) const {
 		PropertyInfo ret;
 #ifdef DEBUG_ENABLED
 		ret.type = fd.return_type;
-		if (fd.returns)
+		if (fd.returns) {
 			ret.name = "ret";
+			if (fd.return_type == Variant::NIL)
+				ret.usage = PROPERTY_USAGE_NIL_IS_VARIANT;
+		}
 		mi.return_val = ret;
 #endif
 
@@ -1954,7 +1957,7 @@ void register_variant_methods() {
 	ADDFUNC0NC(DICTIONARY, NIL, Dictionary, clear, varray());
 	ADDFUNC1R(DICTIONARY, BOOL, Dictionary, has, NIL, "key", varray());
 	ADDFUNC1R(DICTIONARY, BOOL, Dictionary, has_all, ARRAY, "keys", varray());
-	ADDFUNC1R(DICTIONARY, BOOL, Dictionary, erase, NIL, "key", varray());
+	ADDFUNC1RNC(DICTIONARY, BOOL, Dictionary, erase, NIL, "key", varray());
 	ADDFUNC0R(DICTIONARY, INT, Dictionary, hash, varray());
 	ADDFUNC0R(DICTIONARY, ARRAY, Dictionary, keys, varray());
 	ADDFUNC0R(DICTIONARY, ARRAY, Dictionary, values, varray());

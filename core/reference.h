@@ -152,7 +152,7 @@ public:
 		Ref r;
 		r.reference = Object::cast_to<T>(refb);
 		ref(r);
-		r.reference = NULL;
+		r.reference = nullptr;
 	}
 
 	void operator=(const Variant &p_variant) {
@@ -190,14 +190,14 @@ public:
 
 	Ref(const Ref &p_from) {
 
-		reference = NULL;
+		reference = nullptr;
 		ref(p_from);
 	}
 
 	template <class T_Other>
 	Ref(const Ref<T_Other> &p_from) {
 
-		reference = NULL;
+		reference = nullptr;
 		Reference *refb = const_cast<Reference *>(static_cast<const Reference *>(p_from.ptr()));
 		if (!refb) {
 			unref();
@@ -206,12 +206,12 @@ public:
 		Ref r;
 		r.reference = Object::cast_to<T>(refb);
 		ref(r);
-		r.reference = NULL;
+		r.reference = nullptr;
 	}
 
 	Ref(T *p_reference) {
 
-		reference = NULL;
+		reference = nullptr;
 		if (p_reference)
 			ref_pointer(p_reference);
 	}
@@ -233,8 +233,8 @@ public:
 		}
 	}
 
-	inline bool is_valid() const { return reference != NULL; }
-	inline bool is_null() const { return reference == NULL; }
+	inline bool is_valid() const { return reference != nullptr; }
+	inline bool is_null() const { return reference == nullptr; }
 
 	void unref() {
 		//TODO this should be moved to mutexes, since this engine does not really
@@ -245,7 +245,7 @@ public:
 
 			memdelete(reference);
 		}
-		reference = NULL;
+		reference = nullptr;
 	}
 
 	void instance() {
@@ -254,7 +254,7 @@ public:
 
 	Ref() {
 
-		reference = NULL;
+		reference = nullptr;
 	}
 
 	~Ref() {
@@ -285,7 +285,7 @@ public:
 #ifdef PTRCALL_ENABLED
 
 template <class T>
-struct PtrToArg<Ref<T> > {
+struct PtrToArg<Ref<T>> {
 
 	_FORCE_INLINE_ static Ref<T> convert(const void *p_ptr) {
 
@@ -312,7 +312,7 @@ struct PtrToArg<const Ref<T> &> {
 #ifdef DEBUG_METHODS_ENABLED
 
 template <class T>
-struct GetTypeInfo<Ref<T> > {
+struct GetTypeInfo<Ref<T>> {
 	static const Variant::Type VARIANT_TYPE = Variant::OBJECT;
 	static const GodotTypeInfo::Metadata METADATA = GodotTypeInfo::METADATA_NONE;
 

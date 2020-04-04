@@ -29,6 +29,7 @@
 /*************************************************************************/
 
 #include "java_godot_lib_jni.h"
+
 #include "java_godot_io_wrapper.h"
 #include "java_godot_wrapper.h"
 
@@ -37,23 +38,24 @@
 #include "api/java_class_wrapper.h"
 #include "audio_driver_jandroid.h"
 #include "core/engine.h"
+#include "core/input/input_filter.h"
 #include "core/project_settings.h"
 #include "dir_access_jandroid.h"
 #include "file_access_android.h"
 #include "file_access_jandroid.h"
 #include "jni_utils.h"
-#include "main/input_default.h"
 #include "main/main.h"
 #include "net_socket_android.h"
 #include "os_android.h"
 #include "string_android.h"
 #include "thread_jandroid.h"
+
 #include <unistd.h>
 
-static JavaClassWrapper *java_class_wrapper = NULL;
-static OS_Android *os_android = NULL;
-static GodotJavaWrapper *godot_java = NULL;
-static GodotIOJavaWrapper *godot_io_java = NULL;
+static JavaClassWrapper *java_class_wrapper = nullptr;
+static OS_Android *os_android = nullptr;
+static GodotJavaWrapper *godot_java = nullptr;
+static GodotIOJavaWrapper *godot_io_java = nullptr;
 
 static bool initialized = false;
 static int step = 0;
@@ -121,14 +123,14 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_ondestroy(JNIEnv *env
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_setup(JNIEnv *env, jclass clazz, jobjectArray p_cmdline) {
 	ThreadAndroid::setup_thread();
 
-	const char **cmdline = NULL;
-	jstring *j_cmdline = NULL;
+	const char **cmdline = nullptr;
+	jstring *j_cmdline = nullptr;
 	int cmdlen = 0;
 	if (p_cmdline) {
 		cmdlen = env->GetArrayLength(p_cmdline);
 		if (cmdlen) {
 			cmdline = (const char **)malloc((cmdlen + 1) * sizeof(const char *));
-			cmdline[cmdlen] = NULL;
+			cmdline[cmdlen] = nullptr;
 			j_cmdline = (jstring *)malloc(cmdlen * sizeof(jstring));
 
 			for (int i = 0; i < cmdlen; i++) {
@@ -207,7 +209,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, jcl
 		}
 
 		os_android->main_loop_begin();
-		godot_java->on_gl_godot_main_loop_started(env);
+		godot_java->on_godot_main_loop_started(env);
 		++step;
 	}
 
@@ -428,7 +430,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_callobject(JNIEnv *en
 	obj->call(str_method, (const Variant **)vptr, count, err);
 	// something
 
-	env->PopLocalFrame(NULL);
+	env->PopLocalFrame(nullptr);
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_calldeferred(JNIEnv *env, jclass clazz, jint ID, jstring method, jobjectArray params) {
@@ -454,7 +456,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_calldeferred(JNIEnv *
 
 	obj->call_deferred(str_method, args[0], args[1], args[2], args[3], args[4]);
 	// something
-	env->PopLocalFrame(NULL);
+	env->PopLocalFrame(nullptr);
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_requestPermissionResult(JNIEnv *env, jclass clazz, jstring p_permission, jboolean p_result) {

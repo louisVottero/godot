@@ -94,6 +94,9 @@ public:
 		} else if (req[1] == basereq + ".js") {
 			filepath += ".js";
 			ctype = "application/javascript";
+		} else if (req[1] == basereq + ".worker.js") {
+			filepath += ".worker.js";
+			ctype = "application/javascript";
 		} else if (req[1] == basereq + ".pck") {
 			filepath += ".pck";
 			ctype = "application/octet-stream";
@@ -387,7 +390,7 @@ Error EditorExportPlatformJavaScript::export_project(const Ref<EditorExportPrese
 		return error;
 	}
 
-	FileAccess *src_f = NULL;
+	FileAccess *src_f = nullptr;
 	zlib_filefunc_def io = zipio_create_io_from_file(&src_f);
 	unzFile pkg = unzOpen2(template_path.utf8().get_data(), &io);
 
@@ -407,7 +410,7 @@ Error EditorExportPlatformJavaScript::export_project(const Ref<EditorExportPrese
 		//get filename
 		unz_file_info info;
 		char fname[16384];
-		unzGetCurrentFileInfo(pkg, &info, fname, 16384, NULL, 0, NULL, 0);
+		unzGetCurrentFileInfo(pkg, &info, fname, 16384, nullptr, 0, nullptr, 0);
 
 		String file = fname;
 
@@ -432,6 +435,10 @@ Error EditorExportPlatformJavaScript::export_project(const Ref<EditorExportPrese
 		} else if (file == "godot.js") {
 
 			file = p_path.get_file().get_basename() + ".js";
+		} else if (file == "godot.worker.js") {
+
+			file = p_path.get_file().get_basename() + ".worker.js";
+
 		} else if (file == "godot.wasm") {
 
 			file = p_path.get_file().get_basename() + ".wasm";
@@ -563,6 +570,7 @@ Error EditorExportPlatformJavaScript::run(const Ref<EditorExportPreset> &p_prese
 		// Export generates several files, clean them up on failure.
 		DirAccess::remove_file_or_error(basepath + ".html");
 		DirAccess::remove_file_or_error(basepath + ".js");
+		DirAccess::remove_file_or_error(basepath + ".worker.js");
 		DirAccess::remove_file_or_error(basepath + ".pck");
 		DirAccess::remove_file_or_error(basepath + ".png");
 		DirAccess::remove_file_or_error(basepath + ".wasm");

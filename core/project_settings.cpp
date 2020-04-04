@@ -43,7 +43,7 @@
 
 #include <zlib.h>
 
-ProjectSettings *ProjectSettings::singleton = NULL;
+ProjectSettings *ProjectSettings::singleton = nullptr;
 
 ProjectSettings *ProjectSettings::get_singleton() {
 
@@ -532,7 +532,7 @@ Error ProjectSettings::_load_settings_binary(const String &p_path) {
 		d.resize(vlen);
 		f->get_buffer(d.ptrw(), vlen);
 		Variant value;
-		err = decode_variant(value, d.ptr(), d.size(), NULL, true);
+		err = decode_variant(value, d.ptr(), d.size(), nullptr, true);
 		ERR_CONTINUE_MSG(err != OK, "Error decoding property: " + key + ".");
 		set(key, value);
 	}
@@ -571,7 +571,7 @@ Error ProjectSettings::_load_settings_text(const String &p_path) {
 		next_tag.fields.clear();
 		next_tag.name = String();
 
-		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, NULL, true);
+		err = VariantParser::parse_tag_assign_eof(&stream, lines, error_text, next_tag, assign, value, nullptr, true);
 		if (err == ERR_FILE_EOF) {
 			memdelete(f);
 			// If we're loading a project.godot from source code, we can operate some
@@ -652,7 +652,7 @@ Error ProjectSettings::save() {
 	return save_custom(get_resource_path().plus_file("project.godot"));
 }
 
-Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<String, List<String> > &props, const CustomMap &p_custom, const String &p_custom_features) {
+Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<String, List<String>> &props, const CustomMap &p_custom, const String &p_custom_features) {
 
 	Error err;
 	FileAccess *file = FileAccess::open(p_file, FileAccess::WRITE, &err);
@@ -663,7 +663,7 @@ Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<Str
 
 	int count = 0;
 
-	for (Map<String, List<String> >::Element *E = props.front(); E; E = E->next()) {
+	for (Map<String, List<String>>::Element *E = props.front(); E; E = E->next()) {
 
 		for (List<String>::Element *F = E->get().front(); F; F = F->next()) {
 
@@ -679,7 +679,7 @@ Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<Str
 		file->store_string(key);
 
 		int len;
-		err = encode_variant(p_custom_features, NULL, len, false);
+		err = encode_variant(p_custom_features, nullptr, len, false);
 		if (err != OK) {
 			memdelete(file);
 			ERR_FAIL_V(err);
@@ -700,7 +700,7 @@ Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<Str
 		file->store_32(count); //store how many properties are saved
 	}
 
-	for (Map<String, List<String> >::Element *E = props.front(); E; E = E->next()) {
+	for (Map<String, List<String>>::Element *E = props.front(); E; E = E->next()) {
 
 		for (List<String>::Element *F = E->get().front(); F; F = F->next()) {
 
@@ -717,7 +717,7 @@ Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<Str
 			file->store_string(key);
 
 			int len;
-			err = encode_variant(value, NULL, len, true);
+			err = encode_variant(value, nullptr, len, true);
 			if (err != OK)
 				memdelete(file);
 			ERR_FAIL_COND_V_MSG(err != OK, ERR_INVALID_DATA, "Error when trying to encode Variant.");
@@ -740,7 +740,7 @@ Error ProjectSettings::_save_settings_binary(const String &p_file, const Map<Str
 	return OK;
 }
 
-Error ProjectSettings::_save_settings_text(const String &p_file, const Map<String, List<String> > &props, const CustomMap &p_custom, const String &p_custom_features) {
+Error ProjectSettings::_save_settings_text(const String &p_file, const Map<String, List<String>> &props, const CustomMap &p_custom, const String &p_custom_features) {
 
 	Error err;
 	FileAccess *file = FileAccess::open(p_file, FileAccess::WRITE, &err);
@@ -761,7 +761,7 @@ Error ProjectSettings::_save_settings_text(const String &p_file, const Map<Strin
 		file->store_string("custom_features=\"" + p_custom_features + "\"\n");
 	file->store_string("\n");
 
-	for (Map<String, List<String> >::Element *E = props.front(); E; E = E->next()) {
+	for (Map<String, List<String>>::Element *E = props.front(); E; E = E->next()) {
 
 		if (E != props.front())
 			file->store_string("\n");
@@ -838,7 +838,7 @@ Error ProjectSettings::save_custom(const String &p_path, const CustomMap &p_cust
 		vclist.insert(vc);
 	}
 
-	Map<String, List<String> > props;
+	Map<String, List<String>> props;
 
 	for (Set<_VCSort>::Element *E = vclist.front(); E; E = E->next()) {
 
@@ -1220,5 +1220,5 @@ ProjectSettings::ProjectSettings() {
 
 ProjectSettings::~ProjectSettings() {
 
-	singleton = NULL;
+	singleton = nullptr;
 }

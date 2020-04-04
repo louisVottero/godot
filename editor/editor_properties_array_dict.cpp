@@ -184,9 +184,9 @@ void EditorPropertyArray::_change_type(Object *p_button, int p_index) {
 
 	Button *button = Object::cast_to<Button>(p_button);
 	changing_type_idx = p_index;
-	Rect2 rect = button->get_global_rect();
+	Rect2 rect = button->get_screen_rect();
 	change_type->set_as_minsize();
-	change_type->set_global_position(rect.position + rect.size - Vector2(change_type->get_combined_minimum_size().x, 0));
+	change_type->set_position(rect.position + rect.size - Vector2(change_type->get_contents_minimum_size().x, 0));
 	change_type->popup();
 }
 
@@ -199,7 +199,7 @@ void EditorPropertyArray::_change_type_menu(int p_index) {
 
 	Variant value;
 	Callable::CallError ce;
-	value = Variant::construct(Variant::Type(p_index), NULL, 0, ce);
+	value = Variant::construct(Variant::Type(p_index), nullptr, 0, ce);
 	Variant array = object->get_array();
 	array.set(changing_type_idx, value);
 
@@ -263,9 +263,9 @@ void EditorPropertyArray::update_property() {
 		edit->set_text(String("(Nil) ") + arrtype);
 		edit->set_pressed(false);
 		if (vbox) {
-			set_bottom_editor(NULL);
+			set_bottom_editor(nullptr);
 			memdelete(vbox);
-			vbox = NULL;
+			vbox = nullptr;
 		}
 		return;
 	}
@@ -340,7 +340,7 @@ void EditorPropertyArray::update_property() {
 		for (int i = 0; i < amount; i++) {
 			String prop_name = "indices/" + itos(i + offset);
 
-			EditorProperty *prop = NULL;
+			EditorProperty *prop = nullptr;
 			Variant value = array.get(i + offset);
 			Variant::Type value_type = value.get_type();
 
@@ -353,7 +353,7 @@ void EditorPropertyArray::update_property() {
 				editor->setup("Object");
 				prop = editor;
 			} else {
-				prop = EditorInspector::instantiate_property_editor(NULL, value_type, "", subtype_hint, subtype_hint_string, 0);
+				prop = EditorInspector::instantiate_property_editor(nullptr, value_type, "", subtype_hint, subtype_hint_string, 0);
 			}
 
 			prop->set_object_and_property(object.ptr(), prop_name);
@@ -373,13 +373,13 @@ void EditorPropertyArray::update_property() {
 			if (is_untyped_array) {
 
 				Button *edit = memnew(Button);
-				edit->set_icon(get_icon("Edit", "EditorIcons"));
+				edit->set_icon(get_theme_icon("Edit", "EditorIcons"));
 				hb->add_child(edit);
 				edit->connect("pressed", callable_mp(this, &EditorPropertyArray::_change_type), varray(edit, i + offset));
 			} else {
 
 				Button *remove = memnew(Button);
-				remove->set_icon(get_icon("Remove", "EditorIcons"));
+				remove->set_icon(get_theme_icon("Remove", "EditorIcons"));
 				remove->connect("pressed", callable_mp(this, &EditorPropertyArray::_remove_pressed), varray(i + offset));
 				hb->add_child(remove);
 			}
@@ -391,9 +391,9 @@ void EditorPropertyArray::update_property() {
 
 	} else {
 		if (vbox) {
-			set_bottom_editor(NULL);
+			set_bottom_editor(nullptr);
 			memdelete(vbox);
-			vbox = NULL;
+			vbox = nullptr;
 		}
 	}
 }
@@ -419,7 +419,7 @@ void EditorPropertyArray::_edit_pressed() {
 	Variant array = get_edited_object()->get(get_edited_property());
 	if (!array.is_array()) {
 		Callable::CallError ce;
-		array = Variant::construct(array_type, NULL, 0, ce);
+		array = Variant::construct(array_type, nullptr, 0, ce);
 
 		get_edited_object()->set(get_edited_property(), array);
 	}
@@ -450,7 +450,7 @@ void EditorPropertyArray::_length_changed(double p_page) {
 			for (int i = previous_size; i < size; i++) {
 				if (array.get(i).get_type() == Variant::NIL) {
 					Callable::CallError ce;
-					array.set(i, Variant::construct(subtype, NULL, 0, ce));
+					array.set(i, Variant::construct(subtype, nullptr, 0, ce));
 				}
 			}
 		}
@@ -460,7 +460,7 @@ void EditorPropertyArray::_length_changed(double p_page) {
 		// Pool*Array don't initialize their elements, have to do it manually
 		for (int i = previous_size; i < size; i++) {
 			Callable::CallError ce;
-			array.set(i, Variant::construct(array.get(i).get_type(), NULL, 0, ce));
+			array.set(i, Variant::construct(array.get(i).get_type(), nullptr, 0, ce));
 		}
 	}
 
@@ -505,9 +505,9 @@ EditorPropertyArray::EditorPropertyArray() {
 	edit->set_toggle_mode(true);
 	add_child(edit);
 	add_focusable(edit);
-	vbox = NULL;
-	page = NULL;
-	length = NULL;
+	vbox = nullptr;
+	page = nullptr;
+	length = nullptr;
 	updating = false;
 	change_type = memnew(PopupMenu);
 	add_child(change_type);
@@ -553,9 +553,9 @@ void EditorPropertyDictionary::_change_type(Object *p_button, int p_index) {
 
 	Button *button = Object::cast_to<Button>(p_button);
 
-	Rect2 rect = button->get_global_rect();
+	Rect2 rect = button->get_screen_rect();
 	change_type->set_as_minsize();
-	change_type->set_global_position(rect.position + rect.size - Vector2(change_type->get_combined_minimum_size().x, 0));
+	change_type->set_position(rect.position + rect.size - Vector2(change_type->get_contents_minimum_size().x, 0));
 	change_type->popup();
 	changing_type_idx = p_index;
 }
@@ -585,7 +585,7 @@ void EditorPropertyDictionary::_change_type_menu(int p_index) {
 	if (changing_type_idx < 0) {
 		Variant value;
 		Callable::CallError ce;
-		value = Variant::construct(Variant::Type(p_index), NULL, 0, ce);
+		value = Variant::construct(Variant::Type(p_index), nullptr, 0, ce);
 		if (changing_type_idx == -1) {
 			object->set_new_item_key(value);
 		} else {
@@ -601,7 +601,7 @@ void EditorPropertyDictionary::_change_type_menu(int p_index) {
 
 		Variant value;
 		Callable::CallError ce;
-		value = Variant::construct(Variant::Type(p_index), NULL, 0, ce);
+		value = Variant::construct(Variant::Type(p_index), nullptr, 0, ce);
 		Variant key = dict.get_key_at_index(changing_type_idx);
 		dict[key] = value;
 	} else {
@@ -624,9 +624,9 @@ void EditorPropertyDictionary::update_property() {
 		edit->set_text("Dictionary (Nil)"); //This provides symmetry with the array property.
 		edit->set_pressed(false);
 		if (vbox) {
-			set_bottom_editor(NULL);
+			set_bottom_editor(nullptr);
 			memdelete(vbox);
-			vbox = NULL;
+			vbox = nullptr;
 		}
 		return;
 	}
@@ -683,7 +683,7 @@ void EditorPropertyDictionary::update_property() {
 		dict = dict.duplicate();
 
 		object->set_dict(dict);
-		VBoxContainer *add_vbox = NULL;
+		VBoxContainer *add_vbox = nullptr;
 
 		for (int i = 0; i < amount + 2; i++) {
 			String prop_name;
@@ -702,7 +702,7 @@ void EditorPropertyDictionary::update_property() {
 				value = object->get_new_item_value();
 			}
 
-			EditorProperty *prop = NULL;
+			EditorProperty *prop = nullptr;
 
 			switch (value.get_type()) {
 				case Variant::NIL: {
@@ -909,9 +909,9 @@ void EditorPropertyDictionary::update_property() {
 				for (int j = 0; j < 4; j++) {
 					flat->set_default_margin(Margin(j), 2 * EDSCALE);
 				}
-				flat->set_bg_color(get_color("prop_subsection", "Editor"));
+				flat->set_bg_color(get_theme_color("prop_subsection", "Editor"));
 
-				pc->add_style_override("panel", flat);
+				pc->add_theme_style_override("panel", flat);
 				add_vbox = memnew(VBoxContainer);
 				pc->add_child(add_vbox);
 			}
@@ -944,7 +944,7 @@ void EditorPropertyDictionary::update_property() {
 			hb->add_child(prop);
 			prop->set_h_size_flags(SIZE_EXPAND_FILL);
 			Button *edit = memnew(Button);
-			edit->set_icon(get_icon("Edit", "EditorIcons"));
+			edit->set_icon(get_theme_icon("Edit", "EditorIcons"));
 			hb->add_child(edit);
 			edit->connect("pressed", callable_mp(this, &EditorPropertyDictionary::_change_type), varray(edit, change_index));
 
@@ -962,9 +962,9 @@ void EditorPropertyDictionary::update_property() {
 
 	} else {
 		if (vbox) {
-			set_bottom_editor(NULL);
+			set_bottom_editor(nullptr);
 			memdelete(vbox);
-			vbox = NULL;
+			vbox = nullptr;
 		}
 	}
 }
@@ -981,7 +981,7 @@ void EditorPropertyDictionary::_edit_pressed() {
 	Variant prop_val = get_edited_object()->get(get_edited_property());
 	if (prop_val.get_type() == Variant::NIL) {
 		Callable::CallError ce;
-		prop_val = Variant::construct(Variant::DICTIONARY, NULL, 0, ce);
+		prop_val = Variant::construct(Variant::DICTIONARY, nullptr, 0, ce);
 		get_edited_object()->set(get_edited_property(), prop_val);
 	}
 
@@ -1012,8 +1012,8 @@ EditorPropertyDictionary::EditorPropertyDictionary() {
 	edit->set_toggle_mode(true);
 	add_child(edit);
 	add_focusable(edit);
-	vbox = NULL;
-	page = NULL;
+	vbox = nullptr;
+	page = nullptr;
 	updating = false;
 	change_type = memnew(PopupMenu);
 	add_child(change_type);
