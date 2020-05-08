@@ -1427,6 +1427,7 @@ static bool _guess_identifier_type_from_base(GDScriptCompletionContext &p_contex
 									// Variable used in the same expression
 									return false;
 								}
+
 								if (_guess_expression_type(p_context, m.expression, r_type)) {
 									return true;
 								}
@@ -2057,7 +2058,7 @@ static void _find_identifiers_in_base(const GDScriptCompletionContext &p_context
 						List<PropertyInfo> pinfo;
 						ClassDB::get_property_list(type, &pinfo);
 						for (List<PropertyInfo>::Element *E = pinfo.front(); E; E = E->next()) {
-							if (E->get().usage & (PROPERTY_USAGE_GROUP | PROPERTY_USAGE_CATEGORY)) {
+							if (E->get().usage & (PROPERTY_USAGE_GROUP | PROPERTY_USAGE_SUBGROUP | PROPERTY_USAGE_CATEGORY)) {
 								continue;
 							}
 							if (E->get().name.find("/") != -1) {
@@ -2098,7 +2099,7 @@ static void _find_identifiers_in_base(const GDScriptCompletionContext &p_context
 
 				if (!p_only_functions) {
 					List<PropertyInfo> members;
-					p_base.value.get_property_list(&members);
+					tmp.get_property_list(&members);
 
 					for (List<PropertyInfo>::Element *E = members.front(); E; E = E->next()) {
 						if (String(E->get().name).find("/") == -1) {
@@ -2150,7 +2151,7 @@ static void _find_identifiers(const GDScriptCompletionContext &p_context, bool p
 	}
 
 	const GDScriptParser::ClassNode *clss = p_context._class;
-	bool _static = !p_context.function || p_context.function->_static;
+	bool _static = p_context.function && p_context.function->_static;
 
 	while (clss) {
 		GDScriptCompletionContext c = p_context;
@@ -2236,6 +2237,8 @@ static void _find_call_arguments(const GDScriptCompletionContext &p_context, con
 
 	const String quote_style = EDITOR_DEF("text_editor/completion/use_single_quotes", false) ? "'" : "\"";
 
+#define IS_METHOD_SIGNAL(m_method) (m_method == "connect" || m_method == "disconnect" || m_method == "is_connected" || m_method == "emit_signal")
+
 	while (base_type.has_type) {
 		switch (base_type.kind) {
 			case GDScriptParser::DataType::CLASS: {
@@ -2252,7 +2255,7 @@ static void _find_call_arguments(const GDScriptCompletionContext &p_context, con
 					}
 				}
 
-				if ((p_method == "connect" || p_method == "emit_signal") && p_argidx == 0) {
+				if (IS_METHOD_SIGNAL(p_method) && p_argidx == 0) {
 					for (int i = 0; i < base_type.class_type->_signals.size(); i++) {
 						ScriptCodeCompletionOption option(base_type.class_type->_signals[i].name.operator String(), ScriptCodeCompletionOption::KIND_SIGNAL);
 						option.insert_text = quote_style + option.display + quote_style;
@@ -2265,7 +2268,7 @@ static void _find_call_arguments(const GDScriptCompletionContext &p_context, con
 			case GDScriptParser::DataType::GDSCRIPT: {
 				Ref<GDScript> gds = base_type.script_type;
 				if (gds.is_valid()) {
-					if ((p_method == "connect" || p_method == "emit_signal") && p_argidx == 0) {
+					if (IS_METHOD_SIGNAL(p_method) && p_argidx == 0) {
 						List<MethodInfo> signals;
 						gds->get_script_signal_list(&signals);
 						for (List<MethodInfo>::Element *E = signals.front(); E; E = E->next()) {
@@ -2327,7 +2330,7 @@ static void _find_call_arguments(const GDScriptCompletionContext &p_context, con
 					}
 				}
 
-				if ((p_method == "connect" || p_method == "emit_signal") && p_argidx == 0) {
+				if (IS_METHOD_SIGNAL(p_method) && p_argidx == 0) {
 					List<MethodInfo> signals;
 					ClassDB::get_signal_list(class_name, &signals);
 					for (List<MethodInfo>::Element *E = signals.front(); E; E = E->next()) {
@@ -2336,6 +2339,7 @@ static void _find_call_arguments(const GDScriptCompletionContext &p_context, con
 						r_result.insert(option.display, option);
 					}
 				}
+#undef IS_METHOD_SIGNAL
 
 				if (ClassDB::is_parent_class(class_name, "Node") && (p_method == "get_node" || p_method == "has_node") && p_argidx == 0) {
 					// Get autoloads
@@ -3484,6 +3488,17 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 			GDScriptParser::DataType base_type = context._class->base_type;
 
 			if (_lookup_symbol_from_base(base_type, p_symbol, true, r_result) == OK) {
+				return OK;
+			}
+		} break;
+		case GDScriptParser::COMPLETION_TYPE_HINT: {
+
+			GDScriptParser::DataType base_type = context._class->base_type;
+			base_type.has_type = true;
+			base_type.kind = GDScriptParser::DataType::CLASS;
+			base_type.class_type = const_cast<GDScriptParser::ClassNode *>(context._class);
+
+			if (_lookup_symbol_from_base(base_type, p_symbol, false, r_result) == OK) {
 				return OK;
 			}
 		} break;

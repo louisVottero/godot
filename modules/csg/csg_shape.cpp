@@ -46,7 +46,7 @@ void CSGShape3D::set_use_collision(bool p_enable) {
 		root_collision_instance = PhysicsServer3D::get_singleton()->body_create(PhysicsServer3D::BODY_MODE_STATIC);
 		PhysicsServer3D::get_singleton()->body_set_state(root_collision_instance, PhysicsServer3D::BODY_STATE_TRANSFORM, get_global_transform());
 		PhysicsServer3D::get_singleton()->body_add_shape(root_collision_instance, root_collision_shape->get_rid());
-		PhysicsServer3D::get_singleton()->body_set_space(root_collision_instance, get_world()->get_space());
+		PhysicsServer3D::get_singleton()->body_set_space(root_collision_instance, get_world_3d()->get_space());
 		PhysicsServer3D::get_singleton()->body_attach_object_instance_id(root_collision_instance, get_instance_id());
 		set_collision_layer(collision_layer);
 		set_collision_mask(collision_mask);
@@ -296,20 +296,18 @@ void CSGShape3D::_update_shape() {
 		int mat = n->faces[i].material;
 		ERR_CONTINUE(mat < -1 || mat >= face_count.size());
 		int idx = mat == -1 ? face_count.size() - 1 : mat;
-		if (n->faces[i].smooth) {
 
-			Plane p(n->faces[i].vertices[0], n->faces[i].vertices[1], n->faces[i].vertices[2]);
+		Plane p(n->faces[i].vertices[0], n->faces[i].vertices[1], n->faces[i].vertices[2]);
 
-			for (int j = 0; j < 3; j++) {
-				Vector3 v = n->faces[i].vertices[j];
-				Vector3 add;
-				if (vec_map.lookup(v, add)) {
-					add += p.normal;
-				} else {
-					add = p.normal;
-				}
-				vec_map.set(v, add);
+		for (int j = 0; j < 3; j++) {
+			Vector3 v = n->faces[i].vertices[j];
+			Vector3 add;
+			if (vec_map.lookup(v, add)) {
+				add += p.normal;
+			} else {
+				add = p.normal;
 			}
+			vec_map.set(v, add);
 		}
 
 		face_count.write[idx]++;
@@ -509,7 +507,7 @@ void CSGShape3D::_notification(int p_what) {
 			root_collision_instance = PhysicsServer3D::get_singleton()->body_create(PhysicsServer3D::BODY_MODE_STATIC);
 			PhysicsServer3D::get_singleton()->body_set_state(root_collision_instance, PhysicsServer3D::BODY_STATE_TRANSFORM, get_global_transform());
 			PhysicsServer3D::get_singleton()->body_add_shape(root_collision_instance, root_collision_shape->get_rid());
-			PhysicsServer3D::get_singleton()->body_set_space(root_collision_instance, get_world()->get_space());
+			PhysicsServer3D::get_singleton()->body_set_space(root_collision_instance, get_world_3d()->get_space());
 			PhysicsServer3D::get_singleton()->body_attach_object_instance_id(root_collision_instance, get_instance_id());
 			set_collision_layer(collision_layer);
 			set_collision_mask(collision_mask);

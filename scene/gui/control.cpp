@@ -1893,7 +1893,7 @@ static Control *_next_control(Control *p_from) {
 		return nullptr;
 	}
 
-	int next = p_from->get_position_in_parent();
+	int next = p_from->get_index();
 	ERR_FAIL_INDEX_V(next, parent->get_child_count(), nullptr);
 	for (int i = (next + 1); i < parent->get_child_count(); i++) {
 
@@ -2032,7 +2032,7 @@ Control *Control::find_prev_valid_focus() const {
 
 		} else {
 
-			for (int i = (from->get_position_in_parent() - 1); i >= 0; i--) {
+			for (int i = (from->get_index() - 1); i >= 0; i--) {
 
 				Control *c = Object::cast_to<Control>(from->get_parent()->get_child(i));
 
@@ -2896,7 +2896,7 @@ void Control::_bind_methods() {
 	ADD_GROUP("Size Flags", "size_flags_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_horizontal", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_h_size_flags", "get_h_size_flags");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_vertical", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_v_size_flags", "get_v_size_flags");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "size_flags_stretch_ratio", PROPERTY_HINT_RANGE, "0,128,0.01"), "set_stretch_ratio", "get_stretch_ratio");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "size_flags_stretch_ratio", PROPERTY_HINT_RANGE, "0,20,0.01,or_greater"), "set_stretch_ratio", "get_stretch_ratio");
 	ADD_GROUP("Theme", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "theme", PROPERTY_HINT_RESOURCE_TYPE, "Theme"), "set_theme", "get_theme");
 	ADD_GROUP("", "");

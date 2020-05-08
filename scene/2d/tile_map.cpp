@@ -940,13 +940,10 @@ void TileMap::update_bitmask_area(const Vector2 &p_pos) {
 void TileMap::update_bitmask_region(const Vector2 &p_start, const Vector2 &p_end) {
 
 	if ((p_end.x < p_start.x || p_end.y < p_start.y) || (p_end.x == p_start.x && p_end.y == p_start.y)) {
-		int i;
 		Array a = get_used_cells();
-		for (i = 0; i < a.size(); i++) {
-			// update_bitmask_area() in order to update cells adjacent to the
-			// current cell, since ordering in array may not be reliable
+		for (int i = 0; i < a.size(); i++) {
 			Vector2 vector = (Vector2)a[i];
-			update_bitmask_area(Vector2(vector.x, vector.y));
+			update_cell_bitmask(vector.x, vector.y);
 		}
 		return;
 	}
@@ -1691,27 +1688,27 @@ bool TileMap::is_centered_textures_enabled() const {
 	return centered_textures;
 }
 
-Array TileMap::get_used_cells() const {
+TypedArray<Vector2i> TileMap::get_used_cells() const {
 
-	Array a;
+	TypedArray<Vector2i> a;
 	a.resize(tile_map.size());
 	int i = 0;
 	for (Map<PosKey, Cell>::Element *E = tile_map.front(); E; E = E->next()) {
 
-		Vector2 p(E->key().x, E->key().y);
+		Vector2i p(E->key().x, E->key().y);
 		a[i++] = p;
 	}
 
 	return a;
 }
 
-Array TileMap::get_used_cells_by_id(int p_id) const {
+TypedArray<Vector2i> TileMap::get_used_cells_by_id(int p_id) const {
 
-	Array a;
+	TypedArray<Vector2i> a;
 	for (Map<PosKey, Cell>::Element *E = tile_map.front(); E; E = E->next()) {
 
 		if (E->value().id == p_id) {
-			Vector2 p(E->key().x, E->key().y);
+			Vector2i p(E->key().x, E->key().y);
 			a.push_back(p);
 		}
 	}

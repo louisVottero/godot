@@ -909,6 +909,7 @@ FileDialog::FileDialog() {
 
 	drives = memnew(OptionButton);
 	drives->connect("item_selected", callable_mp(this, &FileDialog::_select_drive));
+	hbc->add_child(drives);
 
 	dir = memnew(LineEdit);
 	hbc->add_child(dir);
@@ -1004,38 +1005,4 @@ FileDialog::~FileDialog() {
 	if (unregister_func)
 		unregister_func(this);
 	memdelete(dir_access);
-}
-
-void LineEditFileChooser::_bind_methods() {
-
-	ClassDB::bind_method(D_METHOD("get_button"), &LineEditFileChooser::get_button);
-	ClassDB::bind_method(D_METHOD("get_line_edit"), &LineEditFileChooser::get_line_edit);
-	ClassDB::bind_method(D_METHOD("get_file_dialog"), &LineEditFileChooser::get_file_dialog);
-}
-
-void LineEditFileChooser::_chosen(const String &p_text) {
-
-	line_edit->set_text(p_text);
-	line_edit->emit_signal("text_entered", p_text);
-}
-
-void LineEditFileChooser::_browse() {
-
-	dialog->popup_centered_ratio();
-}
-
-LineEditFileChooser::LineEditFileChooser() {
-
-	line_edit = memnew(LineEdit);
-	add_child(line_edit);
-	line_edit->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	button = memnew(Button);
-	button->set_text(" .. ");
-	add_child(button);
-	button->connect("pressed", callable_mp(this, &LineEditFileChooser::_browse));
-	dialog = memnew(FileDialog);
-	add_child(dialog);
-	dialog->connect("file_selected", callable_mp(this, &LineEditFileChooser::_chosen));
-	dialog->connect("dir_selected", callable_mp(this, &LineEditFileChooser::_chosen));
-	dialog->connect("files_selected", callable_mp(this, &LineEditFileChooser::_chosen));
 }

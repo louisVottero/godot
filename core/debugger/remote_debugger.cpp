@@ -33,7 +33,7 @@
 #include "core/debugger/debugger_marshalls.h"
 #include "core/debugger/engine_debugger.h"
 #include "core/debugger/script_debugger.h"
-#include "core/input/input_filter.h"
+#include "core/input/input.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "core/script_language.h"
@@ -318,7 +318,7 @@ struct RemoteDebugger::ServersProfiler {
 
 	void _send_frame_data(bool p_final) {
 		DebuggerMarshalls::ServersProfilerFrame frame;
-		frame.frame_number = Engine::get_singleton()->get_frames_drawn();
+		frame.frame_number = Engine::get_singleton()->get_idle_frames();
 		frame.frame_time = frame_time;
 		frame.idle_time = idle_time;
 		frame.physics_time = physics_time;
@@ -466,7 +466,7 @@ void RemoteDebugger::_print_handler(void *p_this, const String &p_string, bool p
 	String s = p_string;
 	int allowed_chars = MIN(MAX(rd->max_chars_per_second - rd->char_count, 0), s.length());
 
-	if (allowed_chars == 0)
+	if (allowed_chars == 0 && s.length() > 0)
 		return;
 
 	if (allowed_chars < s.length()) {
@@ -480,10 +480,16 @@ void RemoteDebugger::_print_handler(void *p_this, const String &p_string, bool p
 	if (rd->is_peer_connected()) {
 		if (overflowed)
 			s += "[...]";
-		rd->output_strings.push_back(s);
+
+		OutputString output_string;
+		output_string.message = s;
+		output_string.type = p_error ? MESSAGE_TYPE_ERROR : MESSAGE_TYPE_LOG;
+		rd->output_strings.push_back(output_string);
 
 		if (overflowed) {
-			rd->output_strings.push_back("[output overflow, print less text!]");
+			output_string.message = "[output overflow, print less text!]";
+			output_string.type = MESSAGE_TYPE_ERROR;
+			rd->output_strings.push_back(output_string);
 		}
 	}
 }
@@ -517,15 +523,32 @@ void RemoteDebugger::flush_output() {
 	if (output_strings.size()) {
 
 		// Join output strings so we generate less messages.
+		Vector<String> joined_log_strings;
 		Vector<String> strings;
-		strings.resize(output_strings.size());
-		String *w = strings.ptrw();
+		Vector<int> types;
 		for (int i = 0; i < output_strings.size(); i++) {
-			w[i] = output_strings[i];
+			const OutputString &output_string = output_strings[i];
+			if (output_string.type == MESSAGE_TYPE_ERROR) {
+				if (!joined_log_strings.empty()) {
+					strings.push_back(String("\n").join(joined_log_strings));
+					types.push_back(MESSAGE_TYPE_LOG);
+					joined_log_strings.clear();
+				}
+				strings.push_back(output_string.message);
+				types.push_back(MESSAGE_TYPE_ERROR);
+			} else {
+				joined_log_strings.push_back(output_string.message);
+			}
+		}
+
+		if (!joined_log_strings.empty()) {
+			strings.push_back(String("\n").join(joined_log_strings));
+			types.push_back(MESSAGE_TYPE_LOG);
 		}
 
 		Array arr;
 		arr.push_back(strings);
+		arr.push_back(types);
 		_put_msg("output", arr);
 		output_strings.clear();
 	}
@@ -659,9 +682,9 @@ void RemoteDebugger::debug(bool p_can_continue, bool p_is_error_breakpoint) {
 
 	servers_profiler->skip_profile_frame = true; // Avoid frame time spike in debug.
 
-	InputFilter::MouseMode mouse_mode = InputFilter::get_singleton()->get_mouse_mode();
-	if (mouse_mode != InputFilter::MOUSE_MODE_VISIBLE)
-		InputFilter::get_singleton()->set_mouse_mode(InputFilter::MOUSE_MODE_VISIBLE);
+	Input::MouseMode mouse_mode = Input::get_singleton()->get_mouse_mode();
+	if (mouse_mode != Input::MOUSE_MODE_VISIBLE)
+		Input::get_singleton()->set_mouse_mode(Input::MOUSE_MODE_VISIBLE);
 
 	uint64_t loop_begin_usec = 0;
 	uint64_t loop_time_sec = 0;
@@ -779,8 +802,8 @@ void RemoteDebugger::debug(bool p_can_continue, bool p_is_error_breakpoint) {
 
 	send_message("debug_exit", Array());
 
-	if (mouse_mode != InputFilter::MOUSE_MODE_VISIBLE)
-		InputFilter::get_singleton()->set_mouse_mode(mouse_mode);
+	if (mouse_mode != Input::MOUSE_MODE_VISIBLE)
+		Input::get_singleton()->set_mouse_mode(mouse_mode);
 }
 
 void RemoteDebugger::poll_events(bool p_is_idle) {

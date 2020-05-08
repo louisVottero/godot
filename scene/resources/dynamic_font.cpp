@@ -221,6 +221,8 @@ Error DynamicFontAtSize::_load() {
 
 	ascent = (face->size->metrics.ascender / 64.0) / oversampling * scale_color_font;
 	descent = (-face->size->metrics.descender / 64.0) / oversampling * scale_color_font;
+	underline_position = -face->underline_position / 64.0 / oversampling * scale_color_font;
+	underline_thickness = face->underline_thickness / 64.0 / oversampling * scale_color_font;
 	linegap = 0;
 
 	valid = true;
@@ -241,6 +243,16 @@ float DynamicFontAtSize::get_ascent() const {
 float DynamicFontAtSize::get_descent() const {
 
 	return descent;
+}
+
+float DynamicFontAtSize::get_underline_position() const {
+
+	return underline_position;
+}
+
+float DynamicFontAtSize::get_underline_thickness() const {
+
+	return underline_thickness;
 }
 
 const Pair<const DynamicFontAtSize::Character *, DynamicFontAtSize *> DynamicFontAtSize::_find_char_with_font(CharType p_char, const Vector<Ref<DynamicFontAtSize>> &p_fallbacks) const {
@@ -821,6 +833,22 @@ float DynamicFont::get_descent() const {
 	return data_at_size->get_descent() + spacing_bottom;
 }
 
+float DynamicFont::get_underline_position() const {
+
+	if (!data_at_size.is_valid())
+		return 2;
+
+	return data_at_size->get_underline_position();
+}
+
+float DynamicFont::get_underline_thickness() const {
+
+	if (!data_at_size.is_valid())
+		return 1;
+
+	return data_at_size->get_underline_thickness();
+}
+
 Size2 DynamicFont::get_char_size(CharType p_char, CharType p_next) const {
 
 	if (!data_at_size.is_valid())
@@ -1064,7 +1092,7 @@ void DynamicFont::update_oversampling() {
 
 /////////////////////////
 
-RES ResourceFormatLoaderDynamicFont::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress) {
+RES ResourceFormatLoaderDynamicFont::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress, bool p_no_cache) {
 
 	if (r_error)
 		*r_error = ERR_FILE_CANT_OPEN;

@@ -45,15 +45,15 @@ void SpringArm3D::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE:
 			if (!Engine::get_singleton()->is_editor_hint()) {
-				set_process_internal(true);
+				set_physics_process_internal(true);
 			}
 			break;
 		case NOTIFICATION_EXIT_TREE:
 			if (!Engine::get_singleton()->is_editor_hint()) {
-				set_process_internal(false);
+				set_physics_process_internal(false);
 			}
 			break;
-		case NOTIFICATION_INTERNAL_PROCESS:
+		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS:
 			process_spring();
 			break;
 	}
@@ -147,7 +147,7 @@ void SpringArm3D::process_spring() {
 	if (shape.is_null()) {
 		motion = Vector3(cast_direction * (spring_length));
 		PhysicsDirectSpaceState3D::RayResult r;
-		bool intersected = get_world()->get_direct_space_state()->intersect_ray(get_global_transform().origin, get_global_transform().origin + motion, r, excluded_objects, mask);
+		bool intersected = get_world_3d()->get_direct_space_state()->intersect_ray(get_global_transform().origin, get_global_transform().origin + motion, r, excluded_objects, mask);
 		if (intersected) {
 			float dist = get_global_transform().origin.distance_to(r.position);
 			dist -= margin;
@@ -155,7 +155,7 @@ void SpringArm3D::process_spring() {
 		}
 	} else {
 		motion = Vector3(cast_direction * spring_length);
-		get_world()->get_direct_space_state()->cast_motion(shape->get_rid(), get_global_transform(), motion, 0, motion_delta, motion_delta_unsafe, excluded_objects, mask);
+		get_world_3d()->get_direct_space_state()->cast_motion(shape->get_rid(), get_global_transform(), motion, 0, motion_delta, motion_delta_unsafe, excluded_objects, mask);
 	}
 
 	current_spring_length = spring_length * motion_delta;

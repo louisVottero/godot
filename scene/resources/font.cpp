@@ -356,6 +356,16 @@ float BitmapFont::get_descent() const {
 	return height - ascent;
 }
 
+float BitmapFont::get_underline_position() const {
+
+	return 2;
+}
+
+float BitmapFont::get_underline_thickness() const {
+
+	return 1;
+}
+
 void BitmapFont::add_texture(const Ref<Texture2D> &p_texture) {
 
 	ERR_FAIL_COND_MSG(p_texture.is_null(), "It's not a reference to a valid Texture object.");
@@ -646,7 +656,7 @@ BitmapFont::~BitmapFont() {
 
 ////////////
 
-RES ResourceFormatLoaderBMFont::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress) {
+RES ResourceFormatLoaderBMFont::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress, bool p_no_cache) {
 
 	if (r_error)
 		*r_error = ERR_FILE_CANT_OPEN;

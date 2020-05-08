@@ -30,7 +30,7 @@
 
 #include "code_editor.h"
 
-#include "core/input/input_filter.h"
+#include "core/input/input.h"
 #include "core/os/keyboard.h"
 #include "core/string_builder.h"
 #include "editor/editor_scale.h"
@@ -226,6 +226,10 @@ void FindReplaceBar::_replace_all() {
 
 	text_edit->begin_complex_operation();
 
+	if (selection_enabled && is_selection_only()) {
+		text_edit->cursor_set_line(selection_begin.width);
+		text_edit->cursor_set_column(selection_begin.height);
+	}
 	if (search_current()) {
 		do {
 			// replace area
@@ -243,7 +247,7 @@ void FindReplaceBar::_replace_all() {
 
 			if (selection_enabled && is_selection_only()) {
 				if (match_from < selection_begin || match_to > selection_end) {
-					continue;
+					break; // Done.
 				}
 
 				// Replace but adjust selection bounds.
@@ -288,6 +292,10 @@ void FindReplaceBar::_get_search_from(int &r_line, int &r_col) {
 
 	r_line = text_edit->cursor_get_line();
 	r_col = text_edit->cursor_get_column();
+
+	if (text_edit->is_selection_active() && is_selection_only()) {
+		return;
+	}
 
 	if (r_line == result_line && r_col >= result_col && r_col <= result_col + get_search_text().length()) {
 		r_col = result_col;
@@ -505,7 +513,7 @@ void FindReplaceBar::_search_text_changed(const String &p_text) {
 
 void FindReplaceBar::_search_text_entered(const String &p_text) {
 
-	if (InputFilter::get_singleton()->is_key_pressed(KEY_SHIFT)) {
+	if (Input::get_singleton()->is_key_pressed(KEY_SHIFT)) {
 		search_prev();
 	} else {
 		search_next();
@@ -517,7 +525,7 @@ void FindReplaceBar::_replace_text_entered(const String &p_text) {
 	if (selection_only->is_pressed() && text_edit->is_selection_active()) {
 		_replace_all();
 		_hide_bar();
-	} else if (InputFilter::get_singleton()->is_key_pressed(KEY_SHIFT)) {
+	} else if (Input::get_singleton()->is_key_pressed(KEY_SHIFT)) {
 		_replace();
 		search_prev();
 	} else {

@@ -31,7 +31,7 @@
 #include "property_editor.h"
 
 #include "core/class_db.h"
-#include "core/input/input_filter.h"
+#include "core/input/input.h"
 #include "core/io/image_loader.h"
 #include "core/io/marshalls.h"
 #include "core/io/resource_loader.h"
@@ -257,7 +257,7 @@ void CustomPropertyEditor::_menu_option(int p_which) {
 					file_system_dock->navigate_to_path(r->get_path());
 					// Ensure that the FileSystem dock is visible.
 					TabContainer *tab_container = (TabContainer *)file_system_dock->get_parent_control();
-					tab_container->set_current_tab(file_system_dock->get_position_in_parent());
+					tab_container->set_current_tab(file_system_dock->get_index());
 				} break;
 				default: {
 
@@ -1720,7 +1720,7 @@ real_t CustomPropertyEditor::_parse_real_expression(String text) {
 
 void CustomPropertyEditor::_emit_changed_whole_or_field() {
 
-	if (!InputFilter::get_singleton()->is_key_pressed(KEY_SHIFT)) {
+	if (!Input::get_singleton()->is_key_pressed(KEY_SHIFT)) {
 		emit_signal("variant_changed");
 	} else {
 		emit_signal("variant_field_changed", field_names[focused_value_editor]);
