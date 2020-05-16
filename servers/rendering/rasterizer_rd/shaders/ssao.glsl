@@ -78,6 +78,7 @@ layout(push_constant, binding = 1, std430) uniform Params {
 	float proj_scale;
 	uint pad;
 }
+
 params;
 
 vec3 reconstructCSPosition(vec2 S, float z) {
@@ -212,7 +213,7 @@ float sampleAO(in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssDiskRadius, in f
 void main() {
 	// Pixel being shaded
 	ivec2 ssC = ivec2(gl_GlobalInvocationID.xy);
-	if (any(greaterThan(ssC, params.screen_size))) { //too large, do nothing
+	if (any(greaterThanEqual(ssC, params.screen_size))) { //too large, do nothing
 		return;
 	}
 

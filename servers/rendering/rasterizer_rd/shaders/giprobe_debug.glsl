@@ -16,6 +16,7 @@ struct CellData {
 layout(set = 0, binding = 1, std140) buffer CellDataBuffer {
 	CellData data[];
 }
+
 cell_data;
 
 layout(set = 0, binding = 2) uniform texture3D color_tex;
@@ -28,7 +29,6 @@ layout(set = 0, binding = 5) uniform texture3D aniso_neg_tex;
 #endif
 
 layout(push_constant, binding = 0, std430) uniform Params {
-
 	mat4 projection;
 	uint cell_offset;
 	float dynamic_range;
@@ -37,12 +37,12 @@ layout(push_constant, binding = 0, std430) uniform Params {
 	ivec3 bounds;
 	uint pad;
 }
+
 params;
 
 layout(location = 0) out vec4 color_interp;
 
 void main() {
-
 	const vec3 cube_triangles[36] = vec3[](
 			vec3(-1.0f, -1.0f, -1.0f),
 			vec3(-1.0f, -1.0f, 1.0f),
@@ -130,12 +130,24 @@ void main() {
 
 	float strength = 0.0;
 	switch (side) {
-		case POS_X: strength = aniso_pos.x; break;
-		case POS_Y: strength = aniso_pos.y; break;
-		case POS_Z: strength = aniso_pos.z; break;
-		case NEG_X: strength = aniso_neg.x; break;
-		case NEG_Y: strength = aniso_neg.y; break;
-		case NEG_Z: strength = aniso_neg.z; break;
+		case POS_X:
+			strength = aniso_pos.x;
+			break;
+		case POS_Y:
+			strength = aniso_pos.y;
+			break;
+		case POS_Z:
+			strength = aniso_pos.z;
+			break;
+		case NEG_X:
+			strength = aniso_neg.x;
+			break;
+		case NEG_Y:
+			strength = aniso_neg.y;
+			break;
+		case NEG_Z:
+			strength = aniso_neg.z;
+			break;
 	}
 
 	color_interp.xyz *= strength;
@@ -172,7 +184,6 @@ layout(location = 0) in vec4 color_interp;
 layout(location = 0) out vec4 frag_color;
 
 void main() {
-
 	frag_color = color_interp;
 
 #ifdef MODE_DEBUG_LIGHT_FULL
@@ -184,22 +195,38 @@ void main() {
 	int index = x + y * 4;
 	float limit = 0.0;
 	if (x < 8) {
-		if (index == 0) limit = 0.0625;
-		if (index == 1) limit = 0.5625;
-		if (index == 2) limit = 0.1875;
-		if (index == 3) limit = 0.6875;
-		if (index == 4) limit = 0.8125;
-		if (index == 5) limit = 0.3125;
-		if (index == 6) limit = 0.9375;
-		if (index == 7) limit = 0.4375;
-		if (index == 8) limit = 0.25;
-		if (index == 9) limit = 0.75;
-		if (index == 10) limit = 0.125;
-		if (index == 11) limit = 0.625;
-		if (index == 12) limit = 1.0;
-		if (index == 13) limit = 0.5;
-		if (index == 14) limit = 0.875;
-		if (index == 15) limit = 0.375;
+		if (index == 0)
+			limit = 0.0625;
+		if (index == 1)
+			limit = 0.5625;
+		if (index == 2)
+			limit = 0.1875;
+		if (index == 3)
+			limit = 0.6875;
+		if (index == 4)
+			limit = 0.8125;
+		if (index == 5)
+			limit = 0.3125;
+		if (index == 6)
+			limit = 0.9375;
+		if (index == 7)
+			limit = 0.4375;
+		if (index == 8)
+			limit = 0.25;
+		if (index == 9)
+			limit = 0.75;
+		if (index == 10)
+			limit = 0.125;
+		if (index == 11)
+			limit = 0.625;
+		if (index == 12)
+			limit = 1.0;
+		if (index == 13)
+			limit = 0.5;
+		if (index == 14)
+			limit = 0.875;
+		if (index == 15)
+			limit = 0.375;
 	}
 	if (frag_color.a < limit) {
 		discard;
