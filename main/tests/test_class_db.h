@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_driver_javascript.h                                            */
+/*  test_class_db.h                                                      */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,40 +28,15 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef AUDIO_DRIVER_JAVASCRIPT_H
-#define AUDIO_DRIVER_JAVASCRIPT_H
+#ifndef GODOT_TEST_CLASS_DB_H
+#define GODOT_TEST_CLASS_DB_H
 
-#include "servers/audio_server.h"
+#include "core/os/main_loop.h"
 
-class AudioDriverJavaScript : public AudioDriver {
-	float *internal_buffer;
+namespace TestClassDB {
 
-	int _driver_id;
-	int buffer_length;
+MainLoop *test();
 
-public:
-	void mix_to_js();
-	void process_capture(float sample);
+}
 
-	static AudioDriverJavaScript *singleton;
-
-	virtual const char *get_name() const;
-
-	virtual Error init();
-	virtual void start();
-	void resume();
-	virtual float get_latency();
-	virtual int get_mix_rate() const;
-	virtual SpeakerMode get_speaker_mode() const;
-	virtual void lock();
-	virtual void unlock();
-	virtual void finish();
-	void finish_async();
-
-	virtual Error capture_start();
-	virtual Error capture_stop();
-
-	AudioDriverJavaScript();
-};
-
-#endif
+#endif //GODOT_TEST_CLASS_DB_H
