@@ -2106,12 +2106,7 @@ void Node3DEditorViewport::_nav_orbit(Ref<InputEventWithModifiers> p_event, cons
 		cursor.x_rot += p_relative.y * radians_per_pixel;
 	}
 	cursor.y_rot += p_relative.x * radians_per_pixel;
-	if (cursor.x_rot > Math_PI / 2.0) {
-		cursor.x_rot = Math_PI / 2.0;
-	}
-	if (cursor.x_rot < -Math_PI / 2.0) {
-		cursor.x_rot = -Math_PI / 2.0;
-	}
+	cursor.x_rot = CLAMP(cursor.x_rot, -1.57, 1.57);
 	name = "";
 	_update_name();
 }
@@ -2139,12 +2134,7 @@ void Node3DEditorViewport::_nav_look(Ref<InputEventWithModifiers> p_event, const
 		cursor.x_rot += p_relative.y * radians_per_pixel;
 	}
 	cursor.y_rot += p_relative.x * radians_per_pixel;
-	if (cursor.x_rot > Math_PI / 2.0) {
-		cursor.x_rot = Math_PI / 2.0;
-	}
-	if (cursor.x_rot < -Math_PI / 2.0) {
-		cursor.x_rot = -Math_PI / 2.0;
-	}
+	cursor.x_rot = CLAMP(cursor.x_rot, -1.57, 1.57);
 
 	// Look is like the opposite of Orbit: the focus point rotates around the camera
 	Transform camera_transform = to_camera_transform(cursor);
@@ -3218,7 +3208,7 @@ void Node3DEditorViewport::update_transform_gizmo_view() {
 	Vector3 camz = -camera_xform.get_basis().get_axis(2).normalized();
 	Vector3 camy = -camera_xform.get_basis().get_axis(1).normalized();
 	Plane p(camera_xform.origin, camz);
-	float gizmo_d = Math::abs(p.distance_to(xform.origin));
+	float gizmo_d = MAX(Math::abs(p.distance_to(xform.origin)), CMP_EPSILON);
 	float d0 = camera->unproject_position(camera_xform.origin + camz * gizmo_d).y;
 	float d1 = camera->unproject_position(camera_xform.origin + camz * gizmo_d + camy).y;
 	float dd = Math::abs(d0 - d1);
