@@ -456,8 +456,6 @@ void EditorNode::_notification(int p_what) {
 
 			editor_selection->update();
 
-			//scene_root->set_size_override(true, Size2(ProjectSettings::get_singleton()->get("display/window/size/width"), ProjectSettings::get_singleton()->get("display/window/size/height")));
-
 			{ //TODO should only happen on settings changed
 				int current_filter = GLOBAL_GET("rendering/canvas_textures/default_texture_filter");
 				if (current_filter != scene_root->get_default_canvas_item_texture_filter()) {
@@ -1241,7 +1239,7 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 			// The 3D editor may be disabled as a feature, but scenes can still be opened.
 			// This check prevents the preview from regenerating in case those scenes are then saved.
 			Ref<EditorFeatureProfile> profile = feature_profile_manager->get_current_profile();
-			if (!profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
+			if (profile.is_valid() && !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
 				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_data();
 			}
 		}
