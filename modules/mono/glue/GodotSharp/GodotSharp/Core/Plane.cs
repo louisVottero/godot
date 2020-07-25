@@ -22,7 +22,7 @@ namespace Godot
         /// <summary>
         /// The normal of the plane, which must be normalized.
         /// In the scalar equation of the plane `ax + by + cz = d`, this is
-        /// the vector `(a, b, c)`, where `d` is the <see cref="D"> property.
+        /// the vector `(a, b, c)`, where `d` is the <see cref="D"/> property.
         /// </summary>
         /// <value>Equivalent to `x`, `y`, and `z`.</value>
         public Vector3 Normal
@@ -84,7 +84,7 @@ namespace Godot
         /// <see cref="Normal"/>). This value is typically non-negative.
         /// In the scalar equation of the plane `ax + by + cz = d`,
         /// this is `d`, while the `(a, b, c)` coordinates are represented
-        /// by the <see cref="Normal"> property.
+        /// by the <see cref="Normal"/> property.
         /// </summary>
         /// <value>The plane's distance from the origin.</value>
         public real_t D { get; set; }
@@ -109,7 +109,7 @@ namespace Godot
         /// <summary>
         /// Returns the shortest distance from this plane to the position `point`.
         /// </summary>
-        /// <param name="point">The position to use for the calcualtion.</param>
+        /// <param name="point">The position to use for the calculation.</param>
         /// <returns>The shortest distance.</returns>
         public real_t DistanceTo(Vector3 point)
         {

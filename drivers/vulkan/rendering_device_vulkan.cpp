@@ -2992,16 +2992,15 @@ VkRenderPass RenderingDeviceVulkan::_render_pass_create(const Vector<AttachmentF
 	Vector<VkAttachmentReference> resolve_references;
 
 	for (int i = 0; i < p_format.size(); i++) {
-		VkAttachmentDescription description;
-
-		description.flags = 0;
 		ERR_FAIL_INDEX_V(p_format[i].format, DATA_FORMAT_MAX, VK_NULL_HANDLE);
-		description.format = vulkan_formats[p_format[i].format];
 		ERR_FAIL_INDEX_V(p_format[i].samples, TEXTURE_SAMPLES_MAX, VK_NULL_HANDLE);
+		ERR_FAIL_COND_V_MSG(!(p_format[i].usage_flags & (TEXTURE_USAGE_COLOR_ATTACHMENT_BIT | TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | TEXTURE_USAGE_RESOLVE_ATTACHMENT_BIT)),
+				VK_NULL_HANDLE, "Texture format for index (" + itos(i) + ") requires an attachment (depth, stencil or resolve) bit set.");
+
+		VkAttachmentDescription description = {};
+		description.flags = 0;
+		description.format = vulkan_formats[p_format[i].format];
 		description.samples = rasterization_sample_count[p_format[i].samples];
-		//anything below does not really matter, as vulkan just ignores it when creating a pipeline
-		ERR_FAIL_COND_V_MSG(!(p_format[i].usage_flags & (TEXTURE_USAGE_COLOR_ATTACHMENT_BIT | TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | TEXTURE_USAGE_RESOLVE_ATTACHMENT_BIT)), VK_NULL_HANDLE,
-				"Texture format for index (" + itos(i) + ") requires an attachment (depth, stencil or resolve) bit set.");
 
 		bool is_depth_stencil = p_format[i].usage_flags & TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		bool is_sampled = p_format[i].usage_flags & TEXTURE_USAGE_SAMPLING_BIT;
@@ -5644,7 +5643,8 @@ void RenderingDeviceVulkan::_draw_list_insert_clear_region(DrawList *draw_list, 
 	int color_index = 0;
 	for (int i = 0; i < framebuffer->texture_ids.size(); i++) {
 		Texture *texture = texture_owner.getornull(framebuffer->texture_ids[i]);
-		VkClearAttachment clear_at;
+		VkClearAttachment clear_at = {};
+
 		if (p_clear_color && texture->usage_flags & TEXTURE_USAGE_COLOR_ATTACHMENT_BIT) {
 			ERR_FAIL_INDEX(color_index, p_clear_colors.size()); //a bug
 			Color clear_color = p_clear_colors[color_index];
