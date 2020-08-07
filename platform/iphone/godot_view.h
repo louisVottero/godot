@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  test_validate_testing.h                                              */
+/*  godot_view.h                                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,15 +28,29 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef TEST_VALIDATE_TESTING_H
-#define TEST_VALIDATE_TESTING_H
+#import <UIKit/UIKit.h>
 
-#include "core/os/os.h"
+class String;
 
-#include "thirdparty/doctest/doctest.h"
+@protocol DisplayLayer;
+@protocol GodotViewRendererProtocol;
 
-TEST_CASE("Validate Test will always pass") {
-	CHECK(true);
-}
+@interface GodotView : UIView <UIKeyInput>
 
-#endif // TEST_VALIDATE_TESTING_H
+@property(assign, nonatomic) id<GodotViewRendererProtocol> renderer;
+
+@property(assign, readonly, nonatomic) BOOL isActive;
+
+@property(assign, nonatomic) BOOL useCADisplayLink;
+@property(strong, readonly, nonatomic) CALayer<DisplayLayer> *renderingLayer;
+@property(assign, readonly, nonatomic) BOOL canRender;
+
+@property(assign, nonatomic) NSTimeInterval renderingInterval;
+
+- (CALayer<DisplayLayer> *)initializeRenderingForDriver:(NSString *)driverName;
+- (void)stopRendering;
+- (void)startRendering;
+
+- (BOOL)becomeFirstResponderWithString:(String)p_existing;
+
+@end

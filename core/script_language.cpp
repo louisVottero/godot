@@ -33,6 +33,7 @@
 #include "core/core_string_names.h"
 #include "core/debugger/engine_debugger.h"
 #include "core/debugger/script_debugger.h"
+#include "core/os/file_access.h"
 #include "core/project_settings.h"
 
 #include <stdint.h>
@@ -162,7 +163,7 @@ void ScriptServer::init_languages() {
 
 			for (int i = 0; i < script_classes.size(); i++) {
 				Dictionary c = script_classes[i];
-				if (!c.has("class") || !c.has("language") || !c.has("path") || !c.has("base")) {
+				if (!c.has("class") || !c.has("language") || !c.has("path") || !FileAccess::exists(c["path"]) || !c.has("base")) {
 					continue;
 				}
 				add_global_class(c["class"], c["base"], c["language"], c["path"]);
@@ -308,16 +309,6 @@ Variant ScriptInstance::call(const StringName &p_method, VARIANT_ARG_DECLARE) {
 	return call(p_method, argptr, argc, error);
 }
 
-void ScriptInstance::call_multilevel(const StringName &p_method, const Variant **p_args, int p_argcount) {
-	Callable::CallError ce;
-	call(p_method, p_args, p_argcount, ce); // script may not support multilevel calls
-}
-
-void ScriptInstance::call_multilevel_reversed(const StringName &p_method, const Variant **p_args, int p_argcount) {
-	Callable::CallError ce;
-	call(p_method, p_args, p_argcount, ce); // script may not support multilevel calls
-}
-
 void ScriptInstance::property_set_fallback(const StringName &, const Variant &, bool *r_valid) {
 	if (r_valid) {
 		*r_valid = false;
@@ -329,19 +320,6 @@ Variant ScriptInstance::property_get_fallback(const StringName &, bool *r_valid)
 		*r_valid = false;
 	}
 	return Variant();
-}
-
-void ScriptInstance::call_multilevel(const StringName &p_method, VARIANT_ARG_DECLARE) {
-	VARIANT_ARGPTRS;
-	int argc = 0;
-	for (int i = 0; i < VARIANT_ARG_MAX; i++) {
-		if (argptr[i]->get_type() == Variant::NIL) {
-			break;
-		}
-		argc++;
-	}
-
-	call_multilevel(p_method, argptr, argc);
 }
 
 ScriptInstance::~ScriptInstance() {

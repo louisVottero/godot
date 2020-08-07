@@ -235,6 +235,7 @@ class DisplayServerX11 : public DisplayServer {
 
 	void _update_real_mouse_position(const WindowData &wd);
 	bool _window_maximize_check(WindowID p_window, const char *p_atom_name) const;
+	void _update_size_hints(WindowID p_window);
 	void _set_wm_fullscreen(WindowID p_window, bool p_enabled);
 	void _set_wm_maximized(WindowID p_window, bool p_enabled);
 
@@ -276,6 +277,7 @@ public:
 	virtual Vector<DisplayServer::WindowID> get_window_list() const;
 
 	virtual WindowID create_sub_window(WindowMode p_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
+	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);
 
 	virtual WindowID get_window_at_screen_position(const Point2i &p_position) const;

@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  test_main.cpp                                                        */
+/*  display_layer.h                                                      */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,100 +28,31 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "test_main.h"
+#import <OpenGLES/EAGLDrawable.h>
+#import <QuartzCore/QuartzCore.h>
 
-#include "core/list.h"
+@protocol DisplayLayer <NSObject>
 
-#ifdef DEBUG_ENABLED
+- (void)renderDisplayLayer;
+- (void)initializeDisplayLayer;
+- (void)layoutDisplayLayer;
 
-#include "test_astar.h"
-#include "test_basis.h"
-#include "test_class_db.h"
-#include "test_gdscript.h"
-#include "test_gui.h"
-#include "test_math.h"
-#include "test_oa_hash_map.h"
-#include "test_ordered_hash_map.h"
-#include "test_physics_2d.h"
-#include "test_physics_3d.h"
-#include "test_render.h"
-#include "test_shader_lang.h"
-#include "test_string.h"
-#include "test_validate_testing.h"
+@end
 
-#include "thirdparty/doctest/doctest.h"
-
-const char **tests_get_names() {
-	static const char *test_names[] = {
-		"*",
-		"all",
-		"math",
-		"basis",
-		"physics_2d",
-		"physics_3d",
-		"render",
-		"oa_hash_map",
-		"class_db",
-		"gui",
-		"shaderlang",
-		"gd_tokenizer",
-		"gd_parser",
-		"gd_compiler",
-		"gd_bytecode",
-		"ordered_hash_map",
-		"astar",
-		nullptr
-	};
-
-	return test_names;
-}
-
-int test_main(int argc, char *argv[]) {
-	// doctest runner for when legacy unit tests are no  found
-	doctest::Context test_context;
-	List<String> valid_arguments;
-
-	// clean arguments of --test from the args
-	int argument_count = 0;
-	for (int x = 0; x < argc; x++) {
-		if (strncmp(argv[x], "--test", 6) != 0) {
-			valid_arguments.push_back(String(argv[x]));
-			argument_count++;
-		}
-	}
-
-	// convert godot command line arguments back to standard arguments.
-	char **args = new char *[valid_arguments.size()];
-	for (int x = 0; x < valid_arguments.size(); x++) {
-		// operation to convert godot string to non wchar string
-		const char *str = valid_arguments[x].utf8().ptr();
-		// allocate the string copy
-		args[x] = new char[strlen(str) + 1];
-		// copy this into memory
-		std::memcpy(args[x], str, strlen(str) + 1);
-	}
-
-	test_context.applyCommandLine(valid_arguments.size(), args);
-
-	test_context.setOption("order-by", "name");
-	test_context.setOption("abort-after", 5);
-	test_context.setOption("no-breaks", true);
-	delete[] args;
-	return test_context.run();
-}
-
+// An ugly workaround for iOS simulator
+#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
+#if defined(__IPHONE_13_0)
+API_AVAILABLE(ios(13.0))
+@interface GodotMetalLayer : CAMetalLayer <DisplayLayer>
 #else
-
-const char **tests_get_names() {
-	static const char *test_names[] = {
-		nullptr
-	};
-
-	return test_names;
-}
-
-int test_main(int argc, char *argv[]) {
-	return 0;
-}
-
+@interface GodotMetalLayer : CALayer <DisplayLayer>
 #endif
+#else
+@interface GodotMetalLayer : CAMetalLayer <DisplayLayer>
+#endif
+@end
+
+API_DEPRECATED("OpenGLES is deprecated", ios(2.0, 12.0))
+@interface GodotOpenGLLayer : CAEAGLLayer <DisplayLayer>
+
+@end

@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  csharp_project.cpp                                                   */
+/*  joypad_iphone.h                                                      */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,42 +28,23 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "csharp_project.h"
+#import <GameController/GameController.h>
 
-#include "core/io/json.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
-#include "core/os/os.h"
-#include "core/project_settings.h"
+@interface JoypadIPhoneObserver : NSObject
 
-#include "../csharp_script.h"
-#include "../mono_gd/gd_mono_class.h"
-#include "../mono_gd/gd_mono_marshal.h"
-#include "../utils/string_utils.h"
-#include "script_class_parser.h"
+- (void)startObserving;
+- (void)startProcessing;
+- (void)finishObserving;
 
-namespace CSharpProject {
+@end
 
-void add_item(const String &p_project_path, const String &p_item_type, const String &p_include) {
-	if (!GLOBAL_DEF("mono/project/auto_update_project", true)) {
-		return;
-	}
+class JoypadIPhone {
+private:
+	JoypadIPhoneObserver *observer;
 
-	GDMonoAssembly *tools_project_editor_assembly = GDMono::get_singleton()->get_tools_project_editor_assembly();
+public:
+	JoypadIPhone();
+	~JoypadIPhone();
 
-	GDMonoClass *klass = tools_project_editor_assembly->get_class("GodotTools.ProjectEditor", "ProjectUtils");
-
-	Variant project_path = p_project_path;
-	Variant item_type = p_item_type;
-	Variant include = p_include;
-	const Variant *args[3] = { &project_path, &item_type, &include };
-	MonoException *exc = nullptr;
-	klass->get_method("AddItemToProjectChecked", 3)->invoke(nullptr, args, &exc);
-
-	if (exc) {
-		GDMonoUtils::debug_print_unhandled_exception(exc);
-		ERR_FAIL();
-	}
-}
-
-} // namespace CSharpProject
+	void start_processing();
+};

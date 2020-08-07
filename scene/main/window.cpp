@@ -247,6 +247,7 @@ void Window::_make_window() {
 	}
 
 	RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_VISIBLE);
+	DisplayServer::get_singleton()->show_window(window_id);
 }
 
 void Window::_update_from_window() {
@@ -526,11 +527,11 @@ void Window::_update_window_size() {
 	size.x = MAX(size_limit.x, size.x);
 	size.y = MAX(size_limit.y, size.y);
 
-	if (max_size.x > 0 && max_size.x > min_size.x && max_size.x > size.x) {
+	if (max_size.x > 0 && max_size.x > min_size.x && size.x > max_size.x) {
 		size.x = max_size.x;
 	}
 
-	if (max_size.y > 0 && max_size.y > min_size.y && max_size.y > size.y) {
+	if (max_size.y > 0 && max_size.y > min_size.y && size.y > max_size.y) {
 		size.y = max_size.y;
 	}
 

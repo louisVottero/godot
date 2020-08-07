@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  csharp_project.h                                                     */
+/*  test_validate_testing.h                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,15 +28,31 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef CSHARP_PROJECT_H
-#define CSHARP_PROJECT_H
+#ifndef TEST_VALIDATE_TESTING_H
+#define TEST_VALIDATE_TESTING_H
 
-#include "core/ustring.h"
+#include "core/os/os.h"
 
-namespace CSharpProject {
+#include "tests/test_macros.h"
 
-void add_item(const String &p_project_path, const String &p_item_type, const String &p_include);
+TEST_SUITE("Validate tests") {
+	TEST_CASE("Always pass") {
+		CHECK(true);
+	}
+	TEST_CASE_PENDING("Pending tests are skipped") {
+		if (!doctest::getContextOptions()->no_skip) { // Normal run.
+			FAIL("This should be skipped if `--no-skip` is NOT set (missing `doctest::skip()` decorator?)");
+		} else {
+			CHECK_MESSAGE(true, "Pending test is run with `--no-skip`");
+		}
+	}
+	TEST_CASE("Muting Godot error messages") {
+		ERR_PRINT_OFF;
+		CHECK_MESSAGE(!_print_error_enabled, "Error printing should be disabled.");
+		ERR_PRINT("Still waiting for Godot!"); // This should never get printed!
+		ERR_PRINT_ON;
+		CHECK_MESSAGE(_print_error_enabled, "Error printing should be re-enabled.");
+	}
+}
 
-} // namespace CSharpProject
-
-#endif // CSHARP_PROJECT_H
+#endif // TEST_VALIDATE_TESTING_H

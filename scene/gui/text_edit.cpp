@@ -1632,7 +1632,7 @@ void TextEdit::_notification(int p_what) {
 			}
 
 			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD)) {
-				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect());
+				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect(), true);
 			}
 		} break;
 		case NOTIFICATION_FOCUS_EXIT: {
@@ -4889,6 +4889,7 @@ void TextEdit::_update_caches() {
 	cache.folded_eol_icon = get_theme_icon("GuiEllipsis", "EditorIcons");
 	cache.executing_icon = get_theme_icon("MainPlay", "EditorIcons");
 	text.set_font(cache.font);
+	text.clear_width_cache();
 
 	if (syntax_highlighter.is_valid()) {
 		syntax_highlighter->set_text_edit(this);
