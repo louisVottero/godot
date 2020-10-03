@@ -33,6 +33,7 @@
 #include "os_osx.h"
 
 #include "core/io/marshalls.h"
+#include "core/math/geometry_2d.h"
 #include "core/os/keyboard.h"
 #include "main/main.h"
 #include "scene/resources/texture.h"
@@ -45,7 +46,6 @@
 #include <IOKit/hid/IOHIDLib.h>
 
 #if defined(OPENGL_ENABLED)
-#include "drivers/gles2/rasterizer_gles2.h"
 //TODO - reimplement OpenGLES
 
 #import <AppKit/NSOpenGLView.h>
@@ -312,8 +312,6 @@ static NSCursor *_cursorFromSelector(SEL selector, SEL fallback = nil) {
 		DS_OSX->window_set_transient(wd.transient_children.front()->get(), DisplayServerOSX::INVALID_WINDOW_ID);
 	}
 
-	DS_OSX->windows.erase(window_id);
-
 	if (wd.transient_parent != DisplayServerOSX::INVALID_WINDOW_ID) {
 		DisplayServerOSX::WindowData &pwd = DS_OSX->windows[wd.transient_parent];
 		[pwd.window_object makeKeyAndOrderFront:nil]; // Move focus back to parent.
@@ -333,6 +331,8 @@ static NSCursor *_cursorFromSelector(SEL selector, SEL fallback = nil) {
 		DS_OSX->context_vulkan->window_destroy(window_id);
 	}
 #endif
+
+	DS_OSX->windows.erase(window_id);
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification *)notification {
@@ -2041,6 +2041,12 @@ void DisplayServerOSX::mouse_set_mode(MouseMode p_mode) {
 			CGDisplayHideCursor(kCGDirectMainDisplay);
 		}
 		CGAssociateMouseAndMouseCursorPosition(false);
+		WindowData &wd = windows[MAIN_WINDOW_ID];
+		const NSRect contentRect = [wd.window_view frame];
+		NSRect pointInWindowRect = NSMakeRect(contentRect.size.width / 2, contentRect.size.height / 2, 0, 0);
+		NSPoint pointOnScreen = [[wd.window_view window] convertRectToScreen:pointInWindowRect].origin;
+		CGPoint lMouseWarpPos = { pointOnScreen.x, CGDisplayBounds(CGMainDisplayID()).size.height - pointOnScreen.y };
+		CGWarpMouseCursorPosition(lMouseWarpPos);
 	} else if (p_mode == MOUSE_MODE_HIDDEN) {
 		if (mouse_mode == MOUSE_MODE_VISIBLE || mouse_mode == MOUSE_MODE_CONFINED) {
 			CGDisplayHideCursor(kCGDirectMainDisplay);
@@ -2240,11 +2246,18 @@ int DisplayServerOSX::screen_get_dpi(int p_screen) const {
 	NSArray *screenArray = [NSScreen screens];
 	if ((NSUInteger)p_screen < [screenArray count]) {
 		NSDictionary *description = [[screenArray objectAtIndex:p_screen] deviceDescription];
-		NSSize displayDPI = [[description objectForKey:NSDeviceResolution] sizeValue];
-		return (displayDPI.width + displayDPI.height) / 2;
+
+		const NSSize displayPixelSize = [[description objectForKey:NSDeviceSize] sizeValue];
+		const CGSize displayPhysicalSize = CGDisplayScreenSize([[description objectForKey:@"NSScreenNumber"] unsignedIntValue]);
+		float scale = [[screenArray objectAtIndex:p_screen] backingScaleFactor];
+
+		float den2 = (displayPhysicalSize.width / 25.4f) * (displayPhysicalSize.width / 25.4f) + (displayPhysicalSize.height / 25.4f) * (displayPhysicalSize.height / 25.4f);
+		if (den2 > 0.0f) {
+			return ceil(sqrt(displayPixelSize.width * displayPixelSize.width + displayPixelSize.height * displayPixelSize.height) / sqrt(den2) * scale);
+		}
 	}
 
-	return 96;
+	return 72;
 }
 
 float DisplayServerOSX::screen_get_scale(int p_screen) const {
@@ -2375,7 +2388,11 @@ void DisplayServerOSX::_update_window(WindowData p_wd) {
 		[p_wd.window_object setHidesOnDeactivate:YES];
 	} else {
 		// Reset these when our window is not a borderless window that covers up the screen
-		[p_wd.window_object setLevel:NSNormalWindowLevel];
+		if (p_wd.on_top) {
+			[p_wd.window_object setLevel:NSFloatingWindowLevel];
+		} else {
+			[p_wd.window_object setLevel:NSNormalWindowLevel];
+		}
 		[p_wd.window_object setHidesOnDeactivate:NO];
 	}
 }
@@ -2399,6 +2416,15 @@ void DisplayServerOSX::window_set_title(const String &p_title, WindowID p_window
 	WindowData &wd = windows[p_window];
 
 	[wd.window_object setTitle:[NSString stringWithUTF8String:p_title.utf8().get_data()]];
+}
+
+void DisplayServerOSX::window_set_mouse_passthrough(const Vector<Vector2> &p_region, WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!windows.has(p_window));
+	WindowData &wd = windows[p_window];
+
+	wd.mpath = p_region;
 }
 
 void DisplayServerOSX::window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window) {
@@ -3353,6 +3379,26 @@ void DisplayServerOSX::process_events() {
 		Input::get_singleton()->flush_accumulated_events();
 	}
 
+	for (Map<WindowID, WindowData>::Element *E = windows.front(); E; E = E->next()) {
+		WindowData &wd = E->get();
+		if (wd.mpath.size() > 0) {
+			const Vector2 mpos = _get_mouse_pos(wd, [wd.window_object mouseLocationOutsideOfEventStream]);
+			if (Geometry2D::is_point_in_polygon(mpos, wd.mpath)) {
+				if ([wd.window_object ignoresMouseEvents]) {
+					[wd.window_object setIgnoresMouseEvents:NO];
+				}
+			} else {
+				if (![wd.window_object ignoresMouseEvents]) {
+					[wd.window_object setIgnoresMouseEvents:YES];
+				}
+			}
+		} else {
+			if ([wd.window_object ignoresMouseEvents]) {
+				[wd.window_object setIgnoresMouseEvents:NO];
+			}
+		}
+	}
+
 	[autoreleasePool drain];
 	autoreleasePool = [[NSAutoreleasePool alloc] init];
 }
@@ -3805,9 +3851,11 @@ DisplayServerOSX::~DisplayServerOSX() {
 	}
 
 	//destroy all windows
-	for (Map<WindowID, WindowData>::Element *E = windows.front(); E; E = E->next()) {
-		[E->get().window_object setContentView:nil];
-		[E->get().window_object close];
+	for (Map<WindowID, WindowData>::Element *E = windows.front(); E;) {
+		Map<WindowID, WindowData>::Element *F = E;
+		E = E->next();
+		[F->get().window_object setContentView:nil];
+		[F->get().window_object close];
 	}
 
 	//destroy drivers

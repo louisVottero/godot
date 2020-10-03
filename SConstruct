@@ -12,9 +12,7 @@ from collections import OrderedDict
 
 # Local
 import methods
-import gles_builders
-import version
-from platform_methods import run_in_subprocess
+import glsl_builders
 
 # Scan possible build platforms
 
@@ -310,9 +308,10 @@ if selected_platform in platform_list:
     from SCons import __version__ as scons_raw_version
 
     scons_ver = env._get_major_minor_revision(scons_raw_version)
-    if scons_ver >= (3, 1, 1):
-        env.Tool("compilation_db", toolpath=["misc/scons"])
-        env.Alias("compiledb", env.CompilationDatabase("compile_commands.json"))
+
+    if scons_ver >= (4, 0, 0):
+        env.Tool("compilation_db")
+        env.Alias("compiledb", env.CompilationDatabase())
 
     if env["dev"]:
         env["verbose"] = True
@@ -320,31 +319,6 @@ if selected_platform in platform_list:
         env["werror"] = True
         if env["tools"]:
             env["tests"] = True
-
-    if env["vsproj"]:
-        env.vs_incs = []
-        env.vs_srcs = []
-
-        def AddToVSProject(sources):
-            for x in sources:
-                if type(x) == type(""):
-                    fname = env.File(x).path
-                else:
-                    fname = env.File(x)[0].path
-                pieces = fname.split(".")
-                if len(pieces) > 0:
-                    basename = pieces[0]
-                    basename = basename.replace("\\\\", "/")
-                    if os.path.isfile(basename + ".h"):
-                        env.vs_incs = env.vs_incs + [basename + ".h"]
-                    elif os.path.isfile(basename + ".hpp"):
-                        env.vs_incs = env.vs_incs + [basename + ".hpp"]
-                    if os.path.isfile(basename + ".c"):
-                        env.vs_srcs = env.vs_srcs + [basename + ".c"]
-                    elif os.path.isfile(basename + ".cpp"):
-                        env.vs_srcs = env.vs_srcs + [basename + ".cpp"]
-
-        env.AddToVSProject = AddToVSProject
 
     env.extra_suffix = ""
 
@@ -629,18 +603,13 @@ if selected_platform in platform_list:
 
     if not env["platform"] == "server":
         GLSL_BUILDERS = {
-            "GLES2_GLSL": env.Builder(
-                action=env.Run(gles_builders.build_gles2_headers, 'Building GLES2_GLSL header: "$TARGET"'),
-                suffix="glsl.gen.h",
-                src_suffix=".glsl",
-            ),
             "RD_GLSL": env.Builder(
-                action=env.Run(gles_builders.build_rd_headers, 'Building RD_GLSL header: "$TARGET"'),
+                action=env.Run(glsl_builders.build_rd_headers, 'Building RD_GLSL header: "$TARGET"'),
                 suffix="glsl.gen.h",
                 src_suffix=".glsl",
             ),
             "GLSL_HEADER": env.Builder(
-                action=env.Run(gles_builders.build_raw_headers, 'Building GLSL header: "$TARGET"'),
+                action=env.Run(glsl_builders.build_raw_headers, 'Building GLSL header: "$TARGET"'),
                 suffix="glsl.gen.h",
                 src_suffix=".glsl",
             ),
@@ -651,6 +620,10 @@ if selected_platform in platform_list:
     if scons_cache_path != None:
         CacheDir(scons_cache_path)
         print("Scons cache enabled... (path: '" + scons_cache_path + "')")
+
+    if env["vsproj"]:
+        env.vs_incs = []
+        env.vs_srcs = []
 
     Export("env")
 

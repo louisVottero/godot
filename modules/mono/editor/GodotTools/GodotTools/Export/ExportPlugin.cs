@@ -19,7 +19,7 @@ namespace GodotTools.Export
     public class ExportPlugin : EditorExportPlugin
     {
         [Flags]
-        enum I18NCodesets
+        enum I18NCodesets : long
         {
             None = 0,
             CJK = 1,
@@ -430,7 +430,7 @@ namespace GodotTools.Export
         private static string DetermineDataDirNameForProject()
         {
             var appName = (string)ProjectSettings.GetSetting("application/config/name");
-            string appNameSafe = appName.ToSafeDirName(allowDirSeparator: false);
+            string appNameSafe = appName.ToSafeDirName();
             return $"data_{appNameSafe}";
         }
 

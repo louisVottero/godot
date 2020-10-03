@@ -782,8 +782,7 @@ void RasterizerSceneHighEndRD::_fill_instances(RenderList::Element **p_elements,
 	for (int i = 0; i < p_element_count; i++) {
 		const RenderList::Element *e = p_elements[i];
 		InstanceData &id = scene_state.instances[i];
-		RasterizerStorageRD::store_transform(e->instance->transform, id.transform);
-		RasterizerStorageRD::store_transform(Transform(e->instance->transform.basis.inverse().transposed()), id.normal_transform);
+		bool store_transform = true;
 		id.flags = 0;
 		id.mask = e->instance->layer_mask;
 		id.instance_uniforms_ofs = e->instance->instance_allocated_shader_parameters_offset >= 0 ? e->instance->instance_allocated_shader_parameters_offset : 0;
@@ -807,10 +806,40 @@ void RasterizerSceneHighEndRD::_fill_instances(RenderList::Element **p_elements,
 			}
 
 			id.flags |= (stride << INSTANCE_DATA_FLAGS_MULTIMESH_STRIDE_SHIFT);
+		} else if (e->instance->base_type == RS::INSTANCE_PARTICLES) {
+			id.flags |= INSTANCE_DATA_FLAG_MULTIMESH;
+			uint32_t stride;
+			if (false) { // 2D particles
+				id.flags |= INSTANCE_DATA_FLAG_MULTIMESH_FORMAT_2D;
+				stride = 2;
+			} else {
+				stride = 3;
+			}
+
+			id.flags |= INSTANCE_DATA_FLAG_MULTIMESH_HAS_COLOR;
+			stride += 1;
+
+			id.flags |= INSTANCE_DATA_FLAG_MULTIMESH_HAS_CUSTOM_DATA;
+			stride += 1;
+
+			id.flags |= (stride << INSTANCE_DATA_FLAGS_MULTIMESH_STRIDE_SHIFT);
+
+			if (!storage->particles_is_using_local_coords(e->instance->base)) {
+				store_transform = false;
+			}
+
 		} else if (e->instance->base_type == RS::INSTANCE_MESH) {
 			if (e->instance->skeleton.is_valid()) {
 				id.flags |= INSTANCE_DATA_FLAG_SKELETON;
 			}
+		}
+
+		if (store_transform) {
+			RasterizerStorageRD::store_transform(e->instance->transform, id.transform);
+			RasterizerStorageRD::store_transform(Transform(e->instance->transform.basis.inverse().transposed()), id.normal_transform);
+		} else {
+			RasterizerStorageRD::store_transform(Transform(), id.transform);
+			RasterizerStorageRD::store_transform(Transform(), id.normal_transform);
 		}
 
 		if (p_for_depth) {
@@ -967,7 +996,12 @@ void RasterizerSceneHighEndRD::_render_list(RenderingDevice::DrawListID p_draw_l
 				ERR_CONTINUE(true); //should be a bug
 			} break;
 			case RS::INSTANCE_PARTICLES: {
-				ERR_CONTINUE(true); //should be a bug
+				RID mesh = storage->particles_get_draw_pass_mesh(e->instance->base, e->surface_index >> 16);
+				ERR_CONTINUE(!mesh.is_valid()); //should be a bug
+				primitive = storage->mesh_surface_get_primitive(mesh, e->surface_index & 0xFFFF);
+
+				xforms_uniform_set = storage->particles_get_instance_buffer_uniform_set(e->instance->base, default_shader_rd, TRANSFORMS_UNIFORM_SET);
+
 			} break;
 			default: {
 				ERR_CONTINUE(true); //should be a bug
@@ -1036,7 +1070,9 @@ void RasterizerSceneHighEndRD::_render_list(RenderingDevice::DrawListID p_draw_l
 				ERR_CONTINUE(true); //should be a bug
 			} break;
 			case RS::INSTANCE_PARTICLES: {
-				ERR_CONTINUE(true); //should be a bug
+				RID mesh = storage->particles_get_draw_pass_mesh(e->instance->base, e->surface_index >> 16);
+				ERR_CONTINUE(!mesh.is_valid()); //should be a bug
+				storage->mesh_surface_get_arrays_and_format(mesh, e->surface_index & 0xFFFF, pipeline->get_vertex_input_mask(), vertex_array_rd, index_array_rd, vertex_format);
 			} break;
 			default: {
 				ERR_CONTINUE(true); //should be a bug
@@ -1092,6 +1128,8 @@ void RasterizerSceneHighEndRD::_render_list(RenderingDevice::DrawListID p_draw_l
 			case RS::INSTANCE_IMMEDIATE: {
 			} break;
 			case RS::INSTANCE_PARTICLES: {
+				uint32_t instances = storage->particles_get_amount(e->instance->base);
+				RD::get_singleton()->draw_list_draw(draw_list, index_array_rd.is_valid(), instances);
 			} break;
 			default: {
 				ERR_CONTINUE(true); //should be a bug
@@ -1145,11 +1183,30 @@ void RasterizerSceneHighEndRD::_setup_environment(RID p_environment, RID p_rende
 	scene_state.ubo.time = time;
 
 	scene_state.ubo.gi_upscale_for_msaa = false;
+	scene_state.ubo.volumetric_fog_enabled = false;
+	scene_state.ubo.fog_enabled = false;
 
 	if (p_render_buffers.is_valid()) {
 		RenderBufferDataHighEnd *render_buffers = (RenderBufferDataHighEnd *)render_buffers_get_data(p_render_buffers);
 		if (render_buffers->msaa != RS::VIEWPORT_MSAA_DISABLED) {
 			scene_state.ubo.gi_upscale_for_msaa = true;
+		}
+
+		if (render_buffers_has_volumetric_fog(p_render_buffers)) {
+			scene_state.ubo.volumetric_fog_enabled = true;
+			float fog_end = render_buffers_get_volumetric_fog_end(p_render_buffers);
+			if (fog_end > 0.0) {
+				scene_state.ubo.volumetric_fog_inv_length = 1.0 / fog_end;
+			} else {
+				scene_state.ubo.volumetric_fog_inv_length = 1.0;
+			}
+
+			float fog_detail_spread = render_buffers_get_volumetric_fog_detail_spread(p_render_buffers); //reverse lookup
+			if (fog_detail_spread > 0.0) {
+				scene_state.ubo.volumetric_fog_detail_spread = 1.0 / fog_detail_spread;
+			} else {
+				scene_state.ubo.volumetric_fog_detail_spread = 1.0;
+			}
 		}
 	}
 #if 0
@@ -1265,11 +1322,28 @@ void RasterizerSceneHighEndRD::_setup_environment(RID p_environment, RID p_rende
 		scene_state.ubo.ssao_ao_affect = environment_get_ssao_ao_affect(p_environment);
 		scene_state.ubo.ssao_light_affect = environment_get_ssao_light_affect(p_environment);
 
-		Color ao_color = environment_get_ao_color(p_environment);
+		Color ao_color = environment_get_ao_color(p_environment).to_linear();
 		scene_state.ubo.ao_color[0] = ao_color.r;
 		scene_state.ubo.ao_color[1] = ao_color.g;
 		scene_state.ubo.ao_color[2] = ao_color.b;
 		scene_state.ubo.ao_color[3] = ao_color.a;
+
+		scene_state.ubo.fog_enabled = environment_is_fog_enabled(p_environment);
+		scene_state.ubo.fog_density = environment_get_fog_density(p_environment);
+		scene_state.ubo.fog_height = environment_get_fog_height(p_environment);
+		scene_state.ubo.fog_height_density = environment_get_fog_height_density(p_environment);
+		if (scene_state.ubo.fog_height_density >= 0.0001) {
+			scene_state.ubo.fog_height_density = 1.0 / scene_state.ubo.fog_height_density;
+		}
+
+		Color fog_color = environment_get_fog_light_color(p_environment).to_linear();
+		float fog_energy = environment_get_fog_light_energy(p_environment);
+
+		scene_state.ubo.fog_light_color[0] = fog_color.r * fog_energy;
+		scene_state.ubo.fog_light_color[1] = fog_color.g * fog_energy;
+		scene_state.ubo.fog_light_color[2] = fog_color.b * fog_energy;
+
+		scene_state.ubo.fog_sun_scatter = environment_get_fog_sun_scatter(p_environment);
 
 	} else {
 		if (p_reflection_probe.is_valid() && storage->reflection_probe_is_interior(reflection_probe_instance_get_probe(p_reflection_probe))) {
@@ -1488,31 +1562,31 @@ void RasterizerSceneHighEndRD::_fill_render_list(InstanceBase **p_cull_result, i
 				_add_geometry(immediate, inst, nullptr, -1, p_depth_pass, p_shadow_pass);
 
 			} break;
+#endif
 			case RS::INSTANCE_PARTICLES: {
+				int draw_passes = storage->particles_get_draw_passes(inst->base);
 
-				RasterizerStorageGLES3::Particles *particles = storage->particles_owner.getornull(inst->base);
-				ERR_CONTINUE(!particles);
-
-				for (int j = 0; j < particles->draw_passes.size(); j++) {
-
-					RID pmesh = particles->draw_passes[j];
-					if (!pmesh.is_valid())
+				for (int j = 0; j < draw_passes; j++) {
+					RID mesh = storage->particles_get_draw_pass_mesh(inst->base, j);
+					if (!mesh.is_valid())
 						continue;
-					RasterizerStorageGLES3::Mesh *mesh = storage->mesh_owner.getornull(pmesh);
-					if (!mesh)
-						continue; //mesh not assigned
 
-					int ssize = mesh->surfaces.size();
+					const RID *materials = nullptr;
+					uint32_t surface_count;
 
-					for (int k = 0; k < ssize; k++) {
+					materials = storage->mesh_get_surface_count_and_materials(mesh, surface_count);
+					if (!materials) {
+						continue; //nothing to do
+					}
 
-						RasterizerStorageGLES3::Surface *s = mesh->surfaces[k];
-						_add_geometry(s, inst, particles, -1, p_depth_pass, p_shadow_pass);
+					for (uint32_t k = 0; k < surface_count; k++) {
+						uint32_t surface_index = storage->mesh_surface_get_particles_render_pass_index(mesh, j, render_pass, &geometry_index);
+						_add_geometry(inst, (j << 16) | k, materials[j], p_pass_mode, surface_index, p_using_sdfgi);
 					}
 				}
 
 			} break;
-#endif
+
 			default: {
 			}
 		}
@@ -1671,6 +1745,7 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 	}
 	RID radiance_uniform_set;
 	bool draw_sky = false;
+	bool draw_sky_fog_only = false;
 
 	Color clear_color;
 	bool keep_color = false;
@@ -1686,12 +1761,20 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 				clear_color.r *= bg_energy;
 				clear_color.g *= bg_energy;
 				clear_color.b *= bg_energy;
+				if (render_buffers_has_volumetric_fog(p_render_buffer) || environment_is_fog_enabled(p_environment)) {
+					draw_sky_fog_only = true;
+					storage->material_set_param(sky_scene_state.fog_material, "clear_color", Variant(clear_color.to_linear()));
+				}
 			} break;
 			case RS::ENV_BG_COLOR: {
 				clear_color = environment_get_bg_color(p_environment);
 				clear_color.r *= bg_energy;
 				clear_color.g *= bg_energy;
 				clear_color.b *= bg_energy;
+				if (render_buffers_has_volumetric_fog(p_render_buffer) || environment_is_fog_enabled(p_environment)) {
+					draw_sky_fog_only = true;
+					storage->material_set_param(sky_scene_state.fog_material, "clear_color", Variant(clear_color.to_linear()));
+				}
 			} break;
 			case RS::ENV_BG_SKY: {
 				draw_sky = true;
@@ -1708,18 +1791,19 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 			}
 		}
 		// setup sky if used for ambient, reflections, or background
-		if (draw_sky || environment_get_reflection_source(p_environment) == RS::ENV_REFLECTION_SOURCE_SKY || environment_get_ambient_source(p_environment) == RS::ENV_AMBIENT_SOURCE_SKY) {
+		if (draw_sky || draw_sky_fog_only || environment_get_reflection_source(p_environment) == RS::ENV_REFLECTION_SOURCE_SKY || environment_get_ambient_source(p_environment) == RS::ENV_AMBIENT_SOURCE_SKY) {
+			RENDER_TIMESTAMP("Setup Sky");
+			CameraMatrix projection = p_cam_projection;
+			if (p_reflection_probe.is_valid()) {
+				CameraMatrix correction;
+				correction.set_depth_correction(true);
+				projection = correction * p_cam_projection;
+			}
+
+			_setup_sky(p_environment, p_render_buffer, projection, p_cam_transform, screen_size);
+
 			RID sky = environment_get_sky(p_environment);
 			if (sky.is_valid()) {
-				RENDER_TIMESTAMP("Setup Sky");
-				CameraMatrix projection = p_cam_projection;
-				if (p_reflection_probe.is_valid()) {
-					CameraMatrix correction;
-					correction.set_depth_correction(true);
-					projection = correction * p_cam_projection;
-				}
-
-				_setup_sky(p_environment, p_cam_transform.origin, screen_size);
 				_update_sky(p_environment, projection, p_cam_transform);
 				radiance_uniform_set = sky_get_radiance_uniform_set_rd(sky, default_shader_rd, RADIANCE_UNIFORM_SET);
 			} else {
@@ -1754,6 +1838,7 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 		RD::get_singleton()->draw_list_end();
 
 		if (render_buffer && render_buffer->msaa != RS::VIEWPORT_MSAA_DISABLED) {
+			RENDER_TIMESTAMP("Resolve Depth Pre-Pass");
 			if (depth_pass_mode == PASS_MODE_DEPTH_NORMAL_ROUGHNESS || depth_pass_mode == PASS_MODE_DEPTH_NORMAL_ROUGHNESS_GIPROBE) {
 				static int texture_samples[RS::VIEWPORT_MSAA_MAX] = { 1, 2, 4, 8, 16 };
 				storage->get_effects()->resolve_gi(render_buffer->depth_msaa, render_buffer->normal_roughness_buffer_msaa, using_giprobe ? render_buffer->giprobe_buffer_msaa : RID(), render_buffer->depth, render_buffer->normal_roughness_buffer, using_giprobe ? render_buffer->giprobe_buffer : RID(), Vector2i(render_buffer->width, render_buffer->height), texture_samples[render_buffer->msaa]);
@@ -1787,8 +1872,8 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 	bool can_continue_depth = !scene_state.used_depth_texture && !using_ssr && !using_sss;
 
 	{
-		bool will_continue_color = (can_continue_color || draw_sky || debug_giprobes || debug_sdfgi_probes);
-		bool will_continue_depth = (can_continue_depth || draw_sky || debug_giprobes || debug_sdfgi_probes);
+		bool will_continue_color = (can_continue_color || draw_sky || draw_sky_fog_only || debug_giprobes || debug_sdfgi_probes);
+		bool will_continue_depth = (can_continue_depth || draw_sky || draw_sky_fog_only || debug_giprobes || debug_sdfgi_probes);
 
 		//regular forward for now
 		Vector<Color> c;
@@ -1815,8 +1900,8 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 
 	if (debug_giprobes) {
 		//debug giprobes
-		bool will_continue_color = (can_continue_color || draw_sky);
-		bool will_continue_depth = (can_continue_depth || draw_sky);
+		bool will_continue_color = (can_continue_color || draw_sky || draw_sky_fog_only);
+		bool will_continue_depth = (can_continue_depth || draw_sky || draw_sky_fog_only);
 
 		CameraMatrix dc;
 		dc.set_depth_correction(true);
@@ -1830,8 +1915,8 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 
 	if (debug_sdfgi_probes) {
 		//debug giprobes
-		bool will_continue_color = (can_continue_color || draw_sky);
-		bool will_continue_depth = (can_continue_depth || draw_sky);
+		bool will_continue_color = (can_continue_color || draw_sky || draw_sky_fog_only);
+		bool will_continue_depth = (can_continue_depth || draw_sky || draw_sky_fog_only);
 
 		CameraMatrix dc;
 		dc.set_depth_correction(true);
@@ -1841,7 +1926,7 @@ void RasterizerSceneHighEndRD::_render_scene(RID p_render_buffer, const Transfor
 		RD::get_singleton()->draw_list_end();
 	}
 
-	if (draw_sky) {
+	if (draw_sky || draw_sky_fog_only) {
 		RENDER_TIMESTAMP("Render Sky");
 
 		CameraMatrix projection = p_cam_projection;
@@ -2502,7 +2587,22 @@ void RasterizerSceneHighEndRD::_update_render_buffers_uniform_set(RID p_render_b
 			u.ids.push_back(render_buffers_get_gi_probe_buffer(p_render_buffers));
 			uniforms.push_back(u);
 		}
-
+		{
+			RD::Uniform u;
+			u.binding = 10;
+			u.type = RD::UNIFORM_TYPE_TEXTURE;
+			RID vfog = RID();
+			if (p_render_buffers.is_valid() && render_buffers_has_volumetric_fog(p_render_buffers)) {
+				vfog = render_buffers_get_volumetric_fog_texture(p_render_buffers);
+				if (vfog.is_null()) {
+					vfog = storage->texture_rd_get_default(RasterizerStorageRD::DEFAULT_RD_TEXTURE_3D_WHITE);
+				}
+			} else {
+				vfog = storage->texture_rd_get_default(RasterizerStorageRD::DEFAULT_RD_TEXTURE_3D_WHITE);
+			}
+			u.ids.push_back(vfog);
+			uniforms.push_back(u);
+		}
 		rb->uniform_set = RD::get_singleton()->uniform_set_create(uniforms, default_shader_rd, RENDER_BUFFERS_UNIFORM_SET);
 	}
 }
@@ -2634,6 +2734,7 @@ RasterizerSceneHighEndRD::RasterizerSceneHighEndRD(RasterizerStorageRD *p_storag
 		actions.renames["LIGHT_COLOR"] = "light_color";
 		actions.renames["LIGHT"] = "light";
 		actions.renames["ATTENUATION"] = "attenuation";
+		actions.renames["SHADOW_ATTENUATION"] = "shadow_attenuation";
 		actions.renames["DIFFUSE_LIGHT"] = "diffuse_light";
 		actions.renames["SPECULAR_LIGHT"] = "specular_light";
 
@@ -2813,6 +2914,13 @@ RasterizerSceneHighEndRD::RasterizerSceneHighEndRD(RasterizerStorageRD *p_storag
 			u.binding = 9;
 			u.type = RD::UNIFORM_TYPE_UNIFORM_BUFFER;
 			u.ids.push_back(render_buffers_get_default_gi_probe_buffer());
+			uniforms.push_back(u);
+		}
+		{
+			RD::Uniform u;
+			u.binding = 10;
+			u.type = RD::UNIFORM_TYPE_TEXTURE;
+			u.ids.push_back(storage->texture_rd_get_default(RasterizerStorageRD::DEFAULT_RD_TEXTURE_3D_WHITE));
 			uniforms.push_back(u);
 		}
 

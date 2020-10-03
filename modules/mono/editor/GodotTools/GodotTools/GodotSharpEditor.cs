@@ -31,6 +31,7 @@ namespace GodotTools
         private CheckBox aboutDialogCheckBox;
 
         private Button bottomPanelBtn;
+        private Button toolBarBuildButton;
 
         public GodotIdeManager GodotIdeManager { get; private set; }
 
@@ -38,13 +39,14 @@ namespace GodotTools
 
         public BottomPanel BottomPanel { get; private set; }
 
-        public PlaySettings? CurrentPlaySettings { get; set; }
+        public bool SkipBuildBeforePlaying { get; set; } = false;
 
         public static string ProjectAssemblyName
         {
             get
             {
                 var projectAssemblyName = (string)ProjectSettings.GetSetting("application/config/name");
+                projectAssemblyName = projectAssemblyName.ToSafeDirName();
                 if (string.IsNullOrEmpty(projectAssemblyName))
                     projectAssemblyName = "UnnamedProject";
                 return projectAssemblyName;
@@ -126,6 +128,7 @@ namespace GodotTools
         {
             menuPopup.RemoveItem(menuPopup.GetItemIndex((int)MenuOptions.CreateSln));
             bottomPanelBtn.Show();
+            toolBarBuildButton.Show();
         }
 
         private void _ShowAboutDialog()
@@ -467,6 +470,15 @@ namespace GodotTools
                 aboutVBox.AddChild(aboutDialogCheckBox);
             }
 
+            toolBarBuildButton = new Button
+            {
+                Text = "Build",
+                HintTooltip = "Build solution",
+                FocusMode = Control.FocusModeEnum.None
+            };
+            toolBarBuildButton.PressedSignal += _BuildSolutionPressed;
+            AddControlToContainer(CustomControlContainer.Toolbar, toolBarBuildButton);
+
             if (File.Exists(GodotSharpDirs.ProjectSlnPath) && File.Exists(GodotSharpDirs.ProjectCsProjPath))
             {
                 ApplyNecessaryChangesToSolution();
@@ -474,19 +486,11 @@ namespace GodotTools
             else
             {
                 bottomPanelBtn.Hide();
+                toolBarBuildButton.Hide();
                 menuPopup.AddItem("Create C# solution".TTR(), (int)MenuOptions.CreateSln);
             }
 
             menuPopup.IdPressed += _MenuOptionPressed;
-
-            var buildButton = new Button
-            {
-                Text = "Build",
-                HintTooltip = "Build solution",
-                FocusMode = Control.FocusModeEnum.None
-            };
-            buildButton.PressedSignal += _BuildSolutionPressed;
-            AddControlToContainer(CustomControlContainer.Toolbar, buildButton);
 
             // External editor settings
             EditorDef("mono/editor/external_editor", ExternalEditorId.None);

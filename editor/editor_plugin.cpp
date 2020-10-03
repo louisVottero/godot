@@ -234,8 +234,8 @@ String EditorInterface::get_current_path() const {
 	return EditorNode::get_singleton()->get_filesystem_dock()->get_current_path();
 }
 
-void EditorInterface::inspect_object(Object *p_obj, const String &p_for_property) {
-	EditorNode::get_singleton()->push_item(p_obj, p_for_property);
+void EditorInterface::inspect_object(Object *p_obj, const String &p_for_property, bool p_inspector_only) {
+	EditorNode::get_singleton()->push_item(p_obj, p_for_property, p_inspector_only);
 }
 
 EditorFileSystem *EditorInterface::get_resource_file_system() {
@@ -301,7 +301,7 @@ bool EditorInterface::is_distraction_free_mode_enabled() const {
 EditorInterface *EditorInterface::singleton = nullptr;
 
 void EditorInterface::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("inspect_object", "object", "for_property"), &EditorInterface::inspect_object, DEFVAL(String()));
+	ClassDB::bind_method(D_METHOD("inspect_object", "object", "for_property", "inspector_only"), &EditorInterface::inspect_object, DEFVAL(String()), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_selection"), &EditorInterface::get_selection);
 	ClassDB::bind_method(D_METHOD("get_editor_settings"), &EditorInterface::get_editor_settings);
 	ClassDB::bind_method(D_METHOD("get_script_editor"), &EditorInterface::get_script_editor);
@@ -811,6 +811,14 @@ ScriptCreateDialog *EditorPlugin::get_script_create_dialog() {
 	return EditorNode::get_singleton()->get_script_create_dialog();
 }
 
+void EditorPlugin::add_debugger_plugin(const Ref<Script> &p_script) {
+	EditorDebuggerNode::get_singleton()->add_debugger_plugin(p_script);
+}
+
+void EditorPlugin::remove_debugger_plugin(const Ref<Script> &p_script) {
+	EditorDebuggerNode::get_singleton()->remove_debugger_plugin(p_script);
+}
+
 void EditorPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_control_to_container", "container", "control"), &EditorPlugin::add_control_to_container);
 	ClassDB::bind_method(D_METHOD("add_control_to_bottom_panel", "control", "title"), &EditorPlugin::add_control_to_bottom_panel);
@@ -851,6 +859,8 @@ void EditorPlugin::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_editor_interface"), &EditorPlugin::get_editor_interface);
 	ClassDB::bind_method(D_METHOD("get_script_create_dialog"), &EditorPlugin::get_script_create_dialog);
+	ClassDB::bind_method(D_METHOD("add_debugger_plugin", "script"), &EditorPlugin::add_debugger_plugin);
+	ClassDB::bind_method(D_METHOD("remove_debugger_plugin", "script"), &EditorPlugin::remove_debugger_plugin);
 
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "forward_canvas_gui_input", PropertyInfo(Variant::OBJECT, "event", PROPERTY_HINT_RESOURCE_TYPE, "InputEvent")));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo("forward_canvas_draw_over_viewport", PropertyInfo(Variant::OBJECT, "overlay", PROPERTY_HINT_RESOURCE_TYPE, "Control")));

@@ -658,7 +658,7 @@ public:
 	Variant call(const StringName &p_name, VARIANT_ARG_LIST); // C++ helper
 
 	void notification(int p_notification, bool p_reversed = false);
-	String to_string();
+	virtual String to_string();
 
 	//used mainly by script, get and set all INCLUDING string
 	virtual Variant getvar(const Variant &p_key, bool *r_valid = nullptr) const;
@@ -719,7 +719,8 @@ public:
 
 	virtual void get_argument_options(const StringName &p_function, int p_idx, List<String> *r_options) const;
 
-	StringName tr(const StringName &p_message) const; // translate message (internationalization)
+	String tr(const StringName &p_message, const StringName &p_context = "") const; // translate message (internationalization)
+	String tr_n(const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context = "") const;
 
 	bool _is_queued_for_deletion = false; // set to true by SceneTree::queue_delete()
 	bool is_queued_for_deletion() const;

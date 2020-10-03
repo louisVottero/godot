@@ -46,10 +46,6 @@
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
 
-#if defined(OPENGL_ENABLED)
-#include "drivers/gles2/rasterizer_gles2.h"
-#endif
-
 #if defined(VULKAN_ENABLED)
 #include "servers/rendering/rasterizer_rd/rasterizer_rd.h"
 #import <QuartzCore/CAMetalLayer.h>
@@ -132,7 +128,6 @@ void OSIPhone::initialize_modules() {
 #ifdef GAME_CENTER_ENABLED
 	game_center = memnew(GameCenter);
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GameCenter", game_center));
-	game_center->connect();
 #endif
 
 #ifdef STOREKIT_ENABLED
@@ -276,19 +271,14 @@ String OSIPhone::get_model_name() const {
 Error OSIPhone::shell_open(String p_uri) {
 	NSString *urlPath = [[NSString alloc] initWithUTF8String:p_uri.utf8().get_data()];
 	NSURL *url = [NSURL URLWithString:urlPath];
-	[urlPath release];
 
 	if (![[UIApplication sharedApplication] canOpenURL:url]) {
 		return ERR_CANT_OPEN;
 	}
 
-	printf("opening url %ls\n", p_uri.c_str());
+	printf("opening url %s\n", p_uri.utf8().get_data());
 
-	//    if (@available(iOS 10, *)) {
 	[[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-	//    } else {
-	//        [[UIApplication sharedApplication] openURL:url];
-	//    }
 
 	return OK;
 };
@@ -297,7 +287,7 @@ void OSIPhone::set_user_data_dir(String p_dir) {
 	DirAccess *da = DirAccess::open(p_dir);
 
 	user_data_dir = da->get_current_dir();
-	printf("setting data dir to %ls from %ls\n", user_data_dir.c_str(), p_dir.c_str());
+	printf("setting data dir to %s from %s\n", user_data_dir.utf8().get_data(), p_dir.utf8().get_data());
 	memdelete(da);
 }
 

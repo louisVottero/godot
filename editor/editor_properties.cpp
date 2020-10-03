@@ -36,6 +36,7 @@
 #include "editor_properties_array_dict.h"
 #include "editor_scale.h"
 #include "scene/main/window.h"
+#include "scene/resources/dynamic_font.h"
 
 ///////////////////// NULL /////////////////////////
 
@@ -946,20 +947,27 @@ void EditorPropertyEasing::_drag_easing(const Ref<InputEvent> &p_ev) {
 		}
 
 		float val = get_edited_object()->get(get_edited_property());
-		if (val == 0) {
-			return;
-		}
 		bool sg = val < 0;
 		val = Math::absf(val);
 
 		val = Math::log(val) / Math::log((float)2.0);
-		//logspace
+		// Logarithmic space.
 		val += rel * 0.05;
 
 		val = Math::pow(2.0f, val);
 		if (sg) {
 			val = -val;
 		}
+
+		// 0 is a singularity, but both positive and negative values
+		// are otherwise allowed. Enforce 0+ as workaround.
+		if (Math::is_zero_approx(val)) {
+			val = 0.00001;
+		}
+
+		// Limit to a reasonable value to prevent the curve going into infinity,
+		// which can cause crashes and other issues.
+		val = CLAMP(val, -1'000'000, 1'000'000);
 
 		emit_changed(get_edited_property(), val);
 		easing_draw->update();
@@ -1003,7 +1011,18 @@ void EditorPropertyEasing::_draw_easing() {
 	}
 
 	easing_draw->draw_multiline(lines, line_color, 1.0);
-	f->draw(ci, Point2(10, 10 + f->get_ascent()), String::num(exp, 2), font_color);
+	// Draw more decimals for small numbers since higher precision is usually required for fine adjustments.
+	int decimals;
+	if (Math::abs(exp) < 0.1 - CMP_EPSILON) {
+		decimals = 4;
+	} else if (Math::abs(exp) < 1 - CMP_EPSILON) {
+		decimals = 3;
+	} else if (Math::abs(exp) < 10 - CMP_EPSILON) {
+		decimals = 2;
+	} else {
+		decimals = 1;
+	}
+	f->draw(ci, Point2(10, 10 + f->get_ascent()), rtos(exp).pad_decimals(decimals), font_color);
 }
 
 void EditorPropertyEasing::update_property() {
@@ -1035,6 +1054,11 @@ void EditorPropertyEasing::_spin_value_changed(double p_value) {
 	if (Math::is_zero_approx(p_value)) {
 		p_value = 0.00001;
 	}
+
+	// Limit to a reasonable value to prevent the curve going into infinity,
+	// which can cause crashes and other issues.
+	p_value = CLAMP(p_value, -1'000'000, 1'000'000);
+
 	emit_changed(get_edited_property(), p_value);
 	_spin_focus_exited();
 }
@@ -2108,6 +2132,11 @@ EditorPropertyTransform::EditorPropertyTransform() {
 ////////////// COLOR PICKER //////////////////////
 
 void EditorPropertyColor::_color_changed(const Color &p_color) {
+	// Cancel the color change if the current color is identical to the new one.
+	if (get_edited_object()->get(get_edited_property()) == p_color) {
+		return;
+	}
+
 	emit_changed(get_edited_property(), p_color, "", true);
 }
 
@@ -2919,11 +2948,9 @@ void EditorPropertyResource::_notification(int p_what) {
 	}
 
 	if (p_what == NOTIFICATION_DRAG_BEGIN) {
-		if (is_visible_in_tree()) {
-			if (_is_drop_valid(get_viewport()->gui_get_drag_data())) {
-				dropping = true;
-				assign->update();
-			}
+		if (_is_drop_valid(get_viewport()->gui_get_drag_data())) {
+			dropping = true;
+			assign->update();
 		}
 	}
 
@@ -2988,6 +3015,8 @@ bool EditorPropertyResource::_is_drop_valid(const Dictionary &p_drag_data) const
 			allowed_types.append("Texture2D");
 		} else if (at == "ShaderMaterial") {
 			allowed_types.append("Shader");
+		} else if (at == "Font") {
+			allowed_types.append("DynamicFontData");
 		}
 	}
 
@@ -3083,6 +3112,13 @@ void EditorPropertyResource::drop_data_fw(const Point2 &p_point, const Variant &
 					Ref<ShaderMaterial> mat = memnew(ShaderMaterial);
 					mat->set_shader(res);
 					res = mat;
+					break;
+				}
+
+				if (at == "Font" && ClassDB::is_parent_class(res->get_class(), "DynamicFontData")) {
+					Ref<DynamicFont> font = memnew(DynamicFont);
+					font->set_font_data(res);
+					res = font;
 					break;
 				}
 			}

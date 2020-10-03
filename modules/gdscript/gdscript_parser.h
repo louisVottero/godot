@@ -405,7 +405,10 @@ public:
 	struct EnumNode : public Node {
 		struct Value {
 			IdentifierNode *identifier = nullptr;
-			LiteralNode *custom_value = nullptr;
+			ExpressionNode *custom_value = nullptr;
+			EnumNode *parent_enum = nullptr;
+			int index = -1;
+			bool resolved = false;
 			int value = 0;
 			int line = 0;
 			int leftmost_column = 0;
@@ -606,6 +609,7 @@ public:
 	};
 
 	struct ContinueNode : public Node {
+		bool is_for_match = false;
 		ContinueNode() {
 			type = CONTINUE;
 		}
@@ -1076,6 +1080,7 @@ private:
 	bool panic_mode = false;
 	bool can_break = false;
 	bool can_continue = false;
+	bool is_continue_match = false; // Whether a `continue` will act on a `match`.
 	bool is_ignoring_warnings = false;
 	List<bool> multiline_stack;
 

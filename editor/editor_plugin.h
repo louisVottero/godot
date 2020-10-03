@@ -33,6 +33,7 @@
 
 #include "core/io/config_file.h"
 #include "core/undo_redo.h"
+#include "editor/debugger/editor_debugger_node.h"
 #include "editor/editor_inspector.h"
 #include "editor/editor_translation_parser.h"
 #include "editor/import/editor_import_plugin.h"
@@ -88,7 +89,7 @@ public:
 	String get_selected_path() const;
 	String get_current_path() const;
 
-	void inspect_object(Object *p_obj, const String &p_for_property = String());
+	void inspect_object(Object *p_obj, const String &p_for_property = String(), bool p_inspector_only = false);
 
 	EditorSelection *get_selection();
 	//EditorImportExport *get_import_export();
@@ -248,6 +249,9 @@ public:
 
 	void add_autoload_singleton(const String &p_name, const String &p_path);
 	void remove_autoload_singleton(const String &p_name);
+
+	void add_debugger_plugin(const Ref<Script> &p_script);
+	void remove_debugger_plugin(const Ref<Script> &p_script);
 
 	void enable_plugin();
 	void disable_plugin();

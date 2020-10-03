@@ -9,6 +9,9 @@
 		[b]Overriding:[/b] Any project setting can be overridden by creating a file named [code]override.cfg[/code] in the project's root directory. This can also be used in exported projects by placing this file in the same directory as the project binary.
 	</description>
 	<tutorials>
+		<link title="3D Physics Tests Demo">https://godotengine.org/asset-library/asset/675</link>
+		<link title="3D Platformer Demo">https://godotengine.org/asset-library/asset/125</link>
+		<link title="OS Test Demo">https://godotengine.org/asset-library/asset/677</link>
 	</tutorials>
 	<methods>
 		<method name="add_property_info">
@@ -92,9 +95,12 @@
 			</argument>
 			<argument index="1" name="replace_files" type="bool" default="true">
 			</argument>
+			<argument index="2" name="offset" type="int" default="0">
+			</argument>
 			<description>
 				Loads the contents of the .pck or .zip file specified by [code]pack[/code] into the resource filesystem ([code]res://[/code]). Returns [code]true[/code] on success.
 				[b]Note:[/b] If a file from [code]pack[/code] shares the same path as a file already in the resource filesystem, any attempts to load that file will use the file from [code]pack[/code] unless [code]replace_files[/code] is set to [code]false[/code].
+				[b]Note:[/b] The optional [code]offset[/code] parameter can be used to specify the offset in bytes to the start of the resource pack. This is only supported for .pck files.
 			</description>
 		</method>
 		<method name="localize_path" qualifiers="const">
@@ -205,7 +211,8 @@
 			Icon set in [code].icns[/code] format used on macOS to set the game's icon. This is done automatically on start by calling [method DisplayServer.set_native_icon].
 		</member>
 		<member name="application/config/name" type="String" setter="" getter="" default="&quot;&quot;">
-			The project's name. It is used both by the Project Manager and by exporters. The project name can be translated by translating its value in localization files.
+			The project's name. It is used both by the Project Manager and by exporters. The project name can be translated by translating its value in localization files. The window title will be set to match the project name automatically on startup.
+			[b]Note:[/b] Changing this value will also change the user data folder's path if [member application/config/use_custom_user_dir] is [code]false[/code]. After renaming the project, you will no longer be able to access existing data in [code]user://[/code] unless you rename the old folder to match the new project name. See [url=https://docs.godotengine.org/en/latest/tutorials/io/data_paths.html]Data paths[/url] in the documentation for more information.
 		</member>
 		<member name="application/config/project_settings_override" type="String" setter="" getter="" default="&quot;&quot;">
 			Specifies a file to override project settings. For example: [code]user://custom_settings.cfg[/code].
@@ -551,6 +558,9 @@
 		<member name="input_devices/pointing/emulate_touch_from_mouse" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], sends touch input events when clicking or dragging the mouse.
 		</member>
+		<member name="input_devices/pointing/ios/touch_delay" type="float" setter="" getter="" default="0.150">
+			Default delay for touch events. This only affects iOS devices.
+		</member>
 		<member name="layer_names/2d_physics/layer_1" type="String" setter="" getter="" default="&quot;&quot;">
 			Optional name for the 2D physics layer 1.
 		</member>
@@ -869,7 +879,7 @@
 			Size of the hash table used for the broad-phase 2D hash grid algorithm.
 		</member>
 		<member name="physics/2d/cell_size" type="int" setter="" getter="" default="128">
-			Cell size used for the broad-phase 2D hash grid algorithm.
+			Cell size used for the broad-phase 2D hash grid algorithm (in pixels).
 		</member>
 		<member name="physics/2d/default_angular_damp" type="float" setter="" getter="" default="1.0">
 			The default angular damp in 2D.
@@ -990,10 +1000,6 @@
 		</member>
 		<member name="rendering/limits/time/time_rollover_secs" type="float" setter="" getter="" default="3600">
 		</member>
-		<member name="rendering/quality/2d/gles2_use_nvidia_rect_flicker_workaround" type="bool" setter="" getter="" default="false">
-			Some NVIDIA GPU drivers have a bug which produces flickering issues for the [code]draw_rect[/code] method, especially as used in [TileMap]. Refer to [url=https://github.com/godotengine/godot/issues/9913]GitHub issue 9913[/url] for details.
-			If [code]true[/code], this option enables a "safe" code path for such NVIDIA GPUs at the cost of performance. This option only impacts the GLES2 rendering backend, and only desktop platforms. It is not necessary when using the Vulkan backend.
-		</member>
 		<member name="rendering/quality/2d/use_pixel_snap" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], forces snapping of polygons to pixels in 2D rendering. May help in some pixel art styles.
 		</member>
@@ -1041,6 +1047,9 @@
 		</member>
 		<member name="rendering/quality/glow/upscale_mode.mobile" type="int" setter="" getter="" default="0">
 			Lower-end override for [member rendering/quality/glow/upscale_mode] on mobile devices, due to performance concerns or driver support.
+		</member>
+		<member name="rendering/quality/glow/use_high_quality" type="bool" setter="" getter="" default="false">
+			Takes more samples during downsample pass of glow. This ensures that single pixels are captured by glow which makes the glow look smoother and more stable during movement. However, it is very expensive and makes the glow post process take twice as long.
 		</member>
 		<member name="rendering/quality/intended_usage/framebuffer_allocation" type="int" setter="" getter="" default="2">
 			Strategy used for framebuffer allocation. The simpler it is, the less resources it uses (but the less features it supports). If set to "2D Without Sampling" or "3D Without Effects", sample buffers will not be allocated. This means [code]SCREEN_TEXTURE[/code] and [code]DEPTH_TEXTURE[/code] will not be available in shaders and post-processing effects will not be available in the [Environment].
@@ -1162,6 +1171,16 @@
 		<member name="rendering/threads/thread_model" type="int" setter="" getter="" default="1">
 			Thread model for rendering. Rendering on a thread can vastly improve performance, but synchronizing to the main thread can cause a bit more jitter.
 		</member>
+		<member name="rendering/volumetric_fog/directional_shadow_shrink" type="int" setter="" getter="" default="512">
+		</member>
+		<member name="rendering/volumetric_fog/positional_shadow_shrink" type="int" setter="" getter="" default="512">
+		</member>
+		<member name="rendering/volumetric_fog/use_filter" type="int" setter="" getter="" default="0">
+		</member>
+		<member name="rendering/volumetric_fog/volume_depth" type="int" setter="" getter="" default="128">
+		</member>
+		<member name="rendering/volumetric_fog/volume_size" type="int" setter="" getter="" default="64">
+		</member>
 		<member name="rendering/vram_compression/import_bptc" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], the texture importer will import VRAM-compressed textures using the BPTC algorithm. This texture compression algorithm is only supported on desktop platforms, and only when using the Vulkan renderer.
 		</member>
@@ -1186,7 +1205,7 @@
 		<member name="rendering/vulkan/staging_buffer/texture_upload_region_size_px" type="int" setter="" getter="" default="64">
 		</member>
 		<member name="world/2d/cell_size" type="int" setter="" getter="" default="100">
-			Cell size used for the 2D hash grid that [VisibilityNotifier2D] uses.
+			Cell size used for the 2D hash grid that [VisibilityNotifier2D] uses (in pixels).
 		</member>
 	</members>
 	<constants>

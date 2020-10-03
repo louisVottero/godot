@@ -4,7 +4,6 @@ Import("env")
 
 import core_builders
 import make_binders
-from platform_methods import run_in_subprocess
 
 env.core_sources = []
 
@@ -122,6 +121,7 @@ if env["builtin_zstd"]:
         "compress/zstdmt_compress.c",
         "compress/zstd_compress_literals.c",
         "compress/zstd_compress_sequences.c",
+        "compress/zstd_compress_superblock.c",
         "decompress/huf_decompress.c",
         "decompress/zstd_ddict.c",
         "decompress/zstd_decompress_block.c",
@@ -162,13 +162,17 @@ env.CommandNoCache(
 # Authors
 env.Depends("#core/authors.gen.h", "../AUTHORS.md")
 env.CommandNoCache(
-    "#core/authors.gen.h", "../AUTHORS.md", env.Run(core_builders.make_authors_header, "Generating authors header."),
+    "#core/authors.gen.h",
+    "../AUTHORS.md",
+    env.Run(core_builders.make_authors_header, "Generating authors header."),
 )
 
 # Donors
 env.Depends("#core/donors.gen.h", "../DONORS.md")
 env.CommandNoCache(
-    "#core/donors.gen.h", "../DONORS.md", env.Run(core_builders.make_donors_header, "Generating donors header."),
+    "#core/donors.gen.h",
+    "../DONORS.md",
+    env.Run(core_builders.make_donors_header, "Generating donors header."),
 )
 
 # License

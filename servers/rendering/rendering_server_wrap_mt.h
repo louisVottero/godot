@@ -79,14 +79,14 @@ public:
 	//these go pass-through, as they can be called from any thread
 	virtual RID texture_2d_create(const Ref<Image> &p_image) { return rendering_server->texture_2d_create(p_image); }
 	virtual RID texture_2d_layered_create(const Vector<Ref<Image>> &p_layers, TextureLayeredType p_layered_type) { return rendering_server->texture_2d_layered_create(p_layers, p_layered_type); }
-	virtual RID texture_3d_create(const Vector<Ref<Image>> &p_slices) { return rendering_server->texture_3d_create(p_slices); }
+	virtual RID texture_3d_create(Image::Format p_format, int p_width, int p_height, int p_depth, bool p_mipmaps, const Vector<Ref<Image>> &p_data) { return rendering_server->texture_3d_create(p_format, p_width, p_height, p_depth, p_mipmaps, p_data); }
 	virtual RID texture_proxy_create(RID p_base) { return rendering_server->texture_proxy_create(p_base); }
 
 	//goes pass-through
 	virtual void texture_2d_update_immediate(RID p_texture, const Ref<Image> &p_image, int p_layer = 0) { rendering_server->texture_2d_update_immediate(p_texture, p_image, p_layer); }
 	//these go through command queue if they are in another thread
 	FUNC3(texture_2d_update, RID, const Ref<Image> &, int)
-	FUNC4(texture_3d_update, RID, const Ref<Image> &, int, int)
+	FUNC2(texture_3d_update, RID, const Vector<Ref<Image>> &)
 	FUNC2(texture_proxy_update, RID, RID)
 
 	//these also go pass-through
@@ -96,7 +96,7 @@ public:
 
 	FUNC1RC(Ref<Image>, texture_2d_get, RID)
 	FUNC2RC(Ref<Image>, texture_2d_layer_get, RID, int)
-	FUNC3RC(Ref<Image>, texture_3d_slice_get, RID, int, int)
+	FUNC1RC(Vector<Ref<Image>>, texture_3d_get, RID)
 
 	FUNC2(texture_replace, RID, RID)
 
@@ -360,11 +360,14 @@ public:
 	FUNC1(particles_request_process, RID)
 	FUNC1(particles_restart, RID)
 
+	FUNC6(particles_emit, RID, const Transform &, const Vector3 &, const Color &, const Color &, uint32_t)
+
 	FUNC2(particles_set_draw_order, RID, RS::ParticlesDrawOrder)
 
 	FUNC2(particles_set_draw_passes, RID, int)
 	FUNC3(particles_set_draw_pass_mesh, RID, int, RID)
 	FUNC2(particles_set_emission_transform, RID, const Transform &)
+	FUNC2(particles_set_subemitter, RID, RID)
 
 	FUNC1R(AABB, particles_get_current_aabb, RID)
 
@@ -474,14 +477,20 @@ public:
 
 	FUNC11(environment_set_glow, RID, bool, int, float, float, float, float, EnvironmentGlowBlendMode, float, float, float)
 	FUNC1(environment_glow_set_use_bicubic_upscale, bool)
+	FUNC1(environment_glow_set_use_high_quality, bool)
 
 	FUNC9(environment_set_tonemap, RID, EnvironmentToneMapper, float, float, bool, float, float, float, float)
 
 	FUNC6(environment_set_adjustment, RID, bool, float, float, float, RID)
 
-	FUNC5(environment_set_fog, RID, bool, const Color &, const Color &, float)
-	FUNC7(environment_set_fog_depth, RID, bool, float, float, float, bool, float)
-	FUNC5(environment_set_fog_height, RID, bool, float, float, float)
+	FUNC8(environment_set_fog, RID, bool, const Color &, float, float, float, float, float)
+
+	FUNC9(environment_set_volumetric_fog, RID, bool, float, const Color &, float, float, float, float, EnvVolumetricFogShadowFilter)
+
+	FUNC2(environment_set_volumetric_fog_volume_size, int, int)
+	FUNC1(environment_set_volumetric_fog_filter_active, bool)
+	FUNC1(environment_set_volumetric_fog_directional_shadow_shrink_size, int)
+	FUNC1(environment_set_volumetric_fog_positional_shadow_shrink_size, int)
 
 	FUNC3R(Ref<Image>, environment_bake_panorama, RID, bool, const Size2i &)
 
