@@ -356,6 +356,8 @@ public:
 	FUNC2(particles_set_process_material, RID, RID)
 	FUNC2(particles_set_fixed_fps, RID, int)
 	FUNC2(particles_set_fractional_delta, RID, bool)
+	FUNC2(particles_set_collision_base_size, RID, float)
+
 	FUNC1R(bool, particles_is_inactive, RID)
 	FUNC1(particles_request_process, RID)
 	FUNC1(particles_restart, RID)
@@ -370,6 +372,21 @@ public:
 	FUNC2(particles_set_subemitter, RID, RID)
 
 	FUNC1R(AABB, particles_get_current_aabb, RID)
+
+	/* PARTICLES COLLISION */
+
+	FUNCRID(particles_collision)
+
+	FUNC2(particles_collision_set_collision_type, RID, ParticlesCollisionType)
+	FUNC2(particles_collision_set_cull_mask, RID, uint32_t)
+	FUNC2(particles_collision_set_sphere_radius, RID, float)
+	FUNC2(particles_collision_set_box_extents, RID, const Vector3 &)
+	FUNC2(particles_collision_set_attractor_strength, RID, float)
+	FUNC2(particles_collision_set_attractor_directionality, RID, float)
+	FUNC2(particles_collision_set_attractor_attenuation, RID, float)
+	FUNC2(particles_collision_set_field_texture, RID, RID)
+	FUNC1(particles_collision_height_field_update, RID)
+	FUNC2(particles_collision_set_height_field_resolution, RID, ParticlesCollisionHeightfieldResolution)
 
 	/* CAMERA API */
 
@@ -415,12 +432,16 @@ public:
 	FUNC3(viewport_set_canvas_transform, RID, RID, const Transform2D &)
 	FUNC2(viewport_set_transparent_background, RID, bool)
 
+	FUNC2(viewport_set_default_canvas_item_texture_filter, RID, CanvasItemTextureFilter)
+	FUNC2(viewport_set_default_canvas_item_texture_repeat, RID, CanvasItemTextureRepeat)
+
 	FUNC2(viewport_set_global_canvas_transform, RID, const Transform2D &)
 	FUNC4(viewport_set_canvas_stacking, RID, RID, int, int)
 	FUNC2(viewport_set_shadow_atlas_size, RID, int)
 	FUNC3(viewport_set_shadow_atlas_quadrant_subdivision, RID, int, int)
 	FUNC2(viewport_set_msaa, RID, ViewportMSAA)
 	FUNC2(viewport_set_screen_space_aa, RID, ViewportScreenSpaceAA)
+	FUNC2(viewport_set_use_debanding, RID, bool)
 
 	//this passes directly to avoid stalling, but it's pretty dangerous, so don't call after freeing a viewport
 	virtual int viewport_get_render_info(RID p_viewport, ViewportRenderInfo p_info) {
@@ -475,7 +496,7 @@ public:
 	FUNC1(environment_set_sdfgi_ray_count, EnvironmentSDFGIRayCount)
 	FUNC1(environment_set_sdfgi_frames_to_converge, EnvironmentSDFGIFramesToConverge)
 
-	FUNC11(environment_set_glow, RID, bool, int, float, float, float, float, EnvironmentGlowBlendMode, float, float, float)
+	FUNC11(environment_set_glow, RID, bool, Vector<float>, float, float, float, float, EnvironmentGlowBlendMode, float, float, float)
 	FUNC1(environment_glow_set_use_bicubic_upscale, bool)
 	FUNC1(environment_glow_set_use_high_quality, bool)
 
@@ -483,7 +504,7 @@ public:
 
 	FUNC6(environment_set_adjustment, RID, bool, float, float, float, RID)
 
-	FUNC8(environment_set_fog, RID, bool, const Color &, float, float, float, float, float)
+	FUNC9(environment_set_fog, RID, bool, const Color &, float, float, float, float, float, float)
 
 	FUNC9(environment_set_volumetric_fog, RID, bool, float, const Color &, float, float, float, float, EnvVolumetricFogShadowFilter)
 
@@ -565,8 +586,18 @@ public:
 	FUNC3(canvas_set_parent, RID, RID, float)
 	FUNC1(canvas_set_disable_scale, bool)
 
+	FUNCRID(canvas_texture)
+	FUNC3(canvas_texture_set_channel, RID, CanvasTextureChannel, RID)
+	FUNC3(canvas_texture_set_shading_parameters, RID, const Color &, float)
+
+	FUNC2(canvas_texture_set_texture_filter, RID, CanvasItemTextureFilter)
+	FUNC2(canvas_texture_set_texture_repeat, RID, CanvasItemTextureRepeat)
+
 	FUNCRID(canvas_item)
 	FUNC2(canvas_item_set_parent, RID, RID)
+
+	FUNC2(canvas_item_set_default_texture_filter, RID, CanvasItemTextureFilter)
+	FUNC2(canvas_item_set_default_texture_repeat, RID, CanvasItemTextureRepeat)
 
 	FUNC2(canvas_item_set_visible, RID, bool)
 	FUNC2(canvas_item_set_light_mask, RID, int)
@@ -582,23 +613,20 @@ public:
 
 	FUNC2(canvas_item_set_draw_behind_parent, RID, bool)
 
-	FUNC2(canvas_item_set_default_texture_filter, RID, CanvasItemTextureFilter)
-	FUNC2(canvas_item_set_default_texture_repeat, RID, CanvasItemTextureRepeat)
-
 	FUNC5(canvas_item_add_line, RID, const Point2 &, const Point2 &, const Color &, float)
 	FUNC4(canvas_item_add_polyline, RID, const Vector<Point2> &, const Vector<Color> &, float)
 	FUNC4(canvas_item_add_multiline, RID, const Vector<Point2> &, const Vector<Color> &, float)
 	FUNC3(canvas_item_add_rect, RID, const Rect2 &, const Color &)
 	FUNC4(canvas_item_add_circle, RID, const Point2 &, float, const Color &)
-	FUNC11(canvas_item_add_texture_rect, RID, const Rect2 &, RID, bool, const Color &, bool, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC12(canvas_item_add_texture_rect_region, RID, const Rect2 &, RID, const Rect2 &, const Color &, bool, RID, RID, const Color &, bool, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC15(canvas_item_add_nine_patch, RID, const Rect2 &, const Rect2 &, RID, const Vector2 &, const Vector2 &, NinePatchAxisMode, NinePatchAxisMode, bool, const Color &, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC11(canvas_item_add_primitive, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, float, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC10(canvas_item_add_polygon, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC14(canvas_item_add_triangle_array, RID, const Vector<int> &, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, const Vector<int> &, const Vector<float> &, RID, int, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC10(canvas_item_add_mesh, RID, const RID &, const Transform2D &, const Color &, RID, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC8(canvas_item_add_multimesh, RID, RID, RID, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
-	FUNC8(canvas_item_add_particles, RID, RID, RID, RID, RID, const Color &, CanvasItemTextureFilter, CanvasItemTextureRepeat)
+	FUNC6(canvas_item_add_texture_rect, RID, const Rect2 &, RID, bool, const Color &, bool)
+	FUNC7(canvas_item_add_texture_rect_region, RID, const Rect2 &, RID, const Rect2 &, const Color &, bool, bool)
+	FUNC10(canvas_item_add_nine_patch, RID, const Rect2 &, const Rect2 &, RID, const Vector2 &, const Vector2 &, NinePatchAxisMode, NinePatchAxisMode, bool, const Color &)
+	FUNC6(canvas_item_add_primitive, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID, float)
+	FUNC5(canvas_item_add_polygon, RID, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, RID)
+	FUNC9(canvas_item_add_triangle_array, RID, const Vector<int> &, const Vector<Point2> &, const Vector<Color> &, const Vector<Point2> &, const Vector<int> &, const Vector<float> &, RID, int)
+	FUNC5(canvas_item_add_mesh, RID, const RID &, const Transform2D &, const Color &, RID)
+	FUNC3(canvas_item_add_multimesh, RID, RID, RID)
+	FUNC3(canvas_item_add_particles, RID, RID, RID)
 	FUNC2(canvas_item_add_set_transform, RID, const Transform2D &)
 	FUNC2(canvas_item_add_clip_ignore, RID, bool)
 	FUNC2(canvas_item_set_sort_children_by_y, RID, bool)
@@ -632,7 +660,6 @@ public:
 	FUNC2(canvas_light_set_mode, RID, CanvasLightMode)
 
 	FUNC2(canvas_light_set_shadow_enabled, RID, bool)
-	FUNC2(canvas_light_set_shadow_buffer_size, RID, int)
 	FUNC2(canvas_light_set_shadow_filter, RID, CanvasLightShadowFilter)
 	FUNC2(canvas_light_set_shadow_color, RID, const Color &)
 	FUNC2(canvas_light_set_shadow_smooth, RID, float)
@@ -649,6 +676,8 @@ public:
 	FUNC2(canvas_occluder_polygon_set_shape_as_lines, RID, const Vector<Vector2> &)
 
 	FUNC2(canvas_occluder_polygon_set_cull_mode, RID, CanvasOccluderPolygonCullMode)
+
+	FUNC1(canvas_set_shadow_texture_size, int)
 
 	/* GLOBAL VARIABLES */
 

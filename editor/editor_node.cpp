@@ -128,6 +128,7 @@
 #include "editor/plugins/gi_probe_editor_plugin.h"
 #include "editor/plugins/gpu_particles_2d_editor_plugin.h"
 #include "editor/plugins/gpu_particles_3d_editor_plugin.h"
+#include "editor/plugins/gpu_particles_collision_sdf_editor_plugin.h"
 #include "editor/plugins/gradient_editor_plugin.h"
 #include "editor/plugins/item_list_editor_plugin.h"
 #include "editor/plugins/light_occluder_2d_editor_plugin.h"
@@ -504,6 +505,7 @@ void EditorNode::_notification(int p_what) {
 				RS::get_singleton()->environment_set_volumetric_fog_filter_active(bool(GLOBAL_GET("rendering/volumetric_fog/use_filter")));
 				RS::get_singleton()->environment_set_volumetric_fog_directional_shadow_shrink_size(GLOBAL_GET("rendering/volumetric_fog/directional_shadow_shrink"));
 				RS::get_singleton()->environment_set_volumetric_fog_positional_shadow_shrink_size(GLOBAL_GET("rendering/volumetric_fog/positional_shadow_shrink"));
+				RS::get_singleton()->canvas_set_shadow_texture_size(GLOBAL_GET("rendering/quality/2d_shadow_atlas/size"));
 			}
 
 			ResourceImporterTexture::get_singleton()->update_imports();
@@ -4224,6 +4226,7 @@ void EditorNode::_save_docks_to_config(Ref<ConfigFile> p_layout, const String &p
 
 	p_layout->set_value(p_section, "dock_filesystem_split", filesystem_dock->get_split_offset());
 	p_layout->set_value(p_section, "dock_filesystem_display_mode", filesystem_dock->get_display_mode());
+	p_layout->set_value(p_section, "dock_filesystem_file_sort", filesystem_dock->get_file_sort());
 	p_layout->set_value(p_section, "dock_filesystem_file_list_display_mode", filesystem_dock->get_file_list_display_mode());
 
 	for (int i = 0; i < vsplits.size(); i++) {
@@ -4416,6 +4419,11 @@ void EditorNode::_load_docks_from_config(Ref<ConfigFile> p_layout, const String 
 	if (p_layout->has_section_key(p_section, "dock_filesystem_display_mode")) {
 		FileSystemDock::DisplayMode dock_filesystem_display_mode = FileSystemDock::DisplayMode(int(p_layout->get_value(p_section, "dock_filesystem_display_mode")));
 		filesystem_dock->set_display_mode(dock_filesystem_display_mode);
+	}
+
+	if (p_layout->has_section_key(p_section, "dock_filesystem_file_sort")) {
+		FileSystemDock::FileSortOption dock_filesystem_file_sort = FileSystemDock::FileSortOption(int(p_layout->get_value(p_section, "dock_filesystem_file_sort")));
+		filesystem_dock->set_file_sort(dock_filesystem_file_sort);
 	}
 
 	if (p_layout->has_section_key(p_section, "dock_filesystem_file_list_display_mode")) {
@@ -5121,7 +5129,6 @@ void EditorNode::_dropped_files(const Vector<String> &p_files, int p_screen) {
 
 void EditorNode::_add_dropped_files_recursive(const Vector<String> &p_files, String to_path) {
 	DirAccessRef dir = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
-	Vector<String> just_copy = String("ttf,otf").split(",");
 
 	for (int i = 0; i < p_files.size(); i++) {
 		String from = p_files[i];
@@ -5152,9 +5159,6 @@ void EditorNode::_add_dropped_files_recursive(const Vector<String> &p_files, Str
 			continue;
 		}
 
-		if (!ResourceFormatImporter::get_singleton()->can_be_imported(from) && (just_copy.find(from.get_extension().to_lower()) == -1)) {
-			continue;
-		}
 		dir->copy(from, to);
 	}
 }
@@ -6635,6 +6639,7 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(PhysicalBone3DEditorPlugin(this)));
 	add_editor_plugin(memnew(MeshEditorPlugin(this)));
 	add_editor_plugin(memnew(MaterialEditorPlugin(this)));
+	add_editor_plugin(memnew(GPUParticlesCollisionSDFEditorPlugin(this)));
 
 	for (int i = 0; i < EditorPlugins::get_plugin_count(); i++) {
 		add_editor_plugin(EditorPlugins::create(i, this));

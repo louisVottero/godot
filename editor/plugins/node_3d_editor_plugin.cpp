@@ -2405,18 +2405,18 @@ void Node3DEditorViewport::_notification(int p_what) {
 			}
 
 			Transform t = sp->get_global_gizmo_transform();
+			VisualInstance3D *vi = Object::cast_to<VisualInstance3D>(sp);
+			AABB new_aabb = vi ? vi->get_aabb() : _calculate_spatial_bounds(sp);
 
 			exist = true;
-			if (se->last_xform == t && !se->last_xform_dirty) {
+			if (se->last_xform == t && se->aabb == new_aabb && !se->last_xform_dirty) {
 				continue;
 			}
 			changed = true;
 			se->last_xform_dirty = false;
 			se->last_xform = t;
 
-			VisualInstance3D *vi = Object::cast_to<VisualInstance3D>(sp);
-
-			se->aabb = vi ? vi->get_aabb() : _calculate_spatial_bounds(sp);
+			se->aabb = new_aabb;
 
 			t.translate(se->aabb.position);
 
@@ -2464,12 +2464,14 @@ void Node3DEditorViewport::_notification(int p_what) {
 			subviewport_container->set_stretch_shrink(shrink ? 2 : 1);
 		}
 
-		//update msaa if changed
+		// Update MSAA, screen-space AA and debanding if changed
 
-		int msaa_mode = ProjectSettings::get_singleton()->get("rendering/quality/screen_filters/msaa");
+		const int msaa_mode = ProjectSettings::get_singleton()->get("rendering/quality/screen_filters/msaa");
 		viewport->set_msaa(Viewport::MSAA(msaa_mode));
-		int ssaa_mode = GLOBAL_GET("rendering/quality/screen_filters/screen_space_aa");
+		const int ssaa_mode = GLOBAL_GET("rendering/quality/screen_filters/screen_space_aa");
 		viewport->set_screen_space_aa(Viewport::ScreenSpaceAA(ssaa_mode));
+		const bool use_debanding = GLOBAL_GET("rendering/quality/screen_filters/use_debanding");
+		viewport->set_use_debanding(use_debanding);
 
 		bool show_info = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_INFORMATION));
 		if (show_info != info_label->is_visible()) {
@@ -6092,6 +6094,7 @@ void Node3DEditor::_register_all_gizmos() {
 	add_gizmo_plugin(Ref<VehicleWheel3DGizmoPlugin>(memnew(VehicleWheel3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<VisibilityNotifier3DGizmoPlugin>(memnew(VisibilityNotifier3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<GPUParticles3DGizmoPlugin>(memnew(GPUParticles3DGizmoPlugin)));
+	add_gizmo_plugin(Ref<GPUParticlesCollision3DGizmoPlugin>(memnew(GPUParticlesCollision3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<CPUParticles3DGizmoPlugin>(memnew(CPUParticles3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<ReflectionProbeGizmoPlugin>(memnew(ReflectionProbeGizmoPlugin)));
 	add_gizmo_plugin(Ref<DecalGizmoPlugin>(memnew(DecalGizmoPlugin)));
