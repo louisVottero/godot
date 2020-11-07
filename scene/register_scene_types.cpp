@@ -38,6 +38,7 @@
 #include "scene/2d/audio_stream_player_2d.h"
 #include "scene/2d/back_buffer_copy.h"
 #include "scene/2d/camera_2d.h"
+#include "scene/2d/canvas_group.h"
 #include "scene/2d/canvas_modulate.h"
 #include "scene/2d/collision_polygon_2d.h"
 #include "scene/2d/collision_shape_2d.h"
@@ -602,6 +603,7 @@ void register_scene_types() {
 	/* REGISTER 2D */
 
 	ClassDB::register_class<Node2D>();
+	ClassDB::register_class<CanvasGroup>();
 	ClassDB::register_class<CPUParticles2D>();
 	ClassDB::register_class<GPUParticles2D>();
 	ClassDB::register_class<Sprite2D>();
@@ -626,7 +628,9 @@ void register_scene_types() {
 	ClassDB::register_class<Polygon2D>();
 	ClassDB::register_class<Skeleton2D>();
 	ClassDB::register_class<Bone2D>();
-	ClassDB::register_class<Light2D>();
+	ClassDB::register_virtual_class<Light2D>();
+	ClassDB::register_class<PointLight2D>();
+	ClassDB::register_class<DirectionalLight2D>();
 	ClassDB::register_class<LightOccluder2D>();
 	ClassDB::register_class<OccluderPolygon2D>();
 	ClassDB::register_class<YSort>();
@@ -915,6 +919,7 @@ void register_scene_types() {
 	ClassDB::add_compatibility_class("VisualShaderNodeScalarUniform", "VisualShaderNodeFloatUniform");
 	ClassDB::add_compatibility_class("World", "World3D");
 	ClassDB::add_compatibility_class("StreamTexture", "StreamTexture2D");
+	ClassDB::add_compatibility_class("Light2D", "PointLight2D");
 
 #endif
 

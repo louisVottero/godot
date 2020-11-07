@@ -328,7 +328,7 @@ void RasterizerCanvasRD::_bind_canvas_texture(RD::DrawListID p_draw_list, RID p_
 	bool use_normal;
 	bool use_specular;
 
-	bool success = storage->canvas_texture_get_unifom_set(p_texture, p_base_filter, p_base_repeat, shader.default_version_rd_shader, CANVAS_TEXTURE_UNIFORM_SET, uniform_set, size, specular_shininess, use_normal, use_specular);
+	bool success = storage->canvas_texture_get_uniform_set(p_texture, p_base_filter, p_base_repeat, shader.default_version_rd_shader, CANVAS_TEXTURE_UNIFORM_SET, uniform_set, size, specular_shininess, use_normal, use_specular);
 	//something odd happened
 	if (!success) {
 		_bind_canvas_texture(p_draw_list, default_canvas_texture, p_base_filter, p_base_repeat, r_last_texture, push_constant, r_texpixel_size);
@@ -416,10 +416,6 @@ void RasterizerCanvasRD::_render_item(RD::DrawListID p_draw_list, const Item *p_
 
 				light_count++;
 
-				if (light->mode == RS::CANVAS_LIGHT_MODE_MASK) {
-					base_flags |= FLAGS_USING_LIGHT_MASK;
-				}
-
 				if (light_count == MAX_LIGHTS_PER_ITEM) {
 					break;
 				}
@@ -430,7 +426,7 @@ void RasterizerCanvasRD::_render_item(RD::DrawListID p_draw_list, const Item *p_
 		base_flags |= light_count << FLAGS_LIGHT_COUNT_SHIFT;
 	}
 
-	light_mode = light_count > 0 ? PIPELINE_LIGHT_MODE_ENABLED : PIPELINE_LIGHT_MODE_DISABLED;
+	light_mode = (light_count > 0 || using_directional_lights) ? PIPELINE_LIGHT_MODE_ENABLED : PIPELINE_LIGHT_MODE_DISABLED;
 
 	PipelineVariants *pipeline_variants = p_pipeline_variants;
 
@@ -1102,28 +1098,36 @@ RID RasterizerCanvasRD::_create_base_uniform_set(RID p_to_render_target, bool p_
 	return uniform_set;
 }
 
-void RasterizerCanvasRD::_render_items(RID p_to_render_target, int p_item_count, const Transform2D &p_canvas_transform_inverse, Light *p_lights) {
+void RasterizerCanvasRD::_render_items(RID p_to_render_target, int p_item_count, const Transform2D &p_canvas_transform_inverse, Light *p_lights, bool p_to_backbuffer) {
 	Item *current_clip = nullptr;
 
 	Transform2D canvas_transform_inverse = p_canvas_transform_inverse;
 
-	RID framebuffer = storage->render_target_get_rd_framebuffer(p_to_render_target);
-
-	Vector<Color> clear_colors;
+	RID framebuffer;
+	RID fb_uniform_set;
 	bool clear = false;
-	if (storage->render_target_is_clear_requested(p_to_render_target)) {
-		clear = true;
-		clear_colors.push_back(storage->render_target_get_clear_request_color(p_to_render_target));
-		storage->render_target_disable_clear_request(p_to_render_target);
-	}
+	Vector<Color> clear_colors;
+
+	if (p_to_backbuffer) {
+		framebuffer = storage->render_target_get_rd_backbuffer_framebuffer(p_to_render_target);
+		fb_uniform_set = storage->render_target_get_backbuffer_uniform_set(p_to_render_target);
+	} else {
+		framebuffer = storage->render_target_get_rd_framebuffer(p_to_render_target);
+
+		if (storage->render_target_is_clear_requested(p_to_render_target)) {
+			clear = true;
+			clear_colors.push_back(storage->render_target_get_clear_request_color(p_to_render_target));
+			storage->render_target_disable_clear_request(p_to_render_target);
+		}
 #ifndef _MSC_VER
 #warning TODO obtain from framebuffer format eventually when this is implemented
 #endif
 
-	RID fb_uniform_set = storage->render_target_get_framebuffer_uniform_set(p_to_render_target);
+		fb_uniform_set = storage->render_target_get_framebuffer_uniform_set(p_to_render_target);
+	}
 
 	if (fb_uniform_set.is_null() || !RD::get_singleton()->uniform_set_is_valid(fb_uniform_set)) {
-		fb_uniform_set = _create_base_uniform_set(p_to_render_target, false);
+		fb_uniform_set = _create_base_uniform_set(p_to_render_target, p_to_backbuffer);
 	}
 
 	RD::FramebufferFormatID fb_format = RD::get_singleton()->framebuffer_get_format(framebuffer);
@@ -1152,10 +1156,16 @@ void RasterizerCanvasRD::_render_items(RID p_to_render_target, int p_item_count,
 			}
 		}
 
-		if (ci->material != prev_material) {
+		RID material = ci->material;
+
+		if (material.is_null() && ci->canvas_group != nullptr) {
+			material = default_canvas_group_material;
+		}
+
+		if (material != prev_material) {
 			MaterialData *material_data = nullptr;
-			if (ci->material.is_valid()) {
-				material_data = (MaterialData *)storage->material_get_data(ci->material, RasterizerStorageRD::SHADER_TYPE_2D);
+			if (material.is_valid()) {
+				material_data = (MaterialData *)storage->material_get_data(material, RasterizerStorageRD::SHADER_TYPE_2D);
 			}
 
 			if (material_data) {
@@ -1174,55 +1184,89 @@ void RasterizerCanvasRD::_render_items(RID p_to_render_target, int p_item_count,
 
 		_render_item(draw_list, ci, fb_format, canvas_transform_inverse, current_clip, p_lights, pipeline_variants);
 
-		prev_material = ci->material;
+		prev_material = material;
 	}
 
 	RD::get_singleton()->draw_list_end();
 }
 
-void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_item_list, const Color &p_modulate, Light *p_light_list, const Transform2D &p_canvas_transform, RenderingServer::CanvasItemTextureFilter p_default_filter, RenderingServer::CanvasItemTextureRepeat p_default_repeat) {
+void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_item_list, const Color &p_modulate, Light *p_light_list, Light *p_directional_light_list, const Transform2D &p_canvas_transform, RenderingServer::CanvasItemTextureFilter p_default_filter, RenderingServer::CanvasItemTextureRepeat p_default_repeat, bool p_snap_2d_vertices_to_pixel) {
 	int item_count = 0;
 
 	//setup canvas state uniforms if needed
 
 	Transform2D canvas_transform_inverse = p_canvas_transform.affine_inverse();
 
+	//setup directional lights if exist
+
+	uint32_t light_count = 0;
+	uint32_t directional_light_count = 0;
 	{
-		//update canvas state uniform buffer
-		State::Buffer state_buffer;
+		Light *l = p_directional_light_list;
+		uint32_t index = 0;
 
-		Size2i ssize = storage->render_target_get_size(p_to_render_target);
+		while (l) {
+			if (index == state.max_lights_per_render) {
+				l->render_index_cache = -1;
+				l = l->next_ptr;
+				continue;
+			}
 
-		Transform screen_transform;
-		screen_transform.translate(-(ssize.width / 2.0f), -(ssize.height / 2.0f), 0.0f);
-		screen_transform.scale(Vector3(2.0f / ssize.width, 2.0f / ssize.height, 1.0f));
-		_update_transform_to_mat4(screen_transform, state_buffer.screen_transform);
-		_update_transform_2d_to_mat4(p_canvas_transform, state_buffer.canvas_transform);
+			CanvasLight *clight = canvas_light_owner.getornull(l->light_internal);
+			if (!clight) { //unused or invalid texture
+				l->render_index_cache = -1;
+				l = l->next_ptr;
+				ERR_CONTINUE(!clight);
+			}
 
-		Transform2D normal_transform = p_canvas_transform;
-		normal_transform.elements[0].normalize();
-		normal_transform.elements[1].normalize();
-		normal_transform.elements[2] = Vector2();
-		_update_transform_2d_to_mat4(normal_transform, state_buffer.canvas_normal_transform);
+			Vector2 canvas_light_dir = l->xform_cache.elements[1].normalized();
 
-		state_buffer.canvas_modulate[0] = p_modulate.r;
-		state_buffer.canvas_modulate[1] = p_modulate.g;
-		state_buffer.canvas_modulate[2] = p_modulate.b;
-		state_buffer.canvas_modulate[3] = p_modulate.a;
+			state.light_uniforms[index].position[0] = -canvas_light_dir.x;
+			state.light_uniforms[index].position[1] = -canvas_light_dir.y;
 
-		Size2 render_target_size = storage->render_target_get_size(p_to_render_target);
-		state_buffer.screen_pixel_size[0] = 1.0 / render_target_size.x;
-		state_buffer.screen_pixel_size[1] = 1.0 / render_target_size.y;
+			_update_transform_2d_to_mat2x4(clight->shadow.directional_xform, state.light_uniforms[index].shadow_matrix);
 
-		state_buffer.time = state.time;
-		RD::get_singleton()->buffer_update(state.canvas_state_buffer, 0, sizeof(State::Buffer), &state_buffer, true);
+			state.light_uniforms[index].height = l->height; //0..1 here
+
+			for (int i = 0; i < 4; i++) {
+				state.light_uniforms[index].shadow_color[i] = uint8_t(CLAMP(int32_t(l->shadow_color[i] * 255.0), 0, 255));
+				state.light_uniforms[index].color[i] = l->color[i];
+			}
+
+			state.light_uniforms[index].color[3] = l->energy; //use alpha for energy, so base color can go separate
+
+			if (state.shadow_fb.is_valid()) {
+				state.light_uniforms[index].shadow_pixel_size = (1.0 / state.shadow_texture_size) * (1.0 + l->shadow_smooth);
+				state.light_uniforms[index].shadow_z_far_inv = 1.0 / clight->shadow.z_far;
+				state.light_uniforms[index].shadow_y_ofs = clight->shadow.y_offset;
+			} else {
+				state.light_uniforms[index].shadow_pixel_size = 1.0;
+				state.light_uniforms[index].shadow_z_far_inv = 1.0;
+				state.light_uniforms[index].shadow_y_ofs = 0;
+			}
+
+			state.light_uniforms[index].flags = l->blend_mode << LIGHT_FLAGS_BLEND_SHIFT;
+			state.light_uniforms[index].flags |= l->shadow_filter << LIGHT_FLAGS_FILTER_SHIFT;
+			if (clight->shadow.enabled) {
+				state.light_uniforms[index].flags |= LIGHT_FLAGS_HAS_SHADOW;
+			}
+
+			l->render_index_cache = index;
+
+			index++;
+			l = l->next_ptr;
+		}
+
+		light_count = index;
+		directional_light_count = light_count;
+		using_directional_lights = directional_light_count > 0;
 	}
 
 	//setup lights if exist
 
 	{
 		Light *l = p_light_list;
-		uint32_t index = 0;
+		uint32_t index = light_count;
 
 		while (l) {
 			if (index == state.max_lights_per_render) {
@@ -1264,7 +1308,7 @@ void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_ite
 				state.light_uniforms[index].shadow_y_ofs = 0;
 			}
 
-			state.light_uniforms[index].flags |= l->mode << LIGHT_FLAGS_BLEND_SHIFT;
+			state.light_uniforms[index].flags = l->blend_mode << LIGHT_FLAGS_BLEND_SHIFT;
 			state.light_uniforms[index].flags |= l->shadow_filter << LIGHT_FLAGS_FILTER_SHIFT;
 			if (clight->shadow.enabled) {
 				state.light_uniforms[index].flags |= LIGHT_FLAGS_HAS_SHADOW;
@@ -1290,9 +1334,46 @@ void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_ite
 			l = l->next_ptr;
 		}
 
-		if (index > 0) {
-			RD::get_singleton()->buffer_update(state.lights_uniform_buffer, 0, sizeof(LightUniform) * index, &state.light_uniforms[0], true);
-		}
+		light_count = index;
+	}
+
+	if (light_count > 0) {
+		RD::get_singleton()->buffer_update(state.lights_uniform_buffer, 0, sizeof(LightUniform) * light_count, &state.light_uniforms[0], true);
+	}
+
+	{
+		//update canvas state uniform buffer
+		State::Buffer state_buffer;
+
+		Size2i ssize = storage->render_target_get_size(p_to_render_target);
+
+		Transform screen_transform;
+		screen_transform.translate(-(ssize.width / 2.0f), -(ssize.height / 2.0f), 0.0f);
+		screen_transform.scale(Vector3(2.0f / ssize.width, 2.0f / ssize.height, 1.0f));
+		_update_transform_to_mat4(screen_transform, state_buffer.screen_transform);
+		_update_transform_2d_to_mat4(p_canvas_transform, state_buffer.canvas_transform);
+
+		Transform2D normal_transform = p_canvas_transform;
+		normal_transform.elements[0].normalize();
+		normal_transform.elements[1].normalize();
+		normal_transform.elements[2] = Vector2();
+		_update_transform_2d_to_mat4(normal_transform, state_buffer.canvas_normal_transform);
+
+		state_buffer.canvas_modulate[0] = p_modulate.r;
+		state_buffer.canvas_modulate[1] = p_modulate.g;
+		state_buffer.canvas_modulate[2] = p_modulate.b;
+		state_buffer.canvas_modulate[3] = p_modulate.a;
+
+		Size2 render_target_size = storage->render_target_get_size(p_to_render_target);
+		state_buffer.screen_pixel_size[0] = 1.0 / render_target_size.x;
+		state_buffer.screen_pixel_size[1] = 1.0 / render_target_size.y;
+
+		state_buffer.time = state.time;
+		state_buffer.use_pixel_snap = p_snap_2d_vertices_to_pixel;
+
+		state_buffer.directional_light_count = directional_light_count;
+
+		RD::get_singleton()->buffer_update(state.canvas_state_buffer, 0, sizeof(State::Buffer), &state_buffer, true);
 	}
 
 	{ //default filter/repeat
@@ -1306,8 +1387,10 @@ void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_ite
 	Rect2 back_buffer_rect;
 	bool backbuffer_copy = false;
 
+	Item *canvas_group_owner = nullptr;
+
 	while (ci) {
-		if (ci->copy_back_buffer) {
+		if (ci->copy_back_buffer && canvas_group_owner == nullptr) {
 			backbuffer_copy = true;
 
 			if (ci->copy_back_buffer->full) {
@@ -1320,7 +1403,7 @@ void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_ite
 		if (ci->material.is_valid()) {
 			MaterialData *md = (MaterialData *)storage->material_get_data(ci->material, RasterizerStorageRD::SHADER_TYPE_2D);
 			if (md && md->shader_data->valid) {
-				if (md->shader_data->uses_screen_texture) {
+				if (md->shader_data->uses_screen_texture && canvas_group_owner == nullptr) {
 					if (!material_screen_texture_found) {
 						backbuffer_copy = true;
 						back_buffer_rect = Rect2();
@@ -1338,12 +1421,44 @@ void RasterizerCanvasRD::canvas_render_items(RID p_to_render_target, Item *p_ite
 			}
 		}
 
+		if (ci->canvas_group_owner != nullptr) {
+			if (canvas_group_owner == nullptr) {
+				//Canvas group begins here, render until before this item
+				_render_items(p_to_render_target, item_count, canvas_transform_inverse, p_light_list);
+				item_count = 0;
+
+				Rect2i group_rect = ci->canvas_group_owner->global_rect_cache;
+
+				if (ci->canvas_group_owner->canvas_group->mode == RS::CANVAS_GROUP_MODE_OPAQUE) {
+					storage->render_target_copy_to_back_buffer(p_to_render_target, group_rect, false);
+				} else {
+					storage->render_target_clear_back_buffer(p_to_render_target, group_rect, Color(0, 0, 0, 0));
+				}
+
+				backbuffer_copy = false;
+				canvas_group_owner = ci->canvas_group_owner; //continue until owner found
+			}
+
+			ci->canvas_group_owner = nullptr; //must be cleared
+		}
+
+		if (ci == canvas_group_owner) {
+			_render_items(p_to_render_target, item_count, canvas_transform_inverse, p_light_list, true);
+			item_count = 0;
+
+			if (ci->canvas_group->blur_mipmaps) {
+				storage->render_target_gen_back_buffer_mipmaps(p_to_render_target, ci->global_rect_cache);
+			}
+
+			canvas_group_owner = nullptr;
+		}
+
 		if (backbuffer_copy) {
 			//render anything pending, including clearing if no items
 			_render_items(p_to_render_target, item_count, canvas_transform_inverse, p_light_list);
 			item_count = 0;
 
-			storage->render_target_copy_to_back_buffer(p_to_render_target, back_buffer_rect);
+			storage->render_target_copy_to_back_buffer(p_to_render_target, back_buffer_rect, true);
 
 			backbuffer_copy = false;
 			material_screen_texture_found = true; //after a backbuffer copy, screen texture makes no further copies
@@ -1389,10 +1504,7 @@ void RasterizerCanvasRD::light_set_use_shadow(RID p_rid, bool p_enable) {
 	cl->shadow.enabled = p_enable;
 }
 
-void RasterizerCanvasRD::light_update_shadow(RID p_rid, int p_shadow_index, const Transform2D &p_light_xform, int p_light_mask, float p_near, float p_far, LightOccluderInstance *p_occluders) {
-	CanvasLight *cl = canvas_light_owner.getornull(p_rid);
-	ERR_FAIL_COND(!cl->shadow.enabled);
-
+void RasterizerCanvasRD::_update_shadow_atlas() {
 	if (state.shadow_fb == RID()) {
 		//ah, we lack the shadow texture..
 		RD::get_singleton()->free(state.shadow_texture); //erase placeholder
@@ -1424,6 +1536,12 @@ void RasterizerCanvasRD::light_update_shadow(RID p_rid, int p_shadow_index, cons
 
 		state.shadow_fb = RD::get_singleton()->framebuffer_create(fb_textures);
 	}
+}
+void RasterizerCanvasRD::light_update_shadow(RID p_rid, int p_shadow_index, const Transform2D &p_light_xform, int p_light_mask, float p_near, float p_far, LightOccluderInstance *p_occluders) {
+	CanvasLight *cl = canvas_light_owner.getornull(p_rid);
+	ERR_FAIL_COND(!cl->shadow.enabled);
+
+	_update_shadow_atlas();
 
 	cl->shadow.z_far = p_far;
 	cl->shadow.y_offset = float(p_shadow_index * 2 + 1) / float(state.max_lights_per_render * 2);
@@ -1495,6 +1613,86 @@ void RasterizerCanvasRD::light_update_shadow(RID p_rid, int p_shadow_index, cons
 
 		RD::get_singleton()->draw_list_end();
 	}
+}
+
+void RasterizerCanvasRD::light_update_directional_shadow(RID p_rid, int p_shadow_index, const Transform2D &p_light_xform, int p_light_mask, float p_cull_distance, const Rect2 &p_clip_rect, LightOccluderInstance *p_occluders) {
+	CanvasLight *cl = canvas_light_owner.getornull(p_rid);
+	ERR_FAIL_COND(!cl->shadow.enabled);
+
+	_update_shadow_atlas();
+
+	Vector2 light_dir = p_light_xform.elements[1].normalized();
+
+	Vector2 center = p_clip_rect.position + p_clip_rect.size * 0.5;
+
+	float to_edge_distance = ABS(light_dir.dot(p_clip_rect.get_support(light_dir)) - light_dir.dot(center));
+
+	Vector2 from_pos = center - light_dir * (to_edge_distance + p_cull_distance);
+	float distance = to_edge_distance * 2.0 + p_cull_distance;
+	float half_size = p_clip_rect.size.length() * 0.5; //shadow length, must keep this no matter the angle
+
+	cl->shadow.z_far = distance;
+	cl->shadow.y_offset = float(p_shadow_index * 2 + 1) / float(state.max_lights_per_render * 2);
+
+	Transform2D to_light_xform;
+
+	to_light_xform[2] = from_pos;
+	to_light_xform[1] = light_dir;
+	to_light_xform[0] = -light_dir.tangent();
+
+	to_light_xform.invert();
+
+	Vector<Color> cc;
+	cc.push_back(Color(1, 1, 1, 1));
+
+	Rect2i rect(0, p_shadow_index * 2, state.shadow_texture_size, 2);
+	RD::DrawListID draw_list = RD::get_singleton()->draw_list_begin(state.shadow_fb, RD::INITIAL_ACTION_CLEAR, RD::FINAL_ACTION_READ, RD::INITIAL_ACTION_CLEAR, RD::FINAL_ACTION_DISCARD, cc, 1.0, 0, rect);
+
+	CameraMatrix projection;
+	projection.set_orthogonal(-half_size, half_size, -0.5, 0.5, 0.0, distance);
+	projection = projection * CameraMatrix(Transform().looking_at(Vector3(0, 1, 0), Vector3(0, 0, -1)).affine_inverse());
+
+	ShadowRenderPushConstant push_constant;
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 4; x++) {
+			push_constant.projection[y * 4 + x] = projection.matrix[y][x];
+		}
+	}
+
+	push_constant.direction[0] = 0.0;
+	push_constant.direction[1] = 1.0;
+	push_constant.z_far = distance;
+	push_constant.pad = 0;
+
+	LightOccluderInstance *instance = p_occluders;
+
+	while (instance) {
+		OccluderPolygon *co = occluder_polygon_owner.getornull(instance->occluder);
+
+		if (!co || co->index_array.is_null() || !(p_light_mask & instance->light_mask)) {
+			instance = instance->next;
+			continue;
+		}
+
+		_update_transform_2d_to_mat2x4(to_light_xform * instance->xform_cache, push_constant.modelview);
+
+		RD::get_singleton()->draw_list_bind_render_pipeline(draw_list, shadow_render.render_pipelines[co->cull_mode]);
+		RD::get_singleton()->draw_list_bind_vertex_array(draw_list, co->vertex_array);
+		RD::get_singleton()->draw_list_bind_index_array(draw_list, co->index_array);
+		RD::get_singleton()->draw_list_set_push_constant(draw_list, &push_constant, sizeof(ShadowRenderPushConstant));
+
+		RD::get_singleton()->draw_list_draw(draw_list, true);
+
+		instance = instance->next;
+	}
+
+	RD::get_singleton()->draw_list_end();
+
+	Transform2D to_shadow;
+	to_shadow.elements[0].x = 1.0 / -(half_size * 2.0);
+	to_shadow.elements[2].x = 0.5;
+
+	cl->shadow.directional_xform = to_shadow * to_light_xform;
 }
 
 RID RasterizerCanvasRD::occluder_polygon_create() {
@@ -1672,10 +1870,11 @@ void RasterizerCanvasRD::ShaderData::set_code(const String &p_code) {
 		} break;
 		case BLEND_MODE_MIX: {
 			attachment.enable_blend = true;
-			attachment.alpha_blend_op = RD::BLEND_OP_ADD;
 			attachment.color_blend_op = RD::BLEND_OP_ADD;
 			attachment.src_color_blend_factor = RD::BLEND_FACTOR_SRC_ALPHA;
 			attachment.dst_color_blend_factor = RD::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+			attachment.alpha_blend_op = RD::BLEND_OP_ADD;
 			attachment.src_alpha_blend_factor = RD::BLEND_FACTOR_ONE;
 			attachment.dst_alpha_blend_factor = RD::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
@@ -2013,6 +2212,20 @@ RasterizerCanvasRD::RasterizerCanvasRD(RasterizerStorageRD *p_storage) {
 		shader.default_version = shader.canvas_shader.version_create();
 		shader.default_version_rd_shader = shader.canvas_shader.version_get_shader(shader.default_version, SHADER_VARIANT_QUAD);
 
+		RD::PipelineColorBlendState blend_state;
+		RD::PipelineColorBlendState::Attachment blend_attachment;
+
+		blend_attachment.enable_blend = true;
+		blend_attachment.color_blend_op = RD::BLEND_OP_ADD;
+		blend_attachment.src_color_blend_factor = RD::BLEND_FACTOR_SRC_ALPHA;
+		blend_attachment.dst_color_blend_factor = RD::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+		blend_attachment.alpha_blend_op = RD::BLEND_OP_ADD;
+		blend_attachment.src_alpha_blend_factor = RD::BLEND_FACTOR_ONE;
+		blend_attachment.dst_alpha_blend_factor = RD::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+		blend_state.attachments.push_back(blend_attachment);
+
 		for (int i = 0; i < PIPELINE_LIGHT_MODE_MAX; i++) {
 			for (int j = 0; j < PIPELINE_VARIANT_MAX; j++) {
 				RD::RenderPrimitive primitive[PIPELINE_VARIANT_MAX] = {
@@ -2054,7 +2267,7 @@ RasterizerCanvasRD::RasterizerCanvasRD(RasterizerStorageRD *p_storage) {
 				};
 
 				RID shader_variant = shader.canvas_shader.version_get_shader(shader.default_version, shader_variants[i][j]);
-				shader.pipeline_variants.variants[i][j].setup(shader_variant, primitive[j], RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), RD::PipelineDepthStencilState(), RD::PipelineColorBlendState::create_blend(), 0);
+				shader.pipeline_variants.variants[i][j].setup(shader_variant, primitive[j], RD::PipelineRasterizationState(), RD::PipelineMultisampleState(), RD::PipelineDepthStencilState(), blend_state, 0);
 			}
 		}
 	}
@@ -2260,6 +2473,13 @@ RasterizerCanvasRD::RasterizerCanvasRD(RasterizerStorageRD *p_storage) {
 
 	state.time = 0;
 
+	{
+		default_canvas_group_shader = storage->shader_create();
+		storage->shader_set_code(default_canvas_group_shader, "shader_type canvas_item; \nvoid fragment() {\n\tvec4 c = textureLod(SCREEN_TEXTURE,SCREEN_UV,0.0); if (c.a > 0.0001) c.rgb/=c.a; COLOR *= c; \n}\n");
+		default_canvas_group_material = storage->material_create();
+		storage->material_set_shader(default_canvas_group_material, default_canvas_group_shader);
+	}
+
 	static_assert(sizeof(PushConstant) == 128);
 }
 
@@ -2306,6 +2526,9 @@ void RasterizerCanvasRD::set_shadow_texture_size(int p_size) {
 
 RasterizerCanvasRD::~RasterizerCanvasRD() {
 	//canvas state
+
+	storage->free(default_canvas_group_material);
+	storage->free(default_canvas_group_shader);
 
 	{
 		if (state.canvas_state_buffer.is_valid()) {

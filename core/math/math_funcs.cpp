@@ -34,8 +34,6 @@
 
 RandomPCG Math::default_rand(RandomPCG::DEFAULT_SEED, RandomPCG::DEFAULT_INC);
 
-#define PHI 0x9e3779b9
-
 uint32_t Math::rand_from_seed(uint64_t *seed) {
 	RandomPCG rng = RandomPCG(*seed, RandomPCG::DEFAULT_INC);
 	uint32_t r = rng.rand();
@@ -181,5 +179,9 @@ double Math::random(double from, double to) {
 }
 
 float Math::random(float from, float to) {
+	return default_rand.random(from, to);
+}
+
+int Math::random(int from, int to) {
 	return default_rand.random(from, to);
 }

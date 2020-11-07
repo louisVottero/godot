@@ -528,6 +528,8 @@ public:
 	BIND2(viewport_remove_canvas, RID, RID)
 	BIND3(viewport_set_canvas_transform, RID, RID, const Transform2D &)
 	BIND2(viewport_set_transparent_background, RID, bool)
+	BIND2(viewport_set_snap_2d_transforms_to_pixel, RID, bool)
+	BIND2(viewport_set_snap_2d_vertices_to_pixel, RID, bool)
 
 	BIND2(viewport_set_default_canvas_item_texture_filter, RID, CanvasItemTextureFilter)
 	BIND2(viewport_set_default_canvas_item_texture_repeat, RID, CanvasItemTextureRepeat)
@@ -743,10 +745,15 @@ public:
 
 	BIND2(canvas_item_set_use_parent_material, RID, bool)
 
+	BIND6(canvas_item_set_canvas_group_mode, RID, CanvasGroupMode, float, bool, float, bool)
+
 	BIND0R(RID, canvas_light_create)
+
+	BIND2(canvas_light_set_mode, RID, CanvasLightMode)
+
 	BIND2(canvas_light_attach_to_canvas, RID, RID)
 	BIND2(canvas_light_set_enabled, RID, bool)
-	BIND2(canvas_light_set_scale, RID, float)
+	BIND2(canvas_light_set_texture_scale, RID, float)
 	BIND2(canvas_light_set_transform, RID, const Transform2D &)
 	BIND2(canvas_light_set_texture, RID, RID)
 	BIND2(canvas_light_set_texture_offset, RID, const Vector2 &)
@@ -757,8 +764,9 @@ public:
 	BIND3(canvas_light_set_layer_range, RID, int, int)
 	BIND2(canvas_light_set_item_cull_mask, RID, int)
 	BIND2(canvas_light_set_item_shadow_cull_mask, RID, int)
+	BIND2(canvas_light_set_directional_distance, RID, float)
 
-	BIND2(canvas_light_set_mode, RID, CanvasLightMode)
+	BIND2(canvas_light_set_blend_mode, RID, CanvasLightBlendMode)
 
 	BIND2(canvas_light_set_shadow_enabled, RID, bool)
 	BIND2(canvas_light_set_shadow_filter, RID, CanvasLightShadowFilter)

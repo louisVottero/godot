@@ -225,6 +225,8 @@ private:
 	bool gen_mipmaps;
 
 	bool snap_controls_to_pixels;
+	bool snap_2d_transforms_to_pixel;
+	bool snap_2d_vertices_to_pixel;
 
 	bool physics_object_picking;
 	List<Ref<InputEvent>> physics_picking_events;
@@ -279,7 +281,7 @@ private:
 
 	MSAA msaa;
 	ScreenSpaceAA screen_space_aa;
-	bool use_debanding;
+	bool use_debanding = false;
 	Ref<ViewportTexture> default_texture;
 	Set<ViewportTexture *> viewport_textures;
 
@@ -321,7 +323,7 @@ private:
 		Control *mouse_over;
 		Control *drag_mouse_over;
 		Vector2 drag_mouse_over_pos;
-		Control *tooltip;
+		Control *tooltip_control;
 		Window *tooltip_popup;
 		Label *tooltip_label;
 		Point2 tooltip_pos;
@@ -380,7 +382,7 @@ private:
 
 	void _gui_remove_root_control(List<Control *>::Element *RI);
 
-	String _gui_get_tooltip(Control *p_control, const Vector2 &p_pos, Control **r_which = nullptr);
+	String _gui_get_tooltip(Control *p_control, const Vector2 &p_pos, Control **r_tooltip_owner = nullptr);
 	void _gui_cancel_tooltip();
 	void _gui_show_tooltip();
 
@@ -555,6 +557,12 @@ public:
 
 	void set_snap_controls_to_pixels(bool p_enable);
 	bool is_snap_controls_to_pixels_enabled() const;
+
+	void set_snap_2d_transforms_to_pixel(bool p_enable);
+	bool is_snap_2d_transforms_to_pixel_enabled() const;
+
+	void set_snap_2d_vertices_to_pixel(bool p_enable);
+	bool is_snap_2d_vertices_to_pixel_enabled() const;
 
 	void set_input_as_handled();
 	bool is_input_handled() const;

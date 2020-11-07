@@ -431,6 +431,8 @@ public:
 	FUNC2(viewport_remove_canvas, RID, RID)
 	FUNC3(viewport_set_canvas_transform, RID, RID, const Transform2D &)
 	FUNC2(viewport_set_transparent_background, RID, bool)
+	FUNC2(viewport_set_snap_2d_transforms_to_pixel, RID, bool)
+	FUNC2(viewport_set_snap_2d_vertices_to_pixel, RID, bool)
 
 	FUNC2(viewport_set_default_canvas_item_texture_filter, RID, CanvasItemTextureFilter)
 	FUNC2(viewport_set_default_canvas_item_texture_repeat, RID, CanvasItemTextureRepeat)
@@ -642,10 +644,15 @@ public:
 
 	FUNC2(canvas_item_set_use_parent_material, RID, bool)
 
+	FUNC6(canvas_item_set_canvas_group_mode, RID, CanvasGroupMode, float, bool, float, bool)
+
 	FUNC0R(RID, canvas_light_create)
+
+	FUNC2(canvas_light_set_mode, RID, CanvasLightMode)
+
 	FUNC2(canvas_light_attach_to_canvas, RID, RID)
 	FUNC2(canvas_light_set_enabled, RID, bool)
-	FUNC2(canvas_light_set_scale, RID, float)
+	FUNC2(canvas_light_set_texture_scale, RID, float)
 	FUNC2(canvas_light_set_transform, RID, const Transform2D &)
 	FUNC2(canvas_light_set_texture, RID, RID)
 	FUNC2(canvas_light_set_texture_offset, RID, const Vector2 &)
@@ -656,8 +663,9 @@ public:
 	FUNC3(canvas_light_set_layer_range, RID, int, int)
 	FUNC2(canvas_light_set_item_cull_mask, RID, int)
 	FUNC2(canvas_light_set_item_shadow_cull_mask, RID, int)
+	FUNC2(canvas_light_set_directional_distance, RID, float)
 
-	FUNC2(canvas_light_set_mode, RID, CanvasLightMode)
+	FUNC2(canvas_light_set_blend_mode, RID, CanvasLightBlendMode)
 
 	FUNC2(canvas_light_set_shadow_enabled, RID, bool)
 	FUNC2(canvas_light_set_shadow_filter, RID, CanvasLightShadowFilter)
