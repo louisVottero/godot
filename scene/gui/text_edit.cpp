@@ -30,12 +30,12 @@
 
 #include "text_edit.h"
 
+#include "core/config/project_settings.h"
 #include "core/input/input.h"
-#include "core/message_queue.h"
+#include "core/object/message_queue.h"
+#include "core/object/script_language.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
-#include "core/project_settings.h"
-#include "core/script_language.h"
 #include "scene/main/window.h"
 
 #ifdef TOOLS_ENABLED
@@ -1559,7 +1559,19 @@ void TextEdit::_notification(int p_what) {
 			}
 
 			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD) && virtual_keyboard_enabled) {
-				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect(), true);
+				String text = _base_get_text(0, 0, selection.selecting_line, selection.selecting_column);
+				int cursor_start = text.length();
+				int cursor_end = -1;
+
+				if (selection.active) {
+					String selected_text = _base_get_text(selection.from_line, selection.from_column, selection.to_line, selection.to_column);
+
+					if (selected_text.length() > 0) {
+						cursor_end = cursor_start + selected_text.length();
+					}
+				}
+
+				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect(), true, -1, cursor_start, cursor_end);
 			}
 		} break;
 		case NOTIFICATION_FOCUS_EXIT: {

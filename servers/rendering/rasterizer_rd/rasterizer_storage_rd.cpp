@@ -30,9 +30,9 @@
 
 #include "rasterizer_storage_rd.h"
 
-#include "core/engine.h"
+#include "core/config/engine.h"
+#include "core/config/project_settings.h"
 #include "core/io/resource_loader.h"
-#include "core/project_settings.h"
 #include "rasterizer_rd.h"
 #include "servers/rendering/shader_language.h"
 
@@ -5549,7 +5549,6 @@ void RasterizerStorageRD::gi_probe_allocate(RID p_gi_probe, const Transform &p_t
 			}
 			RID shared_tex;
 			{
-
 				RD::TextureView tv;
 				tv.format_override = RD::DATA_FORMAT_R8_UINT;
 				shared_tex = RD::get_singleton()->texture_create_shared(tv, gi_probe->sdf_texture);

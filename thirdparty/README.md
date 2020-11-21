@@ -76,14 +76,10 @@ Files extracted from upstream source:
 
 ## doctest
 - Upstream: https://github.com/onqtam/doctest
-- Version: 1c8da00 (2.4.0)
+- Version: 8424be5 (2.4.1)
 - License: MIT
 
 Extracted from .zip provided. Extracted license and header only.
-
-Important: Some files have Godot-made changes.
-They are marked with `// -- GODOT start --` and `// -- GODOT end --`
-comments.
 
 ## enet
 
@@ -378,7 +374,7 @@ Collection of single-file libraries used in Godot components.
   * License: Apache 2.0
 - `open-simplex-noise.{c,h}`
   * Upstream: https://github.com/smcameron/open-simplex-noise-in-c
-  * Version: git (0d555e7f40527d0870906fe9469a3b1bb4020b7f, 2015) + custom changes
+  * Version: git (0fef0dbedd76f767da7e3c894822729d0f07e54d, 2020) + custom changes
   * License: Unlicense
 - `pcg.{cpp,h}`
   * Upstream: http://www.pcg-random.org
@@ -435,7 +431,7 @@ Collection of single-file libraries used in Godot components.
 ## nanosvg
 
 - Upstream: https://github.com/memononen/nanosvg
-- Version: git (25241c5a8f8451d41ab1b02ab2d865b01600d949, 2019)
+- Version: git (3e403ec72a9145cbbcc6c63d94a4caf079aafec2, 2020)
 - License: zlib
 
 Files extracted from the upstream source:

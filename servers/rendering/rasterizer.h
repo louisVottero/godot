@@ -32,8 +32,8 @@
 #define RASTERIZER_H
 
 #include "core/math/camera_matrix.h"
-#include "core/pair.h"
-#include "core/self_list.h"
+#include "core/templates/pair.h"
+#include "core/templates/self_list.h"
 #include "servers/rendering_server.h"
 
 class RasterizerScene {
@@ -809,7 +809,6 @@ public:
 	static RasterizerCanvas *singleton;
 
 	enum CanvasRectFlags {
-
 		CANVAS_RECT_REGION = 1,
 		CANVAS_RECT_TILE = 2,
 		CANVAS_RECT_FLIP_H = 4,
@@ -943,7 +942,6 @@ public:
 
 		struct Command {
 			enum Type {
-
 				TYPE_RECT,
 				TYPE_NINEPATCH,
 				TYPE_POLYGON,

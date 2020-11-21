@@ -10,160 +10,23 @@
 		<link title="GDScript format strings">https://docs.godotengine.org/en/latest/getting_started/scripting/gdscript/gdscript_format_string.html</link>
 	</tutorials>
 	<methods>
-		<method name="String">
+		<method name="String" qualifiers="constructor">
 			<return type="String">
 			</return>
-			<argument index="0" name="from" type="bool">
-			</argument>
 			<description>
-				Constructs a new String from the given [bool].
+				Constructs an empty [String] ([code]""[/code]).
 			</description>
 		</method>
-		<method name="String">
+		<method name="String" qualifiers="constructor">
 			<return type="String">
 			</return>
-			<argument index="0" name="from" type="int">
+			<argument index="0" name="from" type="String">
 			</argument>
 			<description>
-				Constructs a new String from the given [int].
+				Constructs a [String] as a copy of the given [String].
 			</description>
 		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="float">
-			</argument>
-			<description>
-				Constructs a new String from the given [float].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Vector2">
-			</argument>
-			<description>
-				Constructs a new String from the given [Vector2].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Vector2i">
-			</argument>
-			<description>
-				Constructs a new String from the given [Vector2i].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Rect2">
-			</argument>
-			<description>
-				Constructs a new String from the given [Rect2].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Rect2i">
-			</argument>
-			<description>
-				Constructs a new String from the given [Rect2i].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Vector3">
-			</argument>
-			<description>
-				Constructs a new String from the given [Vector3].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Vector3i">
-			</argument>
-			<description>
-				Constructs a new String from the given [Vector3i].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Transform2D">
-			</argument>
-			<description>
-				Constructs a new String from the given [Transform2D].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Plane">
-			</argument>
-			<description>
-				Constructs a new String from the given [Plane].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Quat">
-			</argument>
-			<description>
-				Constructs a new String from the given [Quat].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="AABB">
-			</argument>
-			<description>
-				Constructs a new String from the given [AABB].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Basis">
-			</argument>
-			<description>
-				Constructs a new String from the given [Basis].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Transform">
-			</argument>
-			<description>
-				Constructs a new String from the given [Transform].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Color">
-			</argument>
-			<description>
-				Constructs a new String from the given [Color].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="StringName">
-			</argument>
-			<description>
-				Constructs a new String from the given [StringName].
-			</description>
-		</method>
-		<method name="String">
+		<method name="String" qualifiers="constructor">
 			<return type="String">
 			</return>
 			<argument index="0" name="from" type="NodePath">
@@ -172,130 +35,13 @@
 				Constructs a new String from the given [NodePath].
 			</description>
 		</method>
-		<method name="String">
+		<method name="String" qualifiers="constructor">
 			<return type="String">
 			</return>
-			<argument index="0" name="from" type="RID">
+			<argument index="0" name="from" type="StringName">
 			</argument>
 			<description>
-				Constructs a new String from the given [RID].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Callable">
-			</argument>
-			<description>
-				Constructs a new String from the given [Callable].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Signal">
-			</argument>
-			<description>
-				Constructs a new String from the given [Signal].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Dictionary">
-			</argument>
-			<description>
-				Constructs a new String from the given [Dictionary].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedByteArray">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedByteArray].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedInt32Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedInt32Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedInt64Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedInt64Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedFloat32Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedFloat32Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedFloat64Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedFloat64Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedStringArray">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedStringArray].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedVector2Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedVector2Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedVector3Array">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedVector3Array].
-			</description>
-		</method>
-		<method name="String">
-			<return type="String">
-			</return>
-			<argument index="0" name="from" type="PackedColorArray">
-			</argument>
-			<description>
-				Constructs a new String from the given [PackedColorArray].
+				Constructs a new String from the given [StringName].
 			</description>
 		</method>
 		<method name="begins_with">
@@ -718,6 +464,86 @@
 				[b]Behavior with different string lengths:[/b] Returns [code]1[/code] if the "base" string is longer than the [code]to[/code] string or [code]-1[/code] if the "base" string is shorter than the [code]to[/code] string. Keep in mind this length is determined by the number of Unicode codepoints, [i]not[/i] the actual visible characters.
 				[b]Behavior with empty strings:[/b] Returns [code]-1[/code] if the "base" string is empty, [code]1[/code] if the [code]to[/code] string is empty or [code]0[/code] if both strings are empty.
 				To get a boolean result from a string comparison, use the [code]==[/code] operator instead. See also [method casecmp_to] and [method naturalnocasecmp_to].
+			</description>
+		</method>
+		<method name="operator !=" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator !=" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="StringName">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator %" qualifiers="operator">
+			<return type="String">
+			</return>
+			<argument index="0" name="right" type="Variant">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator +" qualifiers="operator">
+			<return type="String">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator &lt;" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator &lt;=" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator ==" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator ==" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="StringName">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator &gt;" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator &gt;=" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="String">
+			</argument>
+			<description>
 			</description>
 		</method>
 		<method name="ord_at">

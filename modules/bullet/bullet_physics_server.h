@@ -32,8 +32,8 @@
 #define BULLET_PHYSICS_SERVER_H
 
 #include "area_bullet.h"
-#include "core/rid.h"
-#include "core/rid_owner.h"
+#include "core/templates/rid.h"
+#include "core/templates/rid_owner.h"
 #include "joint_bullet.h"
 #include "rigid_body_bullet.h"
 #include "servers/physics_server_3d.h"
@@ -397,7 +397,6 @@ public:
 
 	virtual void init() override;
 	virtual void step(float p_deltaTime) override;
-	virtual void sync() override;
 	virtual void flush_queries() override;
 	virtual void finish() override;
 

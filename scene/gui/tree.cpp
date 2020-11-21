@@ -30,12 +30,12 @@
 
 #include "tree.h"
 
+#include "core/config/project_settings.h"
 #include "core/input/input.h"
 #include "core/math/math_funcs.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
-#include "core/print_string.h"
-#include "core/project_settings.h"
+#include "core/string/print_string.h"
 #include "scene/main/window.h"
 
 #include "box_container.h"
@@ -1813,7 +1813,6 @@ int Tree::propagate_mouse_event(const Point2i &p_pos, int x_ofs, int y_ofs, bool
 			case TreeItem::CELL_MODE_RANGE: {
 				if (c.text != "") {
 					//if (x >= (get_column_width(col)-item_h/2)) {
-
 					popup_menu->clear();
 					for (int i = 0; i < c.text.get_slice_count(","); i++) {
 						String s = c.text.get_slicec(',', i);

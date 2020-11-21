@@ -10,7 +10,23 @@
 		<link title="Math tutorial index">https://docs.godotengine.org/en/latest/tutorials/math/index.html</link>
 	</tutorials>
 	<methods>
-		<method name="Plane">
+		<method name="Plane" qualifiers="constructor">
+			<return type="Plane">
+			</return>
+			<description>
+				Constructs a default-initialized [Plane] with all components set to [code]0[/code].
+			</description>
+		</method>
+		<method name="Plane" qualifiers="constructor">
+			<return type="Plane">
+			</return>
+			<argument index="0" name="from" type="Plane">
+			</argument>
+			<description>
+				Constructs a [Plane] as a copy of the given [Plane].
+			</description>
+		</method>
+		<method name="Plane" qualifiers="constructor">
 			<return type="Plane">
 			</return>
 			<argument index="0" name="a" type="float">
@@ -25,20 +41,7 @@
 				Creates a plane from the four parameters. The three components of the resulting plane's [member normal] are [code]a[/code], [code]b[/code] and [code]c[/code], and the plane has a distance of [code]d[/code] from the origin.
 			</description>
 		</method>
-		<method name="Plane">
-			<return type="Plane">
-			</return>
-			<argument index="0" name="v1" type="Vector3">
-			</argument>
-			<argument index="1" name="v2" type="Vector3">
-			</argument>
-			<argument index="2" name="v3" type="Vector3">
-			</argument>
-			<description>
-				Creates a plane from the three points, given in clockwise order.
-			</description>
-		</method>
-		<method name="Plane">
+		<method name="Plane" qualifiers="constructor">
 			<return type="Plane">
 			</return>
 			<argument index="0" name="normal" type="Vector3">
@@ -47,6 +50,30 @@
 			</argument>
 			<description>
 				Creates a plane from the normal and the plane's distance to the origin.
+			</description>
+		</method>
+		<method name="Plane" qualifiers="constructor">
+			<return type="Plane">
+			</return>
+			<argument index="0" name="point" type="Vector3">
+			</argument>
+			<argument index="1" name="normal" type="Vector3">
+			</argument>
+			<description>
+				Creates a plane from the given position and a plane normal.
+			</description>
+		</method>
+		<method name="Plane" qualifiers="constructor">
+			<return type="Plane">
+			</return>
+			<argument index="0" name="point1" type="Vector3">
+			</argument>
+			<argument index="1" name="point2" type="Vector3">
+			</argument>
+			<argument index="2" name="point3" type="Vector3">
+			</argument>
+			<description>
+				Creates a plane from the three points, given in clockwise order.
 			</description>
 		</method>
 		<method name="center">
@@ -132,6 +159,34 @@
 			</return>
 			<description>
 				Returns a copy of the plane, normalized.
+			</description>
+		</method>
+		<method name="operator !=" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="Plane">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="operator +" qualifiers="operator">
+			<return type="Plane">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="operator -" qualifiers="operator">
+			<return type="Plane">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="operator ==" qualifiers="operator">
+			<return type="bool">
+			</return>
+			<argument index="0" name="right" type="Plane">
+			</argument>
+			<description>
 			</description>
 		</method>
 		<method name="project">

@@ -31,7 +31,7 @@
 #ifndef TEST_COLOR_H
 #define TEST_COLOR_H
 
-#include "core/color.h"
+#include "core/math/color.h"
 
 #include "thirdparty/doctest/doctest.h"
 
@@ -202,7 +202,6 @@ TEST_CASE("[Color] Manipulation methods") {
 			red.lerp(yellow, 0.5).is_equal_approx(Color(1, 0.5, 0, 0.5)),
 			"Red interpolated with yellow should be orange (with interpolated alpha).");
 }
-
 } // namespace TestColor
 
 #endif // TEST_COLOR_H

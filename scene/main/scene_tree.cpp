@@ -30,16 +30,16 @@
 
 #include "scene_tree.h"
 
+#include "core/config/project_settings.h"
 #include "core/debugger/engine_debugger.h"
 #include "core/input/input.h"
 #include "core/io/marshalls.h"
 #include "core/io/resource_loader.h"
-#include "core/message_queue.h"
+#include "core/object/message_queue.h"
 #include "core/os/dir_access.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
-#include "core/print_string.h"
-#include "core/project_settings.h"
+#include "core/string/print_string.h"
 #include "node.h"
 #include "scene/debugger/scene_debugger.h"
 #include "scene/resources/dynamic_font.h"
@@ -827,12 +827,9 @@ void SceneTree::_notify_group_pause(const StringName &p_group, int p_notificatio
 
 /*
 void SceneMainLoop::_update_listener_2d() {
-
 	if (listener_2d.is_valid()) {
-
 		SpatialSound2DServer::get_singleton()->listener_set_space( listener_2d, world_2d->get_sound_space() );
 	}
-
 }
 
 */

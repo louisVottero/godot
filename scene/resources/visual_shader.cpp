@@ -30,7 +30,7 @@
 
 #include "visual_shader.h"
 
-#include "core/vmap.h"
+#include "core/templates/vmap.h"
 #include "servers/rendering/shader_types.h"
 #include "visual_shader_nodes.h"
 
@@ -1849,7 +1849,6 @@ const VisualShaderNodeInput::Port VisualShaderNodeInput::ports[] = {
 };
 
 const VisualShaderNodeInput::Port VisualShaderNodeInput::preview_ports[] = {
-
 	// Spatial, Fragment
 	{ Shader::MODE_SPATIAL, VisualShader::TYPE_FRAGMENT, VisualShaderNode::PORT_TYPE_VECTOR, "normal", "vec3(0.0, 0.0, 1.0)" },
 	{ Shader::MODE_SPATIAL, VisualShader::TYPE_FRAGMENT, VisualShaderNode::PORT_TYPE_VECTOR, "tangent", "vec3(0.0, 1.0, 0.0)" },

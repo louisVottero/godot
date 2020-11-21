@@ -30,7 +30,7 @@
 
 #include "shader_language.h"
 #include "core/os/os.h"
-#include "core/print_string.h"
+#include "core/string/print_string.h"
 #include "servers/rendering_server.h"
 
 static bool _is_text_char(char32_t c) {
@@ -2157,7 +2157,6 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 	{ "fma", TYPE_VEC4, { TYPE_VEC4, TYPE_VEC4, TYPE_VEC4, TYPE_VOID }, TAG_GLOBAL, false },
 
 	{ nullptr, TYPE_VOID, { TYPE_VOID }, TAG_GLOBAL, false }
-
 };
 
 const ShaderLanguage::BuiltinFuncOutArgs ShaderLanguage::builtin_func_out_args[] = {

@@ -30,8 +30,8 @@
 
 #include "shader_compiler_rd.h"
 
+#include "core/config/project_settings.h"
 #include "core/os/os.h"
-#include "core/project_settings.h"
 #include "rasterizer_storage_rd.h"
 #include "servers/rendering_server.h"
 
@@ -671,7 +671,6 @@ String ShaderCompilerRD::_dump_node_code(const SL::Node *p_node, int p_level, Ge
 			}
 			/*
 			for(Map<StringName,SL::ShaderNode::Uniform>::Element *E=pnode->uniforms.front();E;E=E->next()) {
-
 				if (SL::is_sampler_type(E->get().type)) {
 					continue;
 				}

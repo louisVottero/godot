@@ -33,19 +33,18 @@
 
 #include "servers/rendering/rasterizer.h"
 
-#include "core/local_vector.h"
 #include "core/math/geometry_3d.h"
 #include "core/math/octree.h"
 #include "core/os/semaphore.h"
 #include "core/os/thread.h"
-#include "core/rid_owner.h"
-#include "core/self_list.h"
+#include "core/templates/local_vector.h"
+#include "core/templates/rid_owner.h"
+#include "core/templates/self_list.h"
 #include "servers/xr/xr_interface.h"
 
 class RenderingServerScene {
 public:
 	enum {
-
 		MAX_INSTANCE_CULL = 65536,
 		MAX_LIGHTS_CULLED = 4096,
 		MAX_REFLECTION_PROBES_CULLED = 4096,
