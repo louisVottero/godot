@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -75,7 +75,7 @@ void main_loop_callback() {
 }
 
 /// When calling main, it is assumed FS is setup and synced.
-int main(int argc, char *argv[]) {
+extern EMSCRIPTEN_KEEPALIVE int godot_js_main(int argc, char *argv[]) {
 	os = new OS_JavaScript();
 
 	// We must override main when testing is enabled

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -48,15 +48,6 @@
 #ifdef UDEV_ENABLED
 static const char *ignore_str = "/dev/input/js";
 #endif
-
-JoypadLinux::Joypad::Joypad() {
-	fd = -1;
-	dpad = 0;
-	devpath = "";
-	for (int i = 0; i < MAX_ABS; i++) {
-		abs_info[i] = nullptr;
-	}
-}
 
 JoypadLinux::Joypad::~Joypad() {
 	for (int i = 0; i < MAX_ABS; i++) {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -31,7 +31,6 @@
 #include "os_javascript.h"
 
 #include "core/debugger/engine_debugger.h"
-#include "core/io/file_access_buffered_fa.h"
 #include "core/io/json.h"
 #include "drivers/unix/dir_access_unix.h"
 #include "drivers/unix/file_access_unix.h"
@@ -43,6 +42,7 @@
 #include "modules/websocket/remote_debugger_peer_websocket.h"
 #endif
 
+#include <dlfcn.h>
 #include <emscripten.h>
 #include <stdlib.h>
 
@@ -51,7 +51,6 @@
 // Lifecycle
 void OS_JavaScript::initialize() {
 	OS_Unix::initialize_core();
-	FileAccess::make_default<FileAccessBufferedFA<FileAccessUnix>>(FileAccess::ACCESS_RESOURCES);
 	DisplayServerJavaScript::register_javascript_driver();
 
 #ifdef MODULE_WEBSOCKET_ENABLED
@@ -127,12 +126,24 @@ int OS_JavaScript::get_process_id() const {
 }
 
 bool OS_JavaScript::_check_internal_feature_support(const String &p_feature) {
-	if (p_feature == "HTML5" || p_feature == "web")
+	if (p_feature == "HTML5" || p_feature == "web") {
 		return true;
+	}
 
 #ifdef JAVASCRIPT_EVAL_ENABLED
-	if (p_feature == "JavaScript")
+	if (p_feature == "JavaScript") {
 		return true;
+	}
+#endif
+#ifndef NO_THREADS
+	if (p_feature == "threads") {
+		return true;
+	}
+#endif
+#if WASM_GDNATIVE
+	if (p_feature == "wasm32") {
+		return true;
+	}
 #endif
 
 	return false;
@@ -185,6 +196,13 @@ void OS_JavaScript::file_access_close_callback(const String &p_file, int p_flags
 
 bool OS_JavaScript::is_userfs_persistent() const {
 	return idb_available;
+}
+
+Error OS_JavaScript::open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path) {
+	String path = p_path.get_file();
+	p_library_handle = dlopen(path.utf8().get_data(), RTLD_NOW);
+	ERR_FAIL_COND_V_MSG(!p_library_handle, ERR_CANT_OPEN, "Can't open dynamic library: " + p_path + ". Error: " + dlerror());
+	return OK;
 }
 
 OS_JavaScript *OS_JavaScript::get_singleton() {

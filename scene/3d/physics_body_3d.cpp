@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -311,7 +311,7 @@ void RigidBody3D::_body_inout(int p_status, ObjectID p_instance, int p_body_shap
 
 		bool in_tree = E->get().in_tree;
 
-		if (E->get().shapes.empty()) {
+		if (E->get().shapes.is_empty()) {
 			if (node) {
 				node->disconnect(SceneStringNames::get_singleton()->tree_entered, callable_mp(this, &RigidBody3D::_body_enter_tree));
 				node->disconnect(SceneStringNames::get_singleton()->tree_exiting, callable_mp(this, &RigidBody3D::_body_exit_tree));
@@ -478,21 +478,11 @@ RigidBody3D::Mode RigidBody3D::get_mode() const {
 void RigidBody3D::set_mass(real_t p_mass) {
 	ERR_FAIL_COND(p_mass <= 0);
 	mass = p_mass;
-	_change_notify("mass");
-	_change_notify("weight");
 	PhysicsServer3D::get_singleton()->body_set_param(get_rid(), PhysicsServer3D::BODY_PARAM_MASS, mass);
 }
 
 real_t RigidBody3D::get_mass() const {
 	return mass;
-}
-
-void RigidBody3D::set_weight(real_t p_weight) {
-	set_mass(p_weight / real_t(GLOBAL_DEF("physics/3d/default_gravity", 9.8)));
-}
-
-real_t RigidBody3D::get_weight() const {
-	return mass * real_t(GLOBAL_DEF("physics/3d/default_gravity", 9.8));
 }
 
 void RigidBody3D::set_physics_material_override(const Ref<PhysicsMaterial> &p_physics_material_override) {
@@ -724,7 +714,7 @@ String RigidBody3D::get_configuration_warning() const {
 	String warning = CollisionObject3D::get_configuration_warning();
 
 	if ((get_mode() == MODE_RIGID || get_mode() == MODE_CHARACTER) && (ABS(t.basis.get_axis(0).length() - 1.0) > 0.05 || ABS(t.basis.get_axis(1).length() - 1.0) > 0.05 || ABS(t.basis.get_axis(2).length() - 1.0) > 0.05)) {
-		if (!warning.empty()) {
+		if (!warning.is_empty()) {
 			warning += "\n\n";
 		}
 		warning += TTR("Size changes to RigidBody3D (in character or rigid modes) will be overridden by the physics engine when running.\nChange the size in children collision shapes instead.");
@@ -739,9 +729,6 @@ void RigidBody3D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_mass", "mass"), &RigidBody3D::set_mass);
 	ClassDB::bind_method(D_METHOD("get_mass"), &RigidBody3D::get_mass);
-
-	ClassDB::bind_method(D_METHOD("set_weight", "weight"), &RigidBody3D::set_weight);
-	ClassDB::bind_method(D_METHOD("get_weight"), &RigidBody3D::get_weight);
 
 	ClassDB::bind_method(D_METHOD("set_physics_material_override", "physics_material_override"), &RigidBody3D::set_physics_material_override);
 	ClassDB::bind_method(D_METHOD("get_physics_material_override"), &RigidBody3D::get_physics_material_override);
@@ -802,7 +789,6 @@ void RigidBody3D::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Rigid,Static,Character,Kinematic"), "set_mode", "get_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "mass", PROPERTY_HINT_EXP_RANGE, "0.01,65535,0.01"), "set_mass", "get_mass");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "weight", PROPERTY_HINT_EXP_RANGE, "0.01,65535,0.01", PROPERTY_USAGE_EDITOR), "set_weight", "get_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "physics_material_override", PROPERTY_HINT_RESOURCE_TYPE, "PhysicsMaterial"), "set_physics_material_override", "get_physics_material_override");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gravity_scale", PROPERTY_HINT_RANGE, "-128,128,0.01"), "set_gravity_scale", "get_gravity_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "custom_integrator"), "set_use_custom_integrator", "is_using_custom_integrator");
@@ -1985,7 +1971,7 @@ bool PhysicalBone3D::_set(const StringName &p_name, const Variant &p_value) {
 	}
 
 	if (joint_data) {
-		if (joint_data->_set(p_name, p_value)) {
+		if (joint_data->_set(p_name, p_value, joint)) {
 #ifdef TOOLS_ENABLED
 			if (get_gizmo().is_valid()) {
 				get_gizmo()->redraw();
@@ -2121,9 +2107,6 @@ void PhysicalBone3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_mass", "mass"), &PhysicalBone3D::set_mass);
 	ClassDB::bind_method(D_METHOD("get_mass"), &PhysicalBone3D::get_mass);
 
-	ClassDB::bind_method(D_METHOD("set_weight", "weight"), &PhysicalBone3D::set_weight);
-	ClassDB::bind_method(D_METHOD("get_weight"), &PhysicalBone3D::get_weight);
-
 	ClassDB::bind_method(D_METHOD("set_friction", "friction"), &PhysicalBone3D::set_friction);
 	ClassDB::bind_method(D_METHOD("get_friction"), &PhysicalBone3D::get_friction);
 
@@ -2154,7 +2137,6 @@ void PhysicalBone3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM, "body_offset"), "set_body_offset", "get_body_offset");
 
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "mass", PROPERTY_HINT_EXP_RANGE, "0.01,65535,0.01"), "set_mass", "get_mass");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "weight", PROPERTY_HINT_EXP_RANGE, "0.01,65535,0.01"), "set_weight", "get_weight");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "friction", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_friction", "get_friction");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "bounce", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_bounce", "get_bounce");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gravity_scale", PROPERTY_HINT_RANGE, "-10,10,0.01"), "set_gravity_scale", "get_gravity_scale");
@@ -2454,14 +2436,6 @@ void PhysicalBone3D::set_mass(real_t p_mass) {
 
 real_t PhysicalBone3D::get_mass() const {
 	return mass;
-}
-
-void PhysicalBone3D::set_weight(real_t p_weight) {
-	set_mass(p_weight / real_t(GLOBAL_DEF("physics/3d/default_gravity", 9.8)));
-}
-
-real_t PhysicalBone3D::get_weight() const {
-	return mass * real_t(GLOBAL_DEF("physics/3d/default_gravity", 9.8));
 }
 
 void PhysicalBone3D::set_friction(real_t p_friction) {

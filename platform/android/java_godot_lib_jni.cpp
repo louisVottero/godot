@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -43,7 +43,6 @@
 #include "dir_access_jandroid.h"
 #include "display_server_android.h"
 #include "file_access_android.h"
-#include "file_access_jandroid.h"
 #include "jni_utils.h"
 #include "main/main.h"
 #include "net_socket_android.h"
@@ -89,14 +88,10 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 	godot_io_java = new GodotIOJavaWrapper(env, godot_java->get_member_object("io", "Lorg/godotengine/godot/GodotIO;", env));
 
 	ThreadAndroid::make_default(jvm);
-#ifdef USE_JAVA_FILE_ACCESS
-	FileAccessJAndroid::setup(godot_io_java->get_instance());
-#else
 
 	jobject amgr = env->NewGlobalRef(p_asset_manager);
 
 	FileAccessAndroid::asset_manager = AAssetManager_fromJava(env, amgr);
-#endif
 
 	DirAccessJAndroid::setup(godot_io_java->get_instance());
 	AudioDriverAndroid::setup(godot_io_java->get_instance());
@@ -251,9 +246,8 @@ void touch_preprocessing(JNIEnv *env, jclass clazz, jint input_device, jint ev, 
 		tp.id = (int)p[0];
 		points.push_back(tp);
 	}
-
-	if ((input_device & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE) {
-		DisplayServerAndroid::get_singleton()->process_mouse_event(ev, buttons_mask, points[0].pos, vertical_factor, horizontal_factor);
+	if ((input_device & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE || (input_device & AINPUT_SOURCE_MOUSE_RELATIVE) == AINPUT_SOURCE_MOUSE_RELATIVE) {
+		DisplayServerAndroid::get_singleton()->process_mouse_event(input_device, ev, buttons_mask, points[0].pos, vertical_factor, horizontal_factor);
 	} else {
 		DisplayServerAndroid::get_singleton()->process_touch(ev, pointer, points);
 	}

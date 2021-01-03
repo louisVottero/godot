@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -52,7 +52,7 @@
 #endif
 
 #if defined(VULKAN_ENABLED)
-#include "servers/rendering/rasterizer_rd/rasterizer_rd.h"
+#include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
 
 #include <QuartzCore/CAMetalLayer.h>
 #endif
@@ -701,8 +701,6 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 		characters = (NSString *)aString;
 	}
 
-	NSUInteger i, length = [characters length];
-
 	NSCharacterSet *ctrlChars = [NSCharacterSet controlCharacterSet];
 	NSCharacterSet *wsnlChars = [NSCharacterSet whitespaceAndNewlineCharacterSet];
 	if ([characters rangeOfCharacterFromSet:ctrlChars].length && [characters rangeOfCharacterFromSet:wsnlChars].length == 0) {
@@ -712,8 +710,15 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 		return;
 	}
 
-	for (i = 0; i < length; i++) {
-		const unichar codepoint = [characters characterAtIndex:i];
+	Char16String text;
+	text.resize([characters length] + 1);
+	[characters getCharacters:(unichar *)text.ptrw() range:NSMakeRange(0, [characters length])];
+
+	String u32text;
+	u32text.parse_utf16(text.ptr(), text.length());
+
+	for (int i = 0; i < u32text.length(); i++) {
+		const char32_t codepoint = u32text[i];
 		if ((codepoint & 0xFF00) == 0xF700) {
 			continue;
 		}
@@ -746,28 +751,32 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 	ERR_FAIL_COND_V(!DS_OSX->windows.has(window_id), NO);
 	DisplayServerOSX::WindowData &wd = DS_OSX->windows[window_id];
 
-	NSPasteboard *pboard = [sender draggingPasteboard];
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
-	NSArray<NSURL *> *filenames = [pboard propertyListForType:NSPasteboardTypeFileURL];
-#else
-	NSArray *filenames = [pboard propertyListForType:NSFilenamesPboardType];
-#endif
-
-	Vector<String> files;
-	for (NSUInteger i = 0; i < filenames.count; i++) {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
-		NSString *ns = [[filenames objectAtIndex:i] path];
-#else
-		NSString *ns = [filenames objectAtIndex:i];
-#endif
-		char *utfs = strdup([ns UTF8String]);
-		String ret;
-		ret.parse_utf8(utfs);
-		free(utfs);
-		files.push_back(ret);
-	}
-
 	if (!wd.drop_files_callback.is_null()) {
+		Vector<String> files;
+		NSPasteboard *pboard = [sender draggingPasteboard];
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+		NSArray *items = pboard.pasteboardItems;
+		for (NSPasteboardItem *item in items) {
+			NSString *path = [item stringForType:NSPasteboardTypeFileURL];
+			NSString *ns = [NSURL URLWithString:path].path;
+			char *utfs = strdup([ns UTF8String]);
+			String ret;
+			ret.parse_utf8(utfs);
+			free(utfs);
+			files.push_back(ret);
+		}
+#else
+		NSArray *filenames = [pboard propertyListForType:NSFilenamesPboardType];
+		for (NSString *ns in filenames) {
+			char *utfs = strdup([ns UTF8String]);
+			String ret;
+			ret.parse_utf8(utfs);
+			free(utfs);
+			files.push_back(ret);
+		}
+#endif
+
 		Variant v = files;
 		Variant *vp = &v;
 		Variant ret;
@@ -1315,7 +1324,16 @@ static int remapKey(unsigned int key, unsigned int state) {
 
 		if (!wd.im_active && length > 0 && keycode_has_unicode(remapKey([event keyCode], [event modifierFlags]))) {
 			// Fallback unicode character handler used if IME is not active
-			for (NSUInteger i = 0; i < length; i++) {
+			Char16String text;
+			text.resize([characters length] + 1);
+			[characters getCharacters:(unichar *)text.ptrw() range:NSMakeRange(0, [characters length])];
+
+			String u32text;
+			u32text.parse_utf16(text.ptr(), text.length());
+
+			for (int i = 0; i < u32text.length(); i++) {
+				const char32_t codepoint = u32text[i];
+
 				DisplayServerOSX::KeyEvent ke;
 
 				ke.window_id = window_id;
@@ -1325,7 +1343,7 @@ static int remapKey(unsigned int key, unsigned int state) {
 				ke.keycode = remapKey([event keyCode], [event modifierFlags]);
 				ke.physical_keycode = translateKey([event keyCode]);
 				ke.raw = true;
-				ke.unicode = [characters characterAtIndex:i];
+				ke.unicode = codepoint;
 
 				_push_to_key_event_buffer(ke);
 			}
@@ -1417,7 +1435,15 @@ static int remapKey(unsigned int key, unsigned int state) {
 
 		// Fallback unicode character handler used if IME is not active
 		if (!wd.im_active && length > 0 && keycode_has_unicode(remapKey([event keyCode], [event modifierFlags]))) {
-			for (NSUInteger i = 0; i < length; i++) {
+			Char16String text;
+			text.resize([characters length] + 1);
+			[characters getCharacters:(unichar *)text.ptrw() range:NSMakeRange(0, [characters length])];
+
+			String u32text;
+			u32text.parse_utf16(text.ptr(), text.length());
+
+			for (int i = 0; i < u32text.length(); i++) {
+				const char32_t codepoint = u32text[i];
 				DisplayServerOSX::KeyEvent ke;
 
 				ke.window_id = window_id;
@@ -1427,7 +1453,7 @@ static int remapKey(unsigned int key, unsigned int state) {
 				ke.keycode = remapKey([event keyCode], [event modifierFlags]);
 				ke.physical_keycode = translateKey([event keyCode]);
 				ke.raw = true;
-				ke.unicode = [characters characterAtIndex:i];
+				ke.unicode = codepoint;
 
 				_push_to_key_event_buffer(ke);
 			}
@@ -3848,7 +3874,7 @@ DisplayServerOSX::DisplayServerOSX(const String &p_rendering_driver, WindowMode 
 		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
 		rendering_device_vulkan->initialize(context_vulkan);
 
-		RasterizerRD::make_current();
+		RendererCompositorRD::make_current();
 	}
 #endif
 

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -63,8 +63,6 @@ struct VariantCaster<const T &> {
 	}
 };
 
-#ifdef PTRCALL_ENABLED
-
 #define VARIANT_ENUM_CAST(m_enum)                                            \
 	MAKE_ENUM_TYPE_INFO(m_enum)                                              \
 	template <>                                                              \
@@ -83,26 +81,13 @@ struct VariantCaster<const T &> {
 		}                                                                    \
 	};
 
-#else
-
-#define VARIANT_ENUM_CAST(m_enum)                                     \
-	MAKE_ENUM_TYPE_INFO(m_enum)                                       \
-	template <>                                                       \
-	struct VariantCaster<m_enum> {                                    \
-		static _FORCE_INLINE_ m_enum cast(const Variant &p_variant) { \
-			return (m_enum)p_variant.operator int();                  \
-		}                                                             \
-	};
-
-#endif
-
 // Object enum casts must go here
 VARIANT_ENUM_CAST(Object::ConnectFlags);
 
 VARIANT_ENUM_CAST(Vector3::Axis);
 
 VARIANT_ENUM_CAST(Error);
-VARIANT_ENUM_CAST(Margin);
+VARIANT_ENUM_CAST(Side);
 VARIANT_ENUM_CAST(Corner);
 VARIANT_ENUM_CAST(Orientation);
 VARIANT_ENUM_CAST(HAlign);
@@ -118,7 +103,7 @@ struct VariantCaster<char32_t> {
 		return (char32_t)p_variant.operator int();
 	}
 };
-#ifdef PTRCALL_ENABLED
+
 template <>
 struct PtrToArg<char32_t> {
 	_FORCE_INLINE_ static char32_t convert(const void *p_ptr) {
@@ -128,7 +113,6 @@ struct PtrToArg<char32_t> {
 		*(int *)p_ptr = p_val;
 	}
 };
-#endif
 
 template <typename T>
 struct VariantObjectClassChecker {
@@ -228,8 +212,6 @@ void call_with_variant_argsc_helper(T *p_instance, void (T::*p_method)(P...) con
 	(void)(p_args); //avoid warning
 }
 
-#ifdef PTRCALL_ENABLED
-
 template <class T, class... P, size_t... Is>
 void call_with_ptr_args_helper(T *p_instance, void (T::*p_method)(P...), const void **p_args, IndexSequence<Is...>) {
 	(p_instance->*p_method)(PtrToArg<P>::convert(p_args[Is])...);
@@ -254,8 +236,6 @@ template <class T, class R, class... P, size_t... Is>
 void call_with_ptr_args_static_retc_helper(T *p_instance, R (*p_method)(T *, P...), const void **p_args, void *r_ret, IndexSequence<Is...>) {
 	PtrToArg<R>::encode(p_method(p_instance, PtrToArg<P>::convert(p_args[Is])...), r_ret);
 }
-
-#endif // PTRCALL_ENABLED
 
 template <class T, class... P, size_t... Is>
 void call_with_validated_variant_args_helper(T *p_instance, void (T::*p_method)(P...), const Variant **p_args, IndexSequence<Is...>) {
@@ -450,8 +430,6 @@ void call_with_variant_args_retc_dv(T *p_instance, R (T::*p_method)(P...) const,
 	call_with_variant_args_retc_helper(p_instance, p_method, args, r_ret, r_error, BuildIndexSequence<sizeof...(P)>{});
 }
 
-#ifdef PTRCALL_ENABLED
-
 template <class T, class... P>
 void call_with_ptr_args(T *p_instance, void (T::*p_method)(P...), const void **p_args) {
 	call_with_ptr_args_helper<T, P...>(p_instance, p_method, p_args, BuildIndexSequence<sizeof...(P)>{});
@@ -476,8 +454,6 @@ template <class T, class R, class... P>
 void call_with_ptr_args_static_retc(T *p_instance, R (*p_method)(T *, P...), const void **p_args, void *r_ret) {
 	call_with_ptr_args_static_retc_helper<T, R, P...>(p_instance, p_method, p_args, r_ret, BuildIndexSequence<sizeof...(P)>{});
 }
-
-#endif // PTRCALL_ENABLED
 
 template <class T, class... P>
 void call_with_validated_variant_args(Variant *base, void (T::*p_method)(P...), const Variant **p_args) {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,7 +36,7 @@
 #include "editor_properties_array_dict.h"
 #include "editor_scale.h"
 #include "scene/main/window.h"
-#include "scene/resources/dynamic_font.h"
+#include "scene/resources/font.h"
 
 ///////////////////// NULL /////////////////////////
 
@@ -68,9 +68,9 @@ void EditorPropertyText::_text_changed(const String &p_string) {
 	}
 
 	if (string_name) {
-		emit_changed(get_edited_property(), StringName(p_string), "", true);
+		emit_changed(get_edited_property(), StringName(p_string), "", false);
 	} else {
-		emit_changed(get_edited_property(), p_string, "", true);
+		emit_changed(get_edited_property(), p_string, "", false);
 	}
 }
 
@@ -146,7 +146,8 @@ void EditorPropertyMultilineText::_notification(int p_what) {
 			Ref<Texture2D> df = get_theme_icon("DistractionFree", "EditorIcons");
 			open_big_text->set_icon(df);
 			Ref<Font> font = get_theme_font("font", "Label");
-			text->set_custom_minimum_size(Vector2(0, font->get_height() * 6));
+			int font_size = get_theme_font_size("font_size", "Label");
+			text->set_custom_minimum_size(Vector2(0, font->get_height(font_size) * 6));
 
 		} break;
 	}
@@ -290,6 +291,7 @@ EditorPropertyPath::EditorPropertyPath() {
 	HBoxContainer *path_hb = memnew(HBoxContainer);
 	add_child(path_hb);
 	path = memnew(LineEdit);
+	path->set_structured_text_bidi_override(Control::STRUCTURED_TEXT_FILE);
 	path_hb->add_child(path);
 	path->connect("text_entered", callable_mp(this, &EditorPropertyPath::_path_selected));
 	path->connect("focus_exited", callable_mp(this, &EditorPropertyPath::_path_focus_exited));
@@ -587,7 +589,8 @@ public:
 
 	virtual Size2 get_minimum_size() const override {
 		Ref<Font> font = get_theme_font("font", "Label");
-		return Vector2(0, font->get_height() * 2);
+		int font_size = get_theme_font_size("font_size", "Label");
+		return Vector2(0, font->get_height(font_size) * 2);
 	}
 
 	virtual String get_tooltip(const Point2 &p_pos) const override {
@@ -722,12 +725,12 @@ void EditorPropertyLayers::setup(LayerType p_layer_type) {
 	for (int i = 0; i < 20; i++) {
 		String name;
 
-		if (ProjectSettings::get_singleton()->has_setting(basename + "/layer_" + itos(i + 1))) {
-			name = ProjectSettings::get_singleton()->get(basename + "/layer_" + itos(i + 1));
+		if (ProjectSettings::get_singleton()->has_setting(basename + vformat("/layer_%d", i))) {
+			name = ProjectSettings::get_singleton()->get(basename + vformat("/layer_%d", i));
 		}
 
 		if (name == "") {
-			name = TTR("Layer") + " " + itos(i + 1);
+			name = vformat(TTR("Layer %d"), i);
 		}
 
 		names.push_back(name);
@@ -985,6 +988,7 @@ void EditorPropertyEasing::_draw_easing() {
 	const float exp = get_edited_object()->get(get_edited_property());
 
 	const Ref<Font> f = get_theme_font("font", "Label");
+	int font_size = get_theme_font_size("font_size", "Label");
 	const Color font_color = get_theme_color("font_color", "Label");
 	Color line_color;
 	if (dragging) {
@@ -1022,7 +1026,7 @@ void EditorPropertyEasing::_draw_easing() {
 	} else {
 		decimals = 1;
 	}
-	f->draw(ci, Point2(10, 10 + f->get_ascent()), rtos(exp).pad_decimals(decimals), font_color);
+	f->draw_string(ci, Point2(10, 10 + f->get_ascent(font_size)), TS->format_number(rtos(exp).pad_decimals(decimals)), HALIGN_LEFT, -1, font_size, font_color);
 }
 
 void EditorPropertyEasing::update_property() {
@@ -1039,7 +1043,7 @@ void EditorPropertyEasing::_set_preset(int p_preset) {
 void EditorPropertyEasing::_setup_spin() {
 	setting = true;
 	spin->setup_and_show();
-	spin->get_line_edit()->set_text(rtos(get_edited_object()->get(get_edited_property())));
+	spin->get_line_edit()->set_text(TS->format_number(rtos(get_edited_object()->get(get_edited_property()))));
 	setting = false;
 	spin->show();
 }
@@ -1088,7 +1092,7 @@ void EditorPropertyEasing::_notification(int p_what) {
 				preset->add_icon_item(get_theme_icon("CurveInOut", "EditorIcons"), "In-Out", EASING_IN_OUT);
 				preset->add_icon_item(get_theme_icon("CurveOutIn", "EditorIcons"), "Out-In", EASING_OUT_IN);
 			}
-			easing_draw->set_custom_minimum_size(Size2(0, get_theme_font("font", "Label")->get_height() * 2));
+			easing_draw->set_custom_minimum_size(Size2(0, get_theme_font("font", "Label")->get_height(get_theme_font_size("font_size", "Label")) * 2));
 		} break;
 	}
 }
@@ -2352,7 +2356,7 @@ void EditorPropertyResource::_file_selected(const String &p_path) {
 			property_types = E->get().hint_string;
 		}
 	}
-	if (!property_types.empty()) {
+	if (!property_types.is_empty()) {
 		bool any_type_matches = false;
 		const Vector<String> split_property_types = property_types.split(",");
 		for (int i = 0; i < split_property_types.size(); ++i) {
@@ -2510,7 +2514,7 @@ void EditorPropertyResource::_menu_option(int p_which) {
 				update_property();
 				break;
 			}
-			ERR_FAIL_COND(inheritors_array.empty());
+			ERR_FAIL_COND(inheritors_array.is_empty());
 
 			String intype = inheritors_array[p_which - TYPE_BASE_ID];
 
@@ -2542,10 +2546,12 @@ void EditorPropertyResource::_menu_option(int p_which) {
 			}
 
 			Object *obj = nullptr;
+			RES res_temp;
 
 			if (ScriptServer::is_global_class(intype)) {
 				obj = ClassDB::instance(ScriptServer::get_global_class_native_base(intype));
 				if (obj) {
+					res_temp = obj;
 					Ref<Script> script = ResourceLoader::load(ScriptServer::get_global_class_path(intype));
 					if (script.is_valid()) {
 						obj->set_script(Variant(script));
@@ -2553,21 +2559,21 @@ void EditorPropertyResource::_menu_option(int p_which) {
 				}
 			} else {
 				obj = ClassDB::instance(intype);
+				res_temp = obj;
 			}
 
 			if (!obj) {
 				obj = EditorNode::get_editor_data().instance_custom_type(intype, "Resource");
+				res_temp = obj;
 			}
 
-			ERR_BREAK(!obj);
-			Resource *resp = Object::cast_to<Resource>(obj);
-			ERR_BREAK(!resp);
+			ERR_BREAK(!res_temp.is_valid());
 			if (get_edited_object() && base_type != String() && base_type == "Script") {
 				//make visual script the right type
-				resp->call("set_instance_base_type", get_edited_object()->get_class());
+				res_temp->call("set_instance_base_type", get_edited_object()->get_class());
 			}
 
-			res = Ref<Resource>(resp);
+			res = res_temp;
 			emit_changed(get_edited_property(), res);
 			update_property();
 
@@ -2586,7 +2592,7 @@ void EditorPropertyResource::_resource_preview(const String &p_path, const Ref<T
 		}
 
 		if (p_preview.is_valid()) {
-			preview->set_margin(MARGIN_LEFT, assign->get_icon()->get_width() + assign->get_theme_stylebox("normal")->get_default_margin(MARGIN_LEFT) + get_theme_constant("hseparation", "Button"));
+			preview->set_offset(SIDE_LEFT, assign->get_icon()->get_width() + assign->get_theme_stylebox("normal")->get_default_margin(SIDE_LEFT) + get_theme_constant("hseparation", "Button"));
 			if (type == "GradientTexture") {
 				preview->set_stretch_mode(TextureRect::STRETCH_SCALE);
 				assign->set_custom_minimum_size(Size2(1, 1));
@@ -2654,7 +2660,7 @@ void EditorPropertyResource::_update_menu_items() {
 
 				bool is_custom_resource = false;
 				Ref<Texture2D> icon;
-				if (!custom_resources.empty()) {
+				if (!custom_resources.is_empty()) {
 					for (int j = 0; j < custom_resources.size(); j++) {
 						if (custom_resources[j].name == t) {
 							is_custom_resource = true;
@@ -3016,7 +3022,7 @@ bool EditorPropertyResource::_is_drop_valid(const Dictionary &p_drag_data) const
 		} else if (at == "ShaderMaterial") {
 			allowed_types.append("Shader");
 		} else if (at == "Font") {
-			allowed_types.append("DynamicFontData");
+			allowed_types.append("FontData");
 		}
 	}
 
@@ -3115,9 +3121,9 @@ void EditorPropertyResource::drop_data_fw(const Point2 &p_point, const Variant &
 					break;
 				}
 
-				if (at == "Font" && ClassDB::is_parent_class(res->get_class(), "DynamicFontData")) {
-					Ref<DynamicFont> font = memnew(DynamicFont);
-					font->set_font_data(res);
+				if (at == "Font" && ClassDB::is_parent_class(res->get_class(), "FontData")) {
+					Ref<Font> font = memnew(Font);
+					font->add_data(res);
 					res = font;
 					break;
 				}
@@ -3163,10 +3169,10 @@ EditorPropertyResource::EditorPropertyResource() {
 
 	preview = memnew(TextureRect);
 	preview->set_expand(true);
-	preview->set_anchors_and_margins_preset(PRESET_WIDE);
-	preview->set_margin(MARGIN_TOP, 1);
-	preview->set_margin(MARGIN_BOTTOM, -1);
-	preview->set_margin(MARGIN_RIGHT, -1);
+	preview->set_anchors_and_offsets_preset(PRESET_WIDE);
+	preview->set_offset(SIDE_TOP, 1);
+	preview->set_offset(SIDE_BOTTOM, -1);
+	preview->set_offset(SIDE_RIGHT, -1);
 	assign->add_child(preview);
 	assign->connect("gui_input", callable_mp(this, &EditorPropertyResource::_button_input));
 

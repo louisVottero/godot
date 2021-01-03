@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -38,10 +38,10 @@
 struct _CoreConstant {
 #ifdef DEBUG_METHODS_ENABLED
 	StringName enum_name;
-	bool ignore_value_in_docs;
+	bool ignore_value_in_docs = false;
 #endif
 	const char *name;
-	int value;
+	int value = 0;
 
 	_CoreConstant() {}
 
@@ -112,10 +112,10 @@ VARIANT_ENUM_CAST(JoyAxisList);
 VARIANT_ENUM_CAST(MidiMessageList);
 
 void register_global_constants() {
-	BIND_CORE_ENUM_CONSTANT(MARGIN_LEFT);
-	BIND_CORE_ENUM_CONSTANT(MARGIN_TOP);
-	BIND_CORE_ENUM_CONSTANT(MARGIN_RIGHT);
-	BIND_CORE_ENUM_CONSTANT(MARGIN_BOTTOM);
+	BIND_CORE_ENUM_CONSTANT(SIDE_LEFT);
+	BIND_CORE_ENUM_CONSTANT(SIDE_TOP);
+	BIND_CORE_ENUM_CONSTANT(SIDE_RIGHT);
+	BIND_CORE_ENUM_CONSTANT(SIDE_BOTTOM);
 
 	BIND_CORE_ENUM_CONSTANT(CORNER_TOP_LEFT);
 	BIND_CORE_ENUM_CONSTANT(CORNER_TOP_RIGHT);
@@ -128,6 +128,7 @@ void register_global_constants() {
 	BIND_CORE_ENUM_CONSTANT(HALIGN_LEFT);
 	BIND_CORE_ENUM_CONSTANT(HALIGN_CENTER);
 	BIND_CORE_ENUM_CONSTANT(HALIGN_RIGHT);
+	BIND_CORE_ENUM_CONSTANT(HALIGN_FILL);
 
 	BIND_CORE_ENUM_CONSTANT(VALIGN_TOP);
 	BIND_CORE_ENUM_CONSTANT(VALIGN_CENTER);
@@ -524,6 +525,7 @@ void register_global_constants() {
 	BIND_CORE_ENUM_CONSTANT(PROPERTY_HINT_COLOR_NO_ALPHA);
 	BIND_CORE_ENUM_CONSTANT(PROPERTY_HINT_IMAGE_COMPRESS_LOSSY);
 	BIND_CORE_ENUM_CONSTANT(PROPERTY_HINT_IMAGE_COMPRESS_LOSSLESS);
+	BIND_CORE_ENUM_CONSTANT(PROPERTY_HINT_TYPE_STRING);
 
 	BIND_CORE_ENUM_CONSTANT(PROPERTY_USAGE_STORAGE);
 	BIND_CORE_ENUM_CONSTANT(PROPERTY_USAGE_EDITOR);
@@ -556,7 +558,7 @@ void register_global_constants() {
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_NIL", Variant::NIL);
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_BOOL", Variant::BOOL);
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_INT", Variant::INT);
-	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_REAL", Variant::FLOAT);
+	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_FLOAT", Variant::FLOAT);
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_STRING", Variant::STRING);
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_VECTOR2", Variant::VECTOR2);
 	BIND_CORE_ENUM_CONSTANT_CUSTOM("TYPE_VECTOR2I", Variant::VECTOR2I);

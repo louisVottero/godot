@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -290,6 +290,8 @@ void Path3DGizmo::redraw() {
 Path3DGizmo::Path3DGizmo(Path3D *p_path) {
 	path = p_path;
 	set_spatial_node(p_path);
+	orig_in_length = 0;
+	orig_out_length = 0;
 }
 
 bool Path3DEditorPlugin::forward_spatial_gui_input(Camera3D *p_camera, const Ref<InputEvent> &p_event) {
@@ -607,7 +609,7 @@ Path3DEditorPlugin::Path3DEditorPlugin(EditorNode *p_node) {
 	curve_edit->set_pressed(true);
 	/*
     collision_polygon_editor = memnew( PathEditor(p_node) );
-    editor->get_viewport()->add_child(collision_polygon_editor);
+    editor->get_main_control()->add_child(collision_polygon_editor);
     collision_polygon_editor->set_margin(MARGIN_LEFT,200);
     collision_polygon_editor->set_margin(MARGIN_RIGHT,230);
     collision_polygon_editor->set_margin(MARGIN_TOP,0);
@@ -630,7 +632,7 @@ Ref<EditorNode3DGizmo> Path3DGizmoPlugin::create_gizmo(Node3D *p_spatial) {
 	return ref;
 }
 
-String Path3DGizmoPlugin::get_name() const {
+String Path3DGizmoPlugin::get_gizmo_name() const {
 	return "Path3D";
 }
 

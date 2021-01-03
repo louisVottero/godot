@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,6 +33,11 @@
 #include "core/config/project_settings.h"
 #include "core/io/resource_loader.h"
 #include "core/os/os.h"
+
+#ifdef TOOLS_ENABLED
+#include "editor/editor_settings.h"
+#include "main/main.h"
+#endif
 
 // ISO 639-1 language codes, with the addition of glibc locales with their
 // regional identifiers. This list must match the language names (in English)
@@ -846,7 +851,7 @@ void Translation::add_message(const StringName &p_src_text, const StringName &p_
 
 void Translation::add_plural_message(const StringName &p_src_text, const Vector<String> &p_plural_xlated_texts, const StringName &p_context) {
 	WARN_PRINT("Translation class doesn't handle plural messages. Calling add_plural_message() on a Translation instance is probably a mistake. \nUse a derived Translation class that handles plurals, such as TranslationPO class");
-	ERR_FAIL_COND_MSG(p_plural_xlated_texts.empty(), "Parameter vector p_plural_xlated_texts passed in is empty.");
+	ERR_FAIL_COND_MSG(p_plural_xlated_texts.is_empty(), "Parameter vector p_plural_xlated_texts passed in is empty.");
 	translation_map[p_src_text] = p_plural_xlated_texts[0];
 }
 
@@ -1212,6 +1217,22 @@ void TranslationServer::setup() {
 
 void TranslationServer::set_tool_translation(const Ref<Translation> &p_translation) {
 	tool_translation = p_translation;
+}
+
+Ref<Translation> TranslationServer::get_tool_translation() const {
+	return tool_translation;
+}
+
+String TranslationServer::get_tool_locale() {
+#ifdef TOOLS_ENABLED
+	if (TranslationServer::get_singleton()->get_tool_translation().is_valid() && (Engine::get_singleton()->is_editor_hint() || Main::is_project_manager())) {
+		return tool_translation->get_locale();
+	} else {
+#else
+	{
+#endif
+		return get_locale();
+	}
 }
 
 StringName TranslationServer::tool_translate(const StringName &p_message, const StringName &p_context) const {

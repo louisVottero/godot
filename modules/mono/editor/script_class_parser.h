@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -45,22 +45,22 @@ public:
 		};
 
 		String name;
-		Type type;
+		Type type = NAMESPACE_DECL;
 	};
 
 	struct ClassDecl {
 		String name;
 		String namespace_;
 		Vector<String> base;
-		bool nested;
+		bool nested = false;
 	};
 
 private:
 	String code;
-	int idx;
-	int line;
+	int idx = 0;
+	int line = 0;
 	String error_str;
-	bool error;
+	bool error = false;
 	Variant value;
 
 	Vector<ClassDecl> classes;

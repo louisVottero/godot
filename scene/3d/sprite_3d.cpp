@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -486,7 +486,7 @@ void Sprite3D::_draw() {
 		RS::get_singleton()->immediate_normal(immediate, normal);
 		RS::get_singleton()->immediate_tangent(immediate, tangent);
 		RS::get_singleton()->immediate_color(immediate, color);
-		RS::get_singleton()->immediate_uv(immediate, uvs[i]);
+		RS::get_singleton()->immediate_uv(immediate, uvs[index[i]]);
 
 		Vector3 vtx;
 		vtx[x_axis] = vertices[index[i]][0];
@@ -815,7 +815,7 @@ void AnimatedSprite3D::_draw() {
 		RS::get_singleton()->immediate_normal(immediate, normal);
 		RS::get_singleton()->immediate_tangent(immediate, tangent);
 		RS::get_singleton()->immediate_color(immediate, color);
-		RS::get_singleton()->immediate_uv(immediate, uvs[i]);
+		RS::get_singleton()->immediate_uv(immediate, uvs[indices[i]]);
 
 		Vector3 vtx;
 		vtx[x_axis] = vertices[indices[i]][0];
@@ -1074,7 +1074,7 @@ String AnimatedSprite3D::get_configuration_warning() const {
 	String warning = SpriteBase3D::get_configuration_warning();
 
 	if (frames.is_null()) {
-		if (!warning.empty()) {
+		if (!warning.is_empty()) {
 			warning += "\n\n";
 		}
 		warning += TTR("A SpriteFrames resource must be created or set in the \"Frames\" property in order for AnimatedSprite3D to display frames.");

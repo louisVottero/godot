@@ -6,24 +6,6 @@ readability.
 Subcategories (`###` level) where needed are separated by a single empty line.
 
 
-## assimp
-
-- Upstream: http://github.com/assimp/assimp
-- Version: git (308db73d0b3c2d1870cd3e465eaa283692a4cf23, 2019)
-- License: BSD-3-Clause
-
-Files extracted from upstream source:
-
-- Run `cmake .` in root folder to generate files
-- `code/{CApi,Common,FBX,Material,PostProcessing}/`
-- `contrib/utf8cpp/source/`
-- `include/`
-- `revision.h`
-- `CREDITS` and `LICENSE` files
-- `rm -f code/Common/ZipArchiveIOSystem.cpp include/assimp/ZipArchiveIOSystem.h
-   include/assimp/irrXMLWrapper.h`
-
-
 ## basis_universal
 
 - Upstream: https://github.com/BinomialLLC/basis_universal
@@ -40,10 +22,8 @@ Files extracted from upstream source:
 ## bullet
 
 - Upstream: https://github.com/bulletphysics/bullet3
-- Version: git pre-2.90 (cd8cf7521cbb8b7808126a6adebd47bb83ea166a, 2020)
+- Version: 3.08 (df09fd9ed37e365ceae884ca7f620b61607dae2e, 2020)
 - License: zlib
-
-Important: Synced with a pre-release version of bullet 2.90 from the master branch.
 
 Files extracted from upstream source:
 
@@ -143,6 +123,12 @@ Use UI font variant if available, because it has tight vertical metrics and good
 - Version: ? (pre-2014 commit when DroidSansJapanese.ttf was obsoleted)
 - License: Apache 2.0
 
+### Tamsyn
+- Upstream: http://www.fial.com/~scott/tamsyn-font/
+- Version: 1.11
+- License: Tamsyn
+
+Extracted "0..9,A..F" characters for hex code printing.
 
 ## freetype
 
@@ -160,7 +146,7 @@ Files extracted from upstream source:
 ## glslang
 
 - Upstream: https://github.com/KhronosGroup/glslang
-- Version: git (bacaef3237c515e40d1a24722be48c0a0b30f75f, 2020)
+- Version: git (dd69df7f3dac26362e10b0f38efb9e47990f7537, 2020)
 - License: glslang
 
 Version should be kept in sync with the one of the used Vulkan SDK (see `vulkan`
@@ -176,8 +162,39 @@ Files extracted from upstream source:
 - `LICENSE.txt`
 - Unnecessary files like `CMakeLists.txt` and `updateGrammar` removed.
 
-Patches in the `patches` directory should be re-applied after updates.
+## Graphite engine
 
+- Upstream: https://github.com/silnrsi/graphite
+- Version: 1.3.14
+- License: MPL-2.0
+
+Files extracted from upstream source:
+- the `include` folder
+- the `src` folder
+- `COPYING`, `ChangeLog`
+
+## HarfBuzz
+
+- Upstream: https://github.com/harfbuzz/harfbuzz
+- Version: 2.7.4
+- License: HarfBuzz
+
+Files extracted from upstream source:
+- the `src` folder
+- `AUTHORS`, `COPYING`, `NEWS`, `THANKS`
+
+## International Components for Unicode
+
+- Upstream: https://github.com/unicode-org/icu
+- Version: 68.2
+- License: Unicode
+
+Files extracted from upstream source:
+- the `common` folder
+- `APIChangeReport.md`, `LICENSE`
+
+Files generated from upstream source:
+- the `icudt68l.dat` built with the provided `godot_data.json` config file (see https://github.com/unicode-org/icu/blob/master/docs/userguide/icu_data/buildtool.md for instructions)
 
 ## jpeg-compressor
 
@@ -302,7 +319,7 @@ changes are marked with `// -- GODOT --` comments.
 ## mbedtls
 
 - Upstream: https://tls.mbed.org/
-- Version: 2.16.8 (2020)
+- Version: 2.16.9 (2020)
 - License: Apache 2.0
 
 File extracted from upstream release tarball:
@@ -318,6 +335,15 @@ File extracted from upstream release tarball:
 - Added 2 files `godot_core_mbedtls_platform.{c,h}` providing configuration
   for light bundling with core.
 
+
+## meshoptimizer
+
+- Upstream: https://github.com/zeux/meshoptimizer
+- Version: git (e4e43fe36e7a8705e602e7ca2f9fb795ded1d0b9, 2020)
+- License: MIT
+
+- File extracted from upstream tarball:
+- All files in `src/`.
 
 ## miniupnpc
 
@@ -374,7 +400,7 @@ Collection of single-file libraries used in Godot components.
   * License: Apache 2.0
 - `open-simplex-noise.{c,h}`
   * Upstream: https://github.com/smcameron/open-simplex-noise-in-c
-  * Version: git (0fef0dbedd76f767da7e3c894822729d0f07e54d, 2020) + custom changes
+  * Version: git (826f1dd1724e6fb3ff45f58e48c0fbae864c3403, 2020) + custom changes
   * License: Unlicense
 - `pcg.{cpp,h}`
   * Upstream: http://www.pcg-random.org
@@ -590,7 +616,7 @@ folder.
 ## vulkan
 
 - Upstream: https://github.com/KhronosGroup/Vulkan-Loader
-- Version: sdk-1.2.154.0 (2020)
+- Version: sdk-1.2.162.0 (2020)
 - License: Apache 2.0
 
 Unless there is a specific reason to package a more recent version, please stick
@@ -632,7 +658,7 @@ File extracted from upstream release tarball:
 ## xatlas
 
 - Upstream: https://github.com/jpcy/xatlas
-- Version: git (470576d3516f7e6d8b4554e7c941194a935969fd, 2020)
+- Version: git (5571fc7ef0d06832947c0a935ccdcf083f7a9264, 2020)
 - License: MIT
 
 Files extracted from upstream source:

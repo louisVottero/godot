@@ -1,6 +1,6 @@
 # Serbian (cyrillic) translation of the Godot Engine editor
-# Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.
-# Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).
+# Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.
+# Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).
 # This file is distributed under the same license as the Godot source code.
 #
 # Александар Урошевић <nicecubedude@gmail.com>, 2017.
@@ -1200,7 +1200,7 @@ msgstr "Преглед повезаних ресурса"
 
 #: editor/dependency_editor.cpp editor/editor_audio_buses.cpp
 #: editor/editor_file_dialog.cpp editor/editor_node.cpp
-#: editor/filesystem_dock.cpp editor/plugins/item_list_editor_plugin.cpp
+#: editor/plugins/item_list_editor_plugin.cpp
 #: editor/plugins/sprite_frames_editor_plugin.cpp editor/project_export.cpp
 #: editor/project_settings_editor.cpp editor/scene_tree_dock.cpp
 msgid "Delete"
@@ -4021,6 +4021,16 @@ msgid "Name contains invalid characters."
 msgstr "Дато име садржи неважећа слова."
 
 #: editor/filesystem_dock.cpp
+msgid ""
+"The following files or folders conflict with items in the target location "
+"'%s':\n"
+"\n"
+"%s\n"
+"\n"
+"Do you wish to overwrite them?"
+msgstr ""
+
+#: editor/filesystem_dock.cpp
 msgid "Renaming file:"
 msgstr "Преименовање датотеке:"
 
@@ -4075,23 +4085,9 @@ msgstr "Измени зависности..."
 msgid "View Owners..."
 msgstr "Погледај власнике..."
 
-#: editor/filesystem_dock.cpp editor/plugins/animation_player_editor_plugin.cpp
-msgid "Rename..."
-msgstr "Преименуј..."
-
-#: editor/filesystem_dock.cpp
-#, fuzzy
-msgid "Duplicate..."
-msgstr "Дуплирај"
-
 #: editor/filesystem_dock.cpp
 msgid "Move To..."
 msgstr "Помери у..."
-
-#: editor/filesystem_dock.cpp
-#, fuzzy
-msgid "Move to Trash"
-msgstr "Помери аутоматско учитавање"
 
 #: editor/filesystem_dock.cpp
 #, fuzzy
@@ -4121,11 +4117,18 @@ msgid "Collapse All"
 msgstr "Умањи све"
 
 #: editor/filesystem_dock.cpp
-#: editor/plugins/animation_tree_player_editor_plugin.cpp
-#: editor/project_manager.cpp editor/rename_dialog.cpp
-#: editor/scene_tree_dock.cpp
-msgid "Rename"
-msgstr "Преименуј"
+#, fuzzy
+msgid "Duplicate..."
+msgstr "Дуплирај"
+
+#: editor/filesystem_dock.cpp
+#, fuzzy
+msgid "Move to Trash"
+msgstr "Помери аутоматско учитавање"
+
+#: editor/filesystem_dock.cpp editor/plugins/animation_player_editor_plugin.cpp
+msgid "Rename..."
+msgstr "Преименуј..."
 
 #: editor/filesystem_dock.cpp
 #, fuzzy
@@ -4164,9 +4167,11 @@ msgid "Move"
 msgstr "Помери"
 
 #: editor/filesystem_dock.cpp
-#, fuzzy
-msgid "There is already file or folder with the same name in this location."
-msgstr "Датотека или директоријум са овим именом већ постоји."
+#: editor/plugins/animation_tree_player_editor_plugin.cpp
+#: editor/project_manager.cpp editor/rename_dialog.cpp
+#: editor/scene_tree_dock.cpp
+msgid "Rename"
+msgstr "Преименуј"
 
 #: editor/filesystem_dock.cpp
 #, fuzzy
@@ -4247,8 +4252,18 @@ msgstr "Чување..."
 
 #: editor/find_in_files.cpp
 #, fuzzy
-msgid "Search complete"
-msgstr "Потражи текст"
+msgid "%d match in %d file."
+msgstr "Нема подударања."
+
+#: editor/find_in_files.cpp
+#, fuzzy
+msgid "%d matches in %d file."
+msgstr "Нема подударања."
+
+#: editor/find_in_files.cpp
+#, fuzzy
+msgid "%d matches in %d files."
+msgstr "Нема подударања."
 
 #: editor/groups_editor.cpp
 msgid "Add to Group"
@@ -9159,8 +9174,23 @@ msgstr "Направи нов"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 #, fuzzy
+msgid "New Rectangle"
+msgstr "Цртање правоугаоником"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
 msgid "Create a new polygon."
 msgstr "Направи нови полигон од почетка."
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "New Polygon"
+msgstr "Помери полигон"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "Delete Selected Shape"
+msgstr "Обриши одабрани Кључ/еве"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 #, fuzzy
@@ -9402,11 +9432,6 @@ msgstr "Грешка"
 
 #: editor/plugins/version_control_editor_plugin.cpp
 #, fuzzy
-msgid "No commit message was provided"
-msgstr "Име није дато"
-
-#: editor/plugins/version_control_editor_plugin.cpp
-#, fuzzy
 msgid "No files added to stage"
 msgstr "Ни један фајл није додат на позорницу"
 
@@ -9474,11 +9499,6 @@ msgstr "Увећај одабрано"
 #, fuzzy
 msgid "Stage All"
 msgstr "Сачувај све"
-
-#: editor/plugins/version_control_editor_plugin.cpp
-#, fuzzy
-msgid "Add a commit message"
-msgstr "Додај предајну поруку"
 
 #: editor/plugins/version_control_editor_plugin.cpp
 #, fuzzy
@@ -10908,6 +10928,10 @@ msgstr "Цртач:"
 #, fuzzy
 msgid "OpenGL ES 3.0"
 msgstr "OpenGL ES 3.0"
+
+#: editor/project_manager.cpp
+msgid "Not supported by your GPU drivers."
+msgstr ""
 
 #: editor/project_manager.cpp
 #, fuzzy
@@ -13610,10 +13634,6 @@ msgid "Missing 'platform-tools' directory!"
 msgstr ""
 
 #: platform/android/export/export.cpp
-msgid "Missing 'build-tools' directory!"
-msgstr ""
-
-#: platform/android/export/export.cpp
 #, fuzzy
 msgid ""
 "Android build template not installed in the project. Install it from the "
@@ -13660,22 +13680,6 @@ msgstr ""
 
 #: platform/android/export/export.cpp
 msgid "\"Export AAB\" is only valid when \"Use Custom Build\" is enabled."
-msgstr ""
-
-#: platform/android/export/export.cpp
-msgid "Unable to find the zipalign tool."
-msgstr ""
-
-#: platform/android/export/export.cpp
-msgid "Aligning APK..."
-msgstr ""
-
-#: platform/android/export/export.cpp
-msgid "Unable to complete APK alignment."
-msgstr ""
-
-#: platform/android/export/export.cpp
-msgid "Unable to delete unaligned APK."
 msgstr ""
 
 #: platform/android/export/export.cpp
@@ -13951,6 +13955,26 @@ msgid ""
 msgstr ""
 "ПроцесорЧестице2Д анимација захтева коришћење ПлатноПредметМатеријала са "
 "омогућеном \"Анимациом Честица\"."
+
+#: scene/2d/joints_2d.cpp
+msgid "Node A and Node B must be PhysicsBody2Ds"
+msgstr ""
+
+#: scene/2d/joints_2d.cpp
+msgid "Node A must be a PhysicsBody2D"
+msgstr ""
+
+#: scene/2d/joints_2d.cpp
+msgid "Node B must be a PhysicsBody2D"
+msgstr ""
+
+#: scene/2d/joints_2d.cpp
+msgid "Joint is not connected to two PhysicsBody2Ds"
+msgstr ""
+
+#: scene/2d/joints_2d.cpp
+msgid "Node A and Node B must be different PhysicsBody2Ds"
+msgstr ""
 
 #: scene/2d/light_2d.cpp
 #, fuzzy
@@ -14320,6 +14344,26 @@ msgstr ""
 "Промена величине у ТврдомТелу (у карактеру или трвдом моду) ће бити "
 "преписана од стране физичког мотора у раду."
 
+#: scene/3d/physics_joint.cpp
+msgid "Node A and Node B must be PhysicsBodies"
+msgstr ""
+
+#: scene/3d/physics_joint.cpp
+msgid "Node A must be a PhysicsBody"
+msgstr ""
+
+#: scene/3d/physics_joint.cpp
+msgid "Node B must be a PhysicsBody"
+msgstr ""
+
+#: scene/3d/physics_joint.cpp
+msgid "Joint is not connected to any PhysicsBodies"
+msgstr ""
+
+#: scene/3d/physics_joint.cpp
+msgid "Node A and Node B must be different PhysicsBodies"
+msgstr ""
+
 #: scene/3d/remote_transform.cpp
 #, fuzzy
 msgid ""
@@ -14503,6 +14547,11 @@ msgstr "Узбуна!"
 msgid "Please Confirm..."
 msgstr "Молимо Потврди..."
 
+#: scene/gui/graph_edit.cpp
+#, fuzzy
+msgid "Enable grid minimap."
+msgstr "Укључи лепљење"
+
 #: scene/gui/popup.cpp
 #, fuzzy
 msgid ""
@@ -14597,6 +14646,22 @@ msgstr "Варијације могу само бити одређене у фу
 #, fuzzy
 msgid "Constants cannot be modified."
 msgstr "Константе није могуће мењати."
+
+#, fuzzy
+#~ msgid "Search complete"
+#~ msgstr "Потражи текст"
+
+#, fuzzy
+#~ msgid "No commit message was provided"
+#~ msgstr "Име није дато"
+
+#, fuzzy
+#~ msgid "Add a commit message"
+#~ msgstr "Додај предајну поруку"
+
+#, fuzzy
+#~ msgid "There is already file or folder with the same name in this location."
+#~ msgstr "Датотека или директоријум са овим именом већ постоји."
 
 #~ msgid "Error trying to save layout!"
 #~ msgstr "Грешка при чувању распореда!"

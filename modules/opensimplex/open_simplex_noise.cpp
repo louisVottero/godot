@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -63,7 +63,7 @@ void OpenSimplexNoise::set_seed(int p_seed) {
 	emit_changed();
 }
 
-int OpenSimplexNoise::get_seed() {
+int OpenSimplexNoise::get_seed() const {
 	return seed;
 }
 
@@ -102,7 +102,7 @@ void OpenSimplexNoise::set_lacunarity(float p_lacunarity) {
 	emit_changed();
 }
 
-Ref<Image> OpenSimplexNoise::get_image(int p_width, int p_height) {
+Ref<Image> OpenSimplexNoise::get_image(int p_width, int p_height) const {
 	Vector<uint8_t> data;
 	data.resize(p_width * p_height * 4);
 
@@ -124,7 +124,7 @@ Ref<Image> OpenSimplexNoise::get_image(int p_width, int p_height) {
 	return image;
 }
 
-Ref<Image> OpenSimplexNoise::get_seamless_image(int p_size) {
+Ref<Image> OpenSimplexNoise::get_seamless_image(int p_size) const {
 	Vector<uint8_t> data;
 	data.resize(p_size * p_size * 4);
 
@@ -193,11 +193,11 @@ void OpenSimplexNoise::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lacunarity", PROPERTY_HINT_RANGE, "0.1,4.0,0.01"), "set_lacunarity", "get_lacunarity");
 }
 
-float OpenSimplexNoise::get_noise_1d(float x) {
+float OpenSimplexNoise::get_noise_1d(float x) const {
 	return get_noise_2d(x, 1.0);
 }
 
-float OpenSimplexNoise::get_noise_2d(float x, float y) {
+float OpenSimplexNoise::get_noise_2d(float x, float y) const {
 	x /= period;
 	y /= period;
 
@@ -217,7 +217,7 @@ float OpenSimplexNoise::get_noise_2d(float x, float y) {
 	return sum / max;
 }
 
-float OpenSimplexNoise::get_noise_3d(float x, float y, float z) {
+float OpenSimplexNoise::get_noise_3d(float x, float y, float z) const {
 	x /= period;
 	y /= period;
 	z /= period;
@@ -239,7 +239,7 @@ float OpenSimplexNoise::get_noise_3d(float x, float y, float z) {
 	return sum / max;
 }
 
-float OpenSimplexNoise::get_noise_4d(float x, float y, float z, float w) {
+float OpenSimplexNoise::get_noise_4d(float x, float y, float z, float w) const {
 	x /= period;
 	y /= period;
 	z /= period;
