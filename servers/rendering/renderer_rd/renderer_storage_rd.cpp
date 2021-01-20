@@ -7340,6 +7340,7 @@ void RendererStorageRD::_update_decal_atlas() {
 	tformat.shareable_formats.push_back(RD::DATA_FORMAT_R8G8B8A8_SRGB);
 
 	decal_atlas.texture = RD::get_singleton()->texture_create(tformat, RD::TextureView());
+	RD::get_singleton()->texture_clear(decal_atlas.texture, Color(0, 0, 0, 0), 0, decal_atlas.mipmaps, 0, 1, true);
 
 	{
 		//create the framebuffer
@@ -8780,7 +8781,7 @@ RendererStorageRD::RendererStorageRD() {
 		actions.renames["RESTART_VELOCITY"] = "restart_velocity";
 		actions.renames["RESTART_COLOR"] = "restart_color";
 		actions.renames["RESTART_CUSTOM"] = "restart_custom";
-		actions.renames["emit_particle"] = "emit_particle";
+		actions.renames["emit_subparticle"] = "emit_subparticle";
 		actions.renames["COLLIDED"] = "collided";
 		actions.renames["COLLISION_NORMAL"] = "collision_normal";
 		actions.renames["COLLISION_DEPTH"] = "collision_depth";
