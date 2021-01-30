@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rw_lock.cpp                                                          */
+/*  signal.cpp                                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,16 +28,26 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "rw_lock.h"
+#include "gdnative/signal.h"
 
-#include "core/error/error_macros.h"
+#include "core/variant/callable.h"
+#include "core/variant/variant.h"
 
-#include <stddef.h>
+static_assert(sizeof(godot_signal) == sizeof(Signal), "Signal size mismatch");
 
-RWLock *(*RWLock::create_func)() = nullptr;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-RWLock *RWLock::create() {
-	ERR_FAIL_COND_V(!create_func, nullptr);
-
-	return create_func();
+void GDAPI godot_signal_new(godot_signal *p_self) {
+	memnew_placement(p_self, Signal);
 }
+
+void GDAPI godot_signal_destroy(godot_signal *p_self) {
+	Signal *self = (Signal *)p_self;
+	self->~Signal();
+}
+
+#ifdef __cplusplus
+}
+#endif
