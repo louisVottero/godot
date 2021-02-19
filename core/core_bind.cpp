@@ -681,22 +681,6 @@ String _OS::get_unique_id() const {
 	return OS::get_singleton()->get_unique_id();
 }
 
-int _OS::get_tablet_driver_count() const {
-	return OS::get_singleton()->get_tablet_driver_count();
-}
-
-String _OS::get_tablet_driver_name(int p_driver) const {
-	return OS::get_singleton()->get_tablet_driver_name(p_driver);
-}
-
-String _OS::get_current_tablet_driver() const {
-	return OS::get_singleton()->get_current_tablet_driver();
-}
-
-void _OS::set_current_tablet_driver(const String &p_driver) {
-	OS::get_singleton()->set_current_tablet_driver(p_driver);
-}
-
 _OS *_OS::singleton = nullptr;
 
 void _OS::_bind_methods() {
@@ -780,19 +764,12 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("request_permissions"), &_OS::request_permissions);
 	ClassDB::bind_method(D_METHOD("get_granted_permissions"), &_OS::get_granted_permissions);
 
-	ClassDB::bind_method(D_METHOD("get_tablet_driver_count"), &_OS::get_tablet_driver_count);
-	ClassDB::bind_method(D_METHOD("get_tablet_driver_name", "idx"), &_OS::get_tablet_driver_name);
-	ClassDB::bind_method(D_METHOD("get_current_tablet_driver"), &_OS::get_current_tablet_driver);
-	ClassDB::bind_method(D_METHOD("set_current_tablet_driver", "name"), &_OS::set_current_tablet_driver);
-
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "exit_code"), "set_exit_code", "get_exit_code");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "low_processor_usage_mode"), "set_low_processor_usage_mode", "is_in_low_processor_usage_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "low_processor_usage_mode_sleep_usec"), "set_low_processor_usage_mode_sleep_usec", "get_low_processor_usage_mode_sleep_usec");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "tablet_driver"), "set_current_tablet_driver", "get_current_tablet_driver");
 
 	// Those default values need to be specified for the docs generator,
 	// to avoid using values from the documentation writer's own OS instance.
-	ADD_PROPERTY_DEFAULT("tablet_driver", "");
 	ADD_PROPERTY_DEFAULT("exit_code", 0);
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode", false);
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode_sleep_usec", 6900);
@@ -1990,7 +1967,7 @@ void _Thread::_start_func(void *ud) {
 }
 
 Error _Thread::start(Object *p_instance, const StringName &p_method, const Variant &p_userdata, Priority p_priority) {
-	ERR_FAIL_COND_V_MSG(active, ERR_ALREADY_IN_USE, "Thread already started.");
+	ERR_FAIL_COND_V_MSG(active.is_set(), ERR_ALREADY_IN_USE, "Thread already started.");
 	ERR_FAIL_COND_V(!p_instance, ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V(p_method == StringName(), ERR_INVALID_PARAMETER);
 	ERR_FAIL_INDEX_V(p_priority, PRIORITY_MAX, ERR_INVALID_PARAMETER);
@@ -1999,7 +1976,7 @@ Error _Thread::start(Object *p_instance, const StringName &p_method, const Varia
 	target_method = p_method;
 	target_instance = p_instance;
 	userdata = p_userdata;
-	active = true;
+	active.set();
 
 	Ref<_Thread> *ud = memnew(Ref<_Thread>(this));
 
@@ -2015,14 +1992,14 @@ String _Thread::get_id() const {
 }
 
 bool _Thread::is_active() const {
-	return active;
+	return active.is_set();
 }
 
 Variant _Thread::wait_to_finish() {
-	ERR_FAIL_COND_V_MSG(!active, Variant(), "Thread must be active to wait for its completion.");
+	ERR_FAIL_COND_V_MSG(!active.is_set(), Variant(), "Thread must be active to wait for its completion.");
 	thread.wait_to_finish();
 	Variant r = ret;
-	active = false;
+	active.clear();
 	target_method = StringName();
 	target_instance = nullptr;
 	userdata = Variant();

@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  editor_sub_scene.h                                                   */
+/*  GodotPluginInfoProvider.java                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,44 +28,40 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef EDITOR_SUB_SCENE_H
-#define EDITOR_SUB_SCENE_H
+package org.godotengine.godot.plugin;
 
-#include "editor/editor_file_dialog.h"
-#include "scene/gui/dialogs.h"
-#include "scene/gui/tree.h"
+import androidx.annotation.NonNull;
 
-class EditorSubScene : public ConfirmationDialog {
-	GDCLASS(EditorSubScene, ConfirmationDialog);
+import java.util.List;
+import java.util.Set;
 
-	List<Node *> selection;
-	LineEdit *path;
-	Tree *tree;
-	Node *scene;
-	bool is_root;
+/**
+ * Provides the set of information expected from a Godot plugin.
+ */
+public interface GodotPluginInfoProvider {
+	/**
+	 * Returns the name of the plugin.
+	 */
+	@NonNull
+	String getPluginName();
 
-	EditorFileDialog *file_dialog;
+	/**
+	 * Returns the list of methods to be exposed to Godot.
+	 */
+	@NonNull
+	List<String> getPluginMethods();
 
-	void _fill_tree(Node *p_node, TreeItem *p_parent);
-	void _selected_changed();
-	void _item_multi_selected(Object *p_object, int p_cell, bool p_selected);
-	void _item_activated();
-	void _remove_selection_child(Node *p_node);
-	void _reown(Node *p_node, List<Node *> *p_to_reown);
+	/**
+	 * Returns the list of signals to be exposed to Godot.
+	 */
+	@NonNull
+	Set<SignalInfo> getPluginSignals();
 
-	void ok_pressed() override;
-
-protected:
-	void _notification(int p_what);
-	static void _bind_methods();
-	void _path_browse();
-	void _path_selected(const String &p_path);
-	void _path_changed(const String &p_path);
-
-public:
-	void move(Node *p_new_parent, Node *p_new_owner);
-	void clear();
-	EditorSubScene();
-};
-
-#endif // EDITOR_SUB_SCENE_H
+	/**
+	 * Returns the paths for the plugin's gdnative libraries (if any).
+	 *
+	 * The paths must be relative to the 'assets' directory and point to a '*.gdnlib' file.
+	 */
+	@NonNull
+	Set<String> getPluginGDNativeLibrariesPaths();
+}
