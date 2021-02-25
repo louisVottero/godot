@@ -72,12 +72,12 @@ float SceneTreeTimer::get_time_left() const {
 	return time_left;
 }
 
-void SceneTreeTimer::set_pause_mode_process(bool p_pause_mode_process) {
-	process_pause = p_pause_mode_process;
+void SceneTreeTimer::set_process_always(bool p_process_always) {
+	process_always = p_process_always;
 }
 
-bool SceneTreeTimer::is_pause_mode_process() {
-	return process_pause;
+bool SceneTreeTimer::is_process_always() {
+	return process_always;
 }
 
 void SceneTreeTimer::release_connections() {
@@ -455,7 +455,7 @@ bool SceneTree::process(float p_time) {
 
 	for (List<Ref<SceneTreeTimer>>::Element *E = timers.front(); E;) {
 		List<Ref<SceneTreeTimer>>::Element *N = E->next();
-		if (pause && !E->get()->is_pause_mode_process()) {
+		if (paused && !E->get()->is_process_always()) {
 			if (E == L) {
 				break; //break on last, so if new timers were added during list traversal, ignore them.
 			}
@@ -759,20 +759,20 @@ Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
 }
 
 void SceneTree::set_pause(bool p_enabled) {
-	if (p_enabled == pause) {
+	if (p_enabled == paused) {
 		return;
 	}
-	pause = p_enabled;
+	paused = p_enabled;
 	NavigationServer3D::get_singleton()->set_active(!p_enabled);
 	PhysicsServer3D::get_singleton()->set_active(!p_enabled);
 	PhysicsServer2D::get_singleton()->set_active(!p_enabled);
 	if (get_root()) {
-		get_root()->propagate_notification(p_enabled ? Node::NOTIFICATION_PAUSED : Node::NOTIFICATION_UNPAUSED);
+		get_root()->_propagate_pause_notification(p_enabled);
 	}
 }
 
 bool SceneTree::is_paused() const {
-	return pause;
+	return paused;
 }
 
 void SceneTree::_notify_group_pause(const StringName &p_group, int p_notification) {
@@ -956,6 +956,21 @@ bool SceneTree::has_group(const StringName &p_identifier) const {
 	return group_map.has(p_identifier);
 }
 
+Node *SceneTree::get_first_node_in_group(const StringName &p_group) {
+	Map<StringName, Group>::Element *E = group_map.find(p_group);
+	if (!E) {
+		return nullptr; //no group
+	}
+
+	_update_group_order(E->get()); //update order just in case
+
+	if (E->get().nodes.size() == 0) {
+		return nullptr;
+	}
+
+	return E->get().nodes[0];
+}
+
 void SceneTree::get_nodes_in_group(const StringName &p_group, List<Node *> *p_list) {
 	Map<StringName, Group>::Element *E = group_map.find(p_group);
 	if (!E) {
@@ -1070,10 +1085,10 @@ void SceneTree::add_current_scene(Node *p_current) {
 	root->add_child(p_current);
 }
 
-Ref<SceneTreeTimer> SceneTree::create_timer(float p_delay_sec, bool p_process_pause) {
+Ref<SceneTreeTimer> SceneTree::create_timer(float p_delay_sec, bool p_process_always) {
 	Ref<SceneTreeTimer> stt;
 	stt.instance();
-	stt->set_pause_mode_process(p_process_pause);
+	stt->set_process_always(p_process_always);
 	stt->set_time_left(p_delay_sec);
 	timers.push_back(stt);
 	return stt;
@@ -1186,7 +1201,7 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause);
 	ClassDB::bind_method(D_METHOD("is_paused"), &SceneTree::is_paused);
 
-	ClassDB::bind_method(D_METHOD("create_timer", "time_sec", "pause_mode_process"), &SceneTree::create_timer, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("create_timer", "time_sec", "process_always"), &SceneTree::create_timer, DEFVAL(true));
 
 	ClassDB::bind_method(D_METHOD("get_node_count"), &SceneTree::get_node_count);
 	ClassDB::bind_method(D_METHOD("get_frame"), &SceneTree::get_frame);
@@ -1216,6 +1231,7 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_group", "group", "property", "value"), &SceneTree::set_group);
 
 	ClassDB::bind_method(D_METHOD("get_nodes_in_group", "group"), &SceneTree::_get_nodes_in_group);
+	ClassDB::bind_method(D_METHOD("get_first_node_in_group", "group"), &SceneTree::get_first_node_in_group);
 
 	ClassDB::bind_method(D_METHOD("set_current_scene", "child_node"), &SceneTree::set_current_scene);
 	ClassDB::bind_method(D_METHOD("get_current_scene"), &SceneTree::get_current_scene);
@@ -1254,6 +1270,7 @@ void SceneTree::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "multiplayer_poll"), "set_multiplayer_poll_enabled", "is_multiplayer_poll_enabled");
 
 	ADD_SIGNAL(MethodInfo("tree_changed"));
+	ADD_SIGNAL(MethodInfo("tree_process_mode_changed")); //editor only signal, but due to API hash it cant be removed in run-time
 	ADD_SIGNAL(MethodInfo("node_added", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "Node")));
 	ADD_SIGNAL(MethodInfo("node_removed", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "Node")));
 	ADD_SIGNAL(MethodInfo("node_renamed", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "Node")));
@@ -1326,7 +1343,7 @@ SceneTree::SceneTree() {
 	if (singleton == nullptr) {
 		singleton = this;
 	}
-	debug_collisions_color = GLOBAL_DEF("debug/shapes/collision/shape_color", Color(0.0, 0.6, 0.7, 0.5));
+	debug_collisions_color = GLOBAL_DEF("debug/shapes/collision/shape_color", Color(0.0, 0.6, 0.7, 0.42));
 	debug_collision_contact_color = GLOBAL_DEF("debug/shapes/collision/contact_color", Color(1.0, 0.2, 0.1, 0.8));
 	debug_navigation_color = GLOBAL_DEF("debug/shapes/navigation/geometry_color", Color(0.1, 1.0, 0.7, 0.4));
 	debug_navigation_disabled_color = GLOBAL_DEF("debug/shapes/navigation/disabled_geometry_color", Color(1.0, 0.7, 0.1, 0.4));

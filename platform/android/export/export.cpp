@@ -2414,6 +2414,9 @@ public:
 		print_verbose("- custom build enabled: " + bool_to_string(use_custom_build));
 		print_verbose("- apk expansion enabled: " + bool_to_string(apk_expansion));
 		print_verbose("- enabled abis: " + String(",").join(enabled_abis));
+		print_verbose("- export filter: " + itos(p_preset->get_export_filter()));
+		print_verbose("- include filter: " + p_preset->get_include_filter());
+		print_verbose("- exclude filter: " + p_preset->get_exclude_filter());
 
 		Ref<Image> splash_image;
 		Ref<Image> splash_bg_color_image;
@@ -2553,6 +2556,7 @@ public:
 			cmdline.push_back("-Pplugins_maven_repos=" + custom_maven_repos); // argument to specify the list of custom maven repos for the plugins dependencies.
 			cmdline.push_back("-Pperform_zipalign=" + zipalign_flag); // argument to specify whether the build should be zipaligned.
 			cmdline.push_back("-Pperform_signing=" + sign_flag); // argument to specify whether the build should be signed.
+			cmdline.push_back("-Pgodot_editor_version=" + String(VERSION_FULL_CONFIG));
 
 			// NOTE: The release keystore is not included in the verbose logging
 			// to avoid accidentally leaking sensitive information when sharing verbose logs for troubleshooting.

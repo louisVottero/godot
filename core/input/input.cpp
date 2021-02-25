@@ -97,11 +97,11 @@ void Input::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_key_pressed", "keycode"), &Input::is_key_pressed);
 	ClassDB::bind_method(D_METHOD("is_mouse_button_pressed", "button"), &Input::is_mouse_button_pressed);
 	ClassDB::bind_method(D_METHOD("is_joy_button_pressed", "device", "button"), &Input::is_joy_button_pressed);
-	ClassDB::bind_method(D_METHOD("is_action_pressed", "action", "exact"), &Input::is_action_pressed, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("is_action_just_pressed", "action", "exact"), &Input::is_action_just_pressed, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("is_action_just_released", "action", "exact"), &Input::is_action_just_released, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("get_action_strength", "action", "exact"), &Input::get_action_strength, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("get_action_raw_strength", "action", "exact"), &Input::get_action_strength, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("is_action_pressed", "action", "exact_match"), &Input::is_action_pressed, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("is_action_just_pressed", "action", "exact_match"), &Input::is_action_just_pressed, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("is_action_just_released", "action", "exact_match"), &Input::is_action_just_released, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_action_strength", "action", "exact_match"), &Input::get_action_strength, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_action_raw_strength", "action", "exact_match"), &Input::get_action_strength, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_axis", "negative_action", "positive_action"), &Input::get_axis);
 	ClassDB::bind_method(D_METHOD("get_vector", "negative_x", "positive_x", "negative_y", "positive_y", "deadzone"), &Input::get_vector, DEFVAL(-1.0f));
 	ClassDB::bind_method(D_METHOD("add_joy_mapping", "mapping", "update_existing"), &Input::add_joy_mapping, DEFVAL(false));
@@ -241,10 +241,18 @@ bool Input::is_joy_button_pressed(int p_device, int p_button) const {
 }
 
 bool Input::is_action_pressed(const StringName &p_action, bool p_exact) const {
+#ifdef DEBUG_ENABLED
+	bool has_action = InputMap::get_singleton()->has_action(p_action);
+	ERR_FAIL_COND_V_MSG(!has_action, false, "Request for nonexistent InputMap action '" + String(p_action) + "'.");
+#endif
 	return action_state.has(p_action) && action_state[p_action].pressed && (p_exact ? action_state[p_action].exact : true);
 }
 
 bool Input::is_action_just_pressed(const StringName &p_action, bool p_exact) const {
+#ifdef DEBUG_ENABLED
+	bool has_action = InputMap::get_singleton()->has_action(p_action);
+	ERR_FAIL_COND_V_MSG(!has_action, false, "Request for nonexistent InputMap action '" + String(p_action) + "'.");
+#endif
 	const Map<StringName, Action>::Element *E = action_state.find(p_action);
 	if (!E) {
 		return false;
@@ -262,6 +270,10 @@ bool Input::is_action_just_pressed(const StringName &p_action, bool p_exact) con
 }
 
 bool Input::is_action_just_released(const StringName &p_action, bool p_exact) const {
+#ifdef DEBUG_ENABLED
+	bool has_action = InputMap::get_singleton()->has_action(p_action);
+	ERR_FAIL_COND_V_MSG(!has_action, false, "Request for nonexistent InputMap action '" + String(p_action) + "'.");
+#endif
 	const Map<StringName, Action>::Element *E = action_state.find(p_action);
 	if (!E) {
 		return false;
@@ -279,6 +291,10 @@ bool Input::is_action_just_released(const StringName &p_action, bool p_exact) co
 }
 
 float Input::get_action_strength(const StringName &p_action, bool p_exact) const {
+#ifdef DEBUG_ENABLED
+	bool has_action = InputMap::get_singleton()->has_action(p_action);
+	ERR_FAIL_COND_V_MSG(!has_action, false, "Request for nonexistent InputMap action '" + String(p_action) + "'.");
+#endif
 	const Map<StringName, Action>::Element *E = action_state.find(p_action);
 	if (!E) {
 		return 0.0f;
