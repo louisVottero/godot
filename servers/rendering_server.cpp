@@ -472,8 +472,8 @@ Error RenderingServer::_surface_set_data(Array p_arrays, uint32_t p_format, uint
 				const Vector2 *src = array.ptr();
 
 				for (int i = 0; i < p_vertex_array_len; i++) {
-					uint16_t uv[2] = { Math::make_half_float(src[i].x), Math::make_half_float(src[i].y) };
-					memcpy(&aw[p_offsets[ai] + i * p_attrib_stride], uv, 2 * 2);
+					float uv[2] = { src[i].x, src[i].y };
+					memcpy(&aw[p_offsets[ai] + i * p_attrib_stride], uv, 2 * 4);
 				}
 			} break;
 			case RS::ARRAY_CUSTOM0:
@@ -2297,8 +2297,12 @@ RenderingServer::RenderingServer() {
 
 	GLOBAL_DEF("rendering/2d/shadow_atlas/size", 2048);
 
-	GLOBAL_DEF("rendering/driver/rd_renderer/use_low_end_renderer", false);
-	GLOBAL_DEF("rendering/driver/rd_renderer/use_low_end_renderer.mobile", true);
+	GLOBAL_DEF_RST("rendering/vulkan/rendering/back_end", 0);
+	GLOBAL_DEF_RST("rendering/vulkan/rendering/back_end.mobile", 1);
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/vulkan/rendering/back_end",
+			PropertyInfo(Variant::INT,
+					"rendering/vulkan/rendering/back_end",
+					PROPERTY_HINT_ENUM, "ForwardClustered,ForwardMobile"));
 
 	GLOBAL_DEF("rendering/reflections/sky_reflections/roughness_layers", 8);
 	GLOBAL_DEF("rendering/reflections/sky_reflections/texture_array_reflections", true);
