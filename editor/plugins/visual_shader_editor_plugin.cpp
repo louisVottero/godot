@@ -729,13 +729,14 @@ void VisualShaderGraphPlugin::add_node(VisualShader::Type p_type, int p_id) {
 		CodeEdit *expression_box = memnew(CodeEdit);
 		Ref<CodeHighlighter> expression_syntax_highlighter;
 		expression_syntax_highlighter.instance();
-		expression_node->set_control(expression_box, 0);
+		expression_node->set_ctrl_pressed(expression_box, 0);
 		node->add_child(expression_box);
 		register_expression_edit(p_id, expression_box);
 
 		Color background_color = EDITOR_GET("text_editor/highlighting/background_color");
 		Color text_color = EDITOR_GET("text_editor/highlighting/text_color");
 		Color keyword_color = EDITOR_GET("text_editor/highlighting/keyword_color");
+		Color control_flow_keyword_color = EDITOR_GET("text_editor/highlighting/control_flow_keyword_color");
 		Color comment_color = EDITOR_GET("text_editor/highlighting/comment_color");
 		Color symbol_color = EDITOR_GET("text_editor/highlighting/symbol_color");
 		Color function_color = EDITOR_GET("text_editor/highlighting/function_color");
@@ -746,7 +747,11 @@ void VisualShaderGraphPlugin::add_node(VisualShader::Type p_type, int p_id) {
 		expression_box->add_theme_color_override("background_color", background_color);
 
 		for (List<String>::Element *E = VisualShaderEditor::get_singleton()->keyword_list.front(); E; E = E->next()) {
-			expression_syntax_highlighter->add_keyword_color(E->get(), keyword_color);
+			if (ShaderLanguage::is_control_flow_keyword(E->get())) {
+				expression_syntax_highlighter->add_keyword_color(E->get(), control_flow_keyword_color);
+			} else {
+				expression_syntax_highlighter->add_keyword_color(E->get(), keyword_color);
+			}
 		}
 
 		expression_box->add_theme_font_override("font", VisualShaderEditor::get_singleton()->get_theme_font("expression", "EditorFonts"));
@@ -1175,26 +1180,15 @@ void VisualShaderEditor::_draw_color_over_button(Object *obj, Color p_color) {
 }
 
 void VisualShaderEditor::_update_created_node(GraphNode *node) {
-	if (EditorSettings::get_singleton()->get("interface/theme/use_graph_node_headers")) {
-		Ref<StyleBoxFlat> sb = node->get_theme_stylebox("frame", "GraphNode");
-		Color c = sb->get_border_color();
-		Color ic;
-		Color mono_color;
-		if (((c.r + c.g + c.b) / 3) < 0.7) {
-			mono_color = Color(1.0, 1.0, 1.0);
-			ic = Color(0.0, 0.0, 0.0, 0.7);
-		} else {
-			mono_color = Color(0.0, 0.0, 0.0);
-			ic = Color(1.0, 1.0, 1.0, 0.7);
-		}
-		mono_color.a = 0.85;
-		c = mono_color;
+	const Ref<StyleBoxFlat> sb = node->get_theme_stylebox("frame", "GraphNode");
+	Color c = sb->get_border_color();
+	const Color mono_color = ((c.r + c.g + c.b) / 3) < 0.7 ? Color(1.0, 1.0, 1.0, 0.85) : Color(0.0, 0.0, 0.0, 0.85);
+	c = mono_color;
 
-		node->add_theme_color_override("title_color", c);
-		c.a = 0.7;
-		node->add_theme_color_override("close_color", c);
-		node->add_theme_color_override("resizer_color", ic);
-	}
+	node->add_theme_color_override("title_color", c);
+	c.a = 0.7;
+	node->add_theme_color_override("close_color", c);
+	node->add_theme_color_override("resizer_color", c);
 }
 
 void VisualShaderEditor::_update_uniforms(bool p_update_refs) {
@@ -1590,7 +1584,7 @@ void VisualShaderEditor::_set_node_size(int p_type, int p_node, const Vector2 &p
 		Ref<VisualShaderNodeExpression> expression_node = Object::cast_to<VisualShaderNodeExpression>(node.ptr());
 		Control *text_box = nullptr;
 		if (!expression_node.is_null()) {
-			text_box = expression_node->get_control(0);
+			text_box = expression_node->is_ctrl_pressed(0);
 			if (text_box) {
 				text_box->set_custom_minimum_size(Size2(0, 0));
 			}
@@ -2433,7 +2427,7 @@ void VisualShaderEditor::_convert_constants_to_uniforms(bool p_vice_versa) {
 	for (Set<int>::Element *E = current_set.front(); E; E = E->next()) {
 		int node_id = E->get();
 		Ref<VisualShaderNode> node = visual_shader->get_node(type_id, node_id);
-		bool catched = false;
+		bool caught = false;
 		Variant var;
 
 		// float
@@ -2442,112 +2436,112 @@ void VisualShaderEditor::_convert_constants_to_uniforms(bool p_vice_versa) {
 			if (float_const.is_valid()) {
 				_replace_node(type_id, node_id, "VisualShaderNodeFloatConstant", "VisualShaderNodeFloatUniform");
 				var = float_const->get_constant();
-				catched = true;
+				caught = true;
 			}
 		} else {
 			Ref<VisualShaderNodeFloatUniform> float_uniform = Object::cast_to<VisualShaderNodeFloatUniform>(node.ptr());
 			if (float_uniform.is_valid()) {
 				_replace_node(type_id, node_id, "VisualShaderNodeFloatUniform", "VisualShaderNodeFloatConstant");
 				var = float_uniform->get_default_value();
-				catched = true;
+				caught = true;
 			}
 		}
 
 		// int
-		if (!catched) {
+		if (!caught) {
 			if (!p_vice_versa) {
 				Ref<VisualShaderNodeIntConstant> int_const = Object::cast_to<VisualShaderNodeIntConstant>(node.ptr());
 				if (int_const.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeIntConstant", "VisualShaderNodeIntUniform");
 					var = int_const->get_constant();
-					catched = true;
+					caught = true;
 				}
 			} else {
 				Ref<VisualShaderNodeIntUniform> int_uniform = Object::cast_to<VisualShaderNodeIntUniform>(node.ptr());
 				if (int_uniform.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeIntUniform", "VisualShaderNodeIntConstant");
 					var = int_uniform->get_default_value();
-					catched = true;
+					caught = true;
 				}
 			}
 		}
 
 		// boolean
-		if (!catched) {
+		if (!caught) {
 			if (!p_vice_versa) {
 				Ref<VisualShaderNodeBooleanConstant> boolean_const = Object::cast_to<VisualShaderNodeBooleanConstant>(node.ptr());
 				if (boolean_const.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeBooleanConstant", "VisualShaderNodeBooleanUniform");
 					var = boolean_const->get_constant();
-					catched = true;
+					caught = true;
 				}
 			} else {
 				Ref<VisualShaderNodeBooleanUniform> boolean_uniform = Object::cast_to<VisualShaderNodeBooleanUniform>(node.ptr());
 				if (boolean_uniform.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeBooleanUniform", "VisualShaderNodeBooleanConstant");
 					var = boolean_uniform->get_default_value();
-					catched = true;
+					caught = true;
 				}
 			}
 		}
 
 		// vec3
-		if (!catched) {
+		if (!caught) {
 			if (!p_vice_versa) {
 				Ref<VisualShaderNodeVec3Constant> vec3_const = Object::cast_to<VisualShaderNodeVec3Constant>(node.ptr());
 				if (vec3_const.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeVec3Constant", "VisualShaderNodeVec3Uniform");
 					var = vec3_const->get_constant();
-					catched = true;
+					caught = true;
 				}
 			} else {
 				Ref<VisualShaderNodeVec3Uniform> vec3_uniform = Object::cast_to<VisualShaderNodeVec3Uniform>(node.ptr());
 				if (vec3_uniform.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeVec3Uniform", "VisualShaderNodeVec3Constant");
 					var = vec3_uniform->get_default_value();
-					catched = true;
+					caught = true;
 				}
 			}
 		}
 
 		// color
-		if (!catched) {
+		if (!caught) {
 			if (!p_vice_versa) {
 				Ref<VisualShaderNodeColorConstant> color_const = Object::cast_to<VisualShaderNodeColorConstant>(node.ptr());
 				if (color_const.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeColorConstant", "VisualShaderNodeColorUniform");
 					var = color_const->get_constant();
-					catched = true;
+					caught = true;
 				}
 			} else {
 				Ref<VisualShaderNodeColorUniform> color_uniform = Object::cast_to<VisualShaderNodeColorUniform>(node.ptr());
 				if (color_uniform.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeColorUniform", "VisualShaderNodeColorConstant");
 					var = color_uniform->get_default_value();
-					catched = true;
+					caught = true;
 				}
 			}
 		}
 
 		// transform
-		if (!catched) {
+		if (!caught) {
 			if (!p_vice_versa) {
 				Ref<VisualShaderNodeTransformConstant> transform_const = Object::cast_to<VisualShaderNodeTransformConstant>(node.ptr());
 				if (transform_const.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeTransformConstant", "VisualShaderNodeTransformUniform");
 					var = transform_const->get_constant();
-					catched = true;
+					caught = true;
 				}
 			} else {
 				Ref<VisualShaderNodeTransformUniform> transform_uniform = Object::cast_to<VisualShaderNodeTransformUniform>(node.ptr());
 				if (transform_uniform.is_valid()) {
 					_replace_node(type_id, node_id, "VisualShaderNodeTransformUniform", "VisualShaderNodeTransformConstant");
 					var = transform_uniform->get_default_value();
-					catched = true;
+					caught = true;
 				}
 			}
 		}
-		ERR_CONTINUE(!catched);
+		ERR_CONTINUE(!caught);
 		int preview_port = node->get_output_port_for_preview();
 
 		if (!p_vice_versa) {
@@ -2768,10 +2762,10 @@ void VisualShaderEditor::_notification(int p_what) {
 
 		// collapse tree by default
 
-		TreeItem *category = members->get_root()->get_children();
+		TreeItem *category = members->get_root()->get_first_child();
 		while (category) {
 			category->set_collapsed(true);
-			TreeItem *sub_category = category->get_children();
+			TreeItem *sub_category = category->get_first_child();
 			while (sub_category) {
 				sub_category->set_collapsed(true);
 				sub_category = sub_category->get_next();
@@ -2803,6 +2797,7 @@ void VisualShaderEditor::_notification(int p_what) {
 			Color background_color = EDITOR_GET("text_editor/highlighting/background_color");
 			Color text_color = EDITOR_GET("text_editor/highlighting/text_color");
 			Color keyword_color = EDITOR_GET("text_editor/highlighting/keyword_color");
+			Color control_flow_keyword_color = EDITOR_GET("text_editor/highlighting/control_flow_keyword_color");
 			Color comment_color = EDITOR_GET("text_editor/highlighting/comment_color");
 			Color symbol_color = EDITOR_GET("text_editor/highlighting/symbol_color");
 			Color function_color = EDITOR_GET("text_editor/highlighting/function_color");
@@ -2812,7 +2807,11 @@ void VisualShaderEditor::_notification(int p_what) {
 			preview_text->add_theme_color_override("background_color", background_color);
 
 			for (List<String>::Element *E = keyword_list.front(); E; E = E->next()) {
-				syntax_highlighter->add_keyword_color(E->get(), keyword_color);
+				if (ShaderLanguage::is_control_flow_keyword(E->get())) {
+					syntax_highlighter->add_keyword_color(E->get(), control_flow_keyword_color);
+				} else {
+					syntax_highlighter->add_keyword_color(E->get(), keyword_color);
+				}
 			}
 
 			preview_text->add_theme_font_override("font", get_theme_font("expression", "EditorFonts"));
@@ -3211,14 +3210,14 @@ void VisualShaderEditor::_member_cancel() {
 }
 
 void VisualShaderEditor::_tools_menu_option(int p_idx) {
-	TreeItem *category = members->get_root()->get_children();
+	TreeItem *category = members->get_root()->get_first_child();
 
 	switch (p_idx) {
 		case EXPAND_ALL:
 
 			while (category) {
 				category->set_collapsed(false);
-				TreeItem *sub_category = category->get_children();
+				TreeItem *sub_category = category->get_first_child();
 				while (sub_category) {
 					sub_category->set_collapsed(false);
 					sub_category = sub_category->get_next();
@@ -3232,7 +3231,7 @@ void VisualShaderEditor::_tools_menu_option(int p_idx) {
 
 			while (category) {
 				category->set_collapsed(true);
-				TreeItem *sub_category = category->get_children();
+				TreeItem *sub_category = category->get_first_child();
 				while (sub_category) {
 					sub_category->set_collapsed(true);
 					sub_category = sub_category->get_next();

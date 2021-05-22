@@ -163,6 +163,8 @@ public:
 	virtual Control *get_edit_menu() = 0;
 	virtual void clear_edit_menu() = 0;
 
+	virtual Control *get_base_editor() const = 0;
+
 	virtual void validate() = 0;
 
 	ScriptEditorBase() {}
@@ -463,6 +465,7 @@ public:
 
 	void get_breakpoints(List<String> *p_breakpoints);
 
+	void save_current_script();
 	void save_all_scripts();
 
 	void set_window_layout(Ref<ConfigFile> p_layout);

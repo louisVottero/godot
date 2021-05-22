@@ -540,6 +540,10 @@ void SceneTreeEditor::_update_tree(bool p_scroll_to_selected) {
 		return;
 	}
 
+	if (tree->is_editing()) {
+		return;
+	}
+
 	updating_tree = true;
 	tree->clear();
 	if (get_scene_node()) {
@@ -695,7 +699,7 @@ TreeItem *SceneTreeEditor::_find(TreeItem *p_node, const NodePath &p_path) {
 		return p_node;
 	}
 
-	TreeItem *children = p_node->get_children();
+	TreeItem *children = p_node->get_first_child();
 	while (children) {
 		TreeItem *n = _find(children, p_path);
 		if (n) {
@@ -879,7 +883,7 @@ void SceneTreeEditor::_update_selection(TreeItem *item) {
 		item->deselect(0);
 	}
 
-	TreeItem *c = item->get_children();
+	TreeItem *c = item->get_first_child();
 
 	while (c) {
 		_update_selection(c);

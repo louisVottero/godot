@@ -481,7 +481,7 @@ void GDScript::_update_doc() {
 				methods[i].return_val.class_name = _get_gdscript_reference_class_name(Object::cast_to<GDScript>(return_type.script_type));
 			}
 
-			// Change class name if argumetn is script reference.
+			// Change class name if argument is script reference.
 			for (int j = 0; j < fn->get_argument_count(); j++) {
 				GDScriptDataType arg_type = fn->get_argument_type(j);
 				if (arg_type.kind == GDScriptDataType::GDSCRIPT) {
@@ -1045,10 +1045,10 @@ Error GDScript::load_source_code(const String &p_path) {
 		ERR_FAIL_COND_V(err, err);
 	}
 
-	int len = f->get_len();
+	uint64_t len = f->get_len();
 	sourcef.resize(len + 1);
 	uint8_t *w = sourcef.ptrw();
-	int r = f->get_buffer(w, len);
+	uint64_t r = f->get_buffer(w, len);
 	f->close();
 	memdelete(f);
 	ERR_FAIL_COND_V(r != len, ERR_CANT_OPEN);
@@ -2133,6 +2133,19 @@ void GDScriptLanguage::get_reserved_words(List<String> *p_words) const {
 	for (const List<StringName>::Element *E = functions.front(); E; E = E->next()) {
 		p_words->push_back(String(E->get()));
 	}
+}
+
+bool GDScriptLanguage::is_control_flow_keyword(String p_keyword) const {
+	return p_keyword == "break" ||
+		   p_keyword == "continue" ||
+		   p_keyword == "elif" ||
+		   p_keyword == "else" ||
+		   p_keyword == "if" ||
+		   p_keyword == "for" ||
+		   p_keyword == "match" ||
+		   p_keyword == "pass" ||
+		   p_keyword == "return" ||
+		   p_keyword == "while";
 }
 
 bool GDScriptLanguage::handles_global_class_type(const String &p_type) const {

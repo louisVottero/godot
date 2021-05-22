@@ -2969,6 +2969,20 @@ void ShaderLanguage::get_keyword_list(List<String> *r_keywords) {
 	}
 }
 
+bool ShaderLanguage::is_control_flow_keyword(String p_keyword) {
+	return p_keyword == "break" ||
+		   p_keyword == "case" ||
+		   p_keyword == "continue" ||
+		   p_keyword == "default" ||
+		   p_keyword == "do" ||
+		   p_keyword == "else" ||
+		   p_keyword == "for" ||
+		   p_keyword == "if" ||
+		   p_keyword == "return" ||
+		   p_keyword == "switch" ||
+		   p_keyword == "while";
+}
+
 void ShaderLanguage::get_builtin_funcs(List<String> *r_keywords) {
 	Set<String> kws;
 
@@ -3172,7 +3186,7 @@ bool ShaderLanguage::_check_node_constness(const Node *p_node) const {
 	switch (p_node->type) {
 		case Node::TYPE_OPERATOR: {
 			OperatorNode *op_node = (OperatorNode *)p_node;
-			for (int i = (1 ? op_node->op == OP_CALL : 0); i < op_node->arguments.size(); i++) {
+			for (int i = int(op_node->op == OP_CALL); i < op_node->arguments.size(); i++) {
 				if (!_check_node_constness(op_node->arguments[i])) {
 					return false;
 				}
@@ -4287,8 +4301,15 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 						}
 						mn->assign_expression = assign_expression;
 					} else if (tk.type == TK_PERIOD) {
-						_set_error("Nested array length() is not yet implemented");
-						return nullptr;
+						completion_class = TAG_ARRAY;
+						p_block->block_tag = SubClassTag::TAG_ARRAY;
+						Node *call_expression = _parse_and_reduce_expression(p_block, p_function_info);
+						p_block->block_tag = SubClassTag::TAG_GLOBAL;
+						if (!call_expression) {
+							return nullptr;
+						}
+						mn->datatype = call_expression->get_datatype();
+						mn->call_expression = call_expression;
 					} else if (tk.type == TK_BRACKET_OPEN) {
 						Node *index_expression = _parse_and_reduce_expression(p_block, p_function_info);
 						if (!index_expression) {

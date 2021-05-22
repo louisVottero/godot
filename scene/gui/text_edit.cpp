@@ -2914,17 +2914,25 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 		}
 
 		if (mb->is_pressed()) {
-			if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && !mb->get_command()) {
-				if (mb->get_shift()) {
+			if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && !mb->is_command_pressed()) {
+				if (mb->is_shift_pressed()) {
 					h_scroll->set_value(h_scroll->get_value() - (100 * mb->get_factor()));
+				} else if (mb->is_alt_pressed()) {
+					// Scroll 5 times as fast as normal (like in Visual Studio Code).
+					_scroll_up(15 * mb->get_factor());
 				} else if (v_scroll->is_visible()) {
+					// Scroll 3 lines.
 					_scroll_up(3 * mb->get_factor());
 				}
 			}
-			if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && !mb->get_command()) {
-				if (mb->get_shift()) {
+			if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && !mb->is_command_pressed()) {
+				if (mb->is_shift_pressed()) {
 					h_scroll->set_value(h_scroll->get_value() + (100 * mb->get_factor()));
+				} else if (mb->is_alt_pressed()) {
+					// Scroll 5 times as fast as normal (like in Visual Studio Code).
+					_scroll_down(15 * mb->get_factor());
 				} else if (v_scroll->is_visible()) {
+					// Scroll 3 lines.
 					_scroll_down(3 * mb->get_factor());
 				}
 			}
@@ -2977,7 +2985,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 				cursor_set_line(row, false, false);
 				cursor_set_column(col);
 
-				if (mb->get_shift() && (cursor.column != prev_col || cursor.line != prev_line)) {
+				if (mb->is_shift_pressed() && (cursor.column != prev_col || cursor.line != prev_line)) {
 					if (!selection.active) {
 						selection.active = true;
 						selection.selecting_mode = SelectionMode::SELECTION_MODE_POINTER;
@@ -3073,7 +3081,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 			}
 		} else {
 			if (mb->get_button_index() == MOUSE_BUTTON_LEFT) {
-				if (mb->get_command() && highlighted_word != String()) {
+				if (mb->is_command_pressed() && highlighted_word != String()) {
 					int row, col;
 					_get_mouse_pos(Point2i(mpos.x, mpos.y), row, col);
 
@@ -3116,7 +3124,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 			mpos.x = get_size().x - mpos.x;
 		}
 		if (select_identifiers_enabled) {
-			if (!dragging_minimap && !dragging_selection && mm->get_command() && mm->get_button_mask() == 0) {
+			if (!dragging_minimap && !dragging_selection && mm->is_command_pressed() && mm->get_button_mask() == 0) {
 				String new_word = get_word_at_pos(mpos);
 				if (new_word != highlighted_word) {
 					emit_signal("symbol_validate", new_word);
@@ -3165,7 +3173,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 #ifdef OSX_ENABLED
 		if (k->get_keycode() == KEY_META) {
 #else
-		if (k->get_keycode() == KEY_CONTROL) {
+		if (k->get_keycode() == KEY_CTRL) {
 #endif
 			if (select_identifiers_enabled) {
 				if (k->is_pressed() && !dragging_minimap && !dragging_selection) {
@@ -3183,7 +3191,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 		}
 
 		// If a modifier has been pressed, and nothing else, return.
-		if (k->get_keycode() == KEY_CONTROL || k->get_keycode() == KEY_ALT || k->get_keycode() == KEY_SHIFT || k->get_keycode() == KEY_META) {
+		if (k->get_keycode() == KEY_CTRL || k->get_keycode() == KEY_ALT || k->get_keycode() == KEY_SHIFT || k->get_keycode() == KEY_META) {
 			return;
 		}
 
@@ -3191,7 +3199,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 
 		// Allow unicode handling if:
 		// * No Modifiers are pressed (except shift)
-		bool allow_unicode_handling = !(k->get_command() || k->get_control() || k->get_alt() || k->get_metakey());
+		bool allow_unicode_handling = !(k->is_command_pressed() || k->is_ctrl_pressed() || k->is_alt_pressed() || k->is_meta_pressed());
 
 		// Save here for insert mode, just in case it is cleared in the following section.
 		bool had_selection = selection.active;
@@ -3436,9 +3444,9 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 		// CURSOR MOVEMENT
 
 		k = k->duplicate();
-		bool shift_pressed = k->get_shift();
+		bool shift_pressed = k->is_shift_pressed();
 		// Remove shift or else actions will not match. Use above variable for selection.
-		k->set_shift(false);
+		k->set_shift_pressed(false);
 
 		// CURSOR MOVEMENT - LEFT, RIGHT.
 		if (k->is_action("ui_text_caret_word_left", true)) {
@@ -4450,7 +4458,7 @@ Control::CursorShape TextEdit::get_cursor_shape(const Point2 &p_pos) const {
 		return CURSOR_POINTING_HAND;
 	}
 
-	if ((completion_active && completion_rect.has_point(p_pos))) {
+	if ((completion_active && completion_rect.has_point(p_pos)) || (is_readonly() && (!is_selecting_enabled() || text.size() == 0))) {
 		return CURSOR_ARROW;
 	}
 
@@ -6845,6 +6853,7 @@ void TextEdit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_line_count"), &TextEdit::get_line_count);
 	ClassDB::bind_method(D_METHOD("get_text"), &TextEdit::get_text);
 	ClassDB::bind_method(D_METHOD("get_line", "line"), &TextEdit::get_line);
+	ClassDB::bind_method(D_METHOD("get_visible_line_count"), &TextEdit::get_total_visible_rows);
 	ClassDB::bind_method(D_METHOD("set_line", "line", "new_text"), &TextEdit::set_line);
 
 	ClassDB::bind_method(D_METHOD("set_structured_text_bidi_override", "parser"), &TextEdit::set_structured_text_bidi_override);

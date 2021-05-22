@@ -554,6 +554,7 @@ public:
 
 	RID particles_allocate() override { return RID(); }
 	void particles_initialize(RID p_rid) override {}
+	void particles_set_mode(RID p_particles, RS::ParticlesMode p_mode) override {}
 	void particles_emit(RID p_particles, const Transform &p_transform, const Vector3 &p_velocity, const Color &p_color, const Color &p_custom, uint32_t p_emit_flags) override {}
 	void particles_set_emitting(RID p_particles, bool p_emitting) override {}
 	void particles_set_amount(RID p_particles, int p_amount) override {}
@@ -567,10 +568,17 @@ public:
 	void particles_set_use_local_coordinates(RID p_particles, bool p_enable) override {}
 	void particles_set_process_material(RID p_particles, RID p_material) override {}
 	void particles_set_fixed_fps(RID p_particles, int p_fps) override {}
+	void particles_set_interpolate(RID p_particles, bool p_enable) override {}
 	void particles_set_fractional_delta(RID p_particles, bool p_enable) override {}
 	void particles_set_subemitter(RID p_particles, RID p_subemitter_particles) override {}
-	void particles_set_view_axis(RID p_particles, const Vector3 &p_axis) override {}
+	void particles_set_view_axis(RID p_particles, const Vector3 &p_axis, const Vector3 &p_up_axis) override {}
 	void particles_set_collision_base_size(RID p_particles, float p_size) override {}
+
+	void particles_set_transform_align(RID p_particles, RS::ParticlesTransformAlign p_transform_align) override {}
+
+	void particles_set_trails(RID p_particles, bool p_enable, float p_length) override {}
+	void particles_set_trail_bind_poses(RID p_particles, const Vector<Transform> &p_bind_poses) override {}
+
 	void particles_restart(RID p_particles) override {}
 
 	void particles_set_draw_order(RID p_particles, RS::ParticlesDrawOrder p_order) override {}

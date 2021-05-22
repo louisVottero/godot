@@ -655,6 +655,10 @@ void register_scene_types() {
 	ClassDB::register_class<GrooveJoint2D>();
 	ClassDB::register_class<DampedSpringJoint2D>();
 	ClassDB::register_class<TileSet>();
+	ClassDB::register_virtual_class<TileSetSource>();
+	ClassDB::register_class<TileSetAtlasSource>();
+	ClassDB::register_class<TileSetScenesCollectionSource>();
+	ClassDB::register_class<TileData>();
 	ClassDB::register_class<TileMap>();
 	ClassDB::register_class<ParallaxBackground>();
 	ClassDB::register_class<ParallaxLayer>();
@@ -976,6 +980,7 @@ void register_scene_types() {
 	// Always make the default theme to avoid invalid default font/icon/style in the given theme.
 	if (RenderingServer::get_singleton()) {
 		make_default_theme(default_theme_hidpi, font);
+		ColorPicker::init_shaders(); // RenderingServer needs to exist for this to succeed.
 	}
 
 	if (theme_path != String()) {
@@ -1032,5 +1037,6 @@ void unregister_scene_types() {
 
 	ParticlesMaterial::finish_shaders();
 	CanvasItemMaterial::finish_shaders();
+	ColorPicker::finish_shaders();
 	SceneStringNames::free();
 }

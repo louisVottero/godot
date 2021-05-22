@@ -93,10 +93,14 @@ public:
 		DeviceFamily device_family = DEVICE_UNKNOWN;
 		uint32_t version_major = 1.0;
 		uint32_t version_minor = 0.0;
+
 		// subgroup capabilities
 		uint32_t subgroup_size = 0;
 		uint32_t subgroup_in_shaders = 0; // Set flags using SHADER_STAGE_VERTEX_BIT, SHADER_STAGE_FRAGMENT_BIT, etc.
 		uint32_t subgroup_operations = 0; // Set flags, using SubgroupOperations
+
+		// features
+		bool supports_multiview = false; // If true this device supports multiview options
 	};
 
 	typedef Vector<uint8_t> (*ShaderCompileFunction)(ShaderStage p_stage, const String &p_source_code, ShaderLanguage p_language, String *r_error, const Capabilities *p_capabilities);
@@ -978,7 +982,7 @@ public:
 	enum InitialAction {
 		INITIAL_ACTION_CLEAR, //start rendering and clear the whole framebuffer (region or not) (supply params)
 		INITIAL_ACTION_CLEAR_REGION, //start rendering and clear the framebuffer in the specified region (supply params)
-		INITIAL_ACTION_CLEAR_REGION_CONTINUE, //countinue rendering and clear the framebuffer in the specified region (supply params)
+		INITIAL_ACTION_CLEAR_REGION_CONTINUE, //continue rendering and clear the framebuffer in the specified region (supply params)
 		INITIAL_ACTION_KEEP, //start rendering, but keep attached color texture contents (depth will be cleared)
 		INITIAL_ACTION_DROP, //start rendering, ignore what is there, just write above it
 		INITIAL_ACTION_CONTINUE, //continue rendering (framebuffer must have been left in "continue" state as final action previously)
