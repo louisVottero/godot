@@ -390,7 +390,7 @@ int64_t _OS::get_unix_time_from_datetime(Dictionary datetime) const {
 	unsigned int hour = ((datetime.has(HOUR_KEY)) ? static_cast<unsigned int>(datetime[HOUR_KEY]) : 0);
 	unsigned int day = ((datetime.has(DAY_KEY)) ? static_cast<unsigned int>(datetime[DAY_KEY]) : 1);
 	unsigned int month = ((datetime.has(MONTH_KEY)) ? static_cast<unsigned int>(datetime[MONTH_KEY]) : 1);
-	unsigned int year = ((datetime.has(YEAR_KEY)) ? static_cast<unsigned int>(datetime[YEAR_KEY]) : 0);
+	unsigned int year = ((datetime.has(YEAR_KEY)) ? static_cast<unsigned int>(datetime[YEAR_KEY]) : 1970);
 
 	/// How many days come before each month (0-12)
 	static const unsigned short int DAYS_PAST_THIS_YEAR_TABLE[2][13] = {
@@ -401,15 +401,14 @@ int64_t _OS::get_unix_time_from_datetime(Dictionary datetime) const {
 	};
 
 	ERR_FAIL_COND_V_MSG(second > 59, 0, "Invalid second value of: " + itos(second) + ".");
-
 	ERR_FAIL_COND_V_MSG(minute > 59, 0, "Invalid minute value of: " + itos(minute) + ".");
-
 	ERR_FAIL_COND_V_MSG(hour > 23, 0, "Invalid hour value of: " + itos(hour) + ".");
-
+	ERR_FAIL_COND_V_MSG(year == 0, 0, "Years before 1 AD are not supported. Value passed: " + itos(year) + ".");
 	ERR_FAIL_COND_V_MSG(month > 12 || month == 0, 0, "Invalid month value of: " + itos(month) + ".");
-
 	// Do this check after month is tested as valid
-	ERR_FAIL_COND_V_MSG(day > MONTH_DAYS_TABLE[LEAPYEAR(year)][month - 1] || day == 0, 0, "Invalid day value of '" + itos(day) + "' which is larger than '" + itos(MONTH_DAYS_TABLE[LEAPYEAR(year)][month - 1]) + "' or 0.");
+	unsigned int days_in_month = MONTH_DAYS_TABLE[LEAPYEAR(year)][month - 1];
+	ERR_FAIL_COND_V_MSG(day == 0 || day > days_in_month, 0, "Invalid day value of: " + itos(day) + ". It should be comprised between 1 and " + itos(days_in_month) + " for month " + itos(month) + ".");
+
 	// Calculate all the seconds from months past in this year
 	uint64_t SECONDS_FROM_MONTHS_PAST_THIS_YEAR = DAYS_PAST_THIS_YEAR_TABLE[LEAPYEAR(year)][month - 1] * SECONDS_PER_DAY;
 
@@ -1273,9 +1272,9 @@ uint64_t _File::get_position() const {
 	return f->get_position();
 }
 
-uint64_t _File::get_len() const {
+uint64_t _File::get_length() const {
 	ERR_FAIL_COND_V_MSG(!f, 0, "File must be opened before use.");
-	return f->get_len();
+	return f->get_length();
 }
 
 bool _File::eof_reached() const {
@@ -1537,7 +1536,7 @@ void _File::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("seek", "position"), &_File::seek);
 	ClassDB::bind_method(D_METHOD("seek_end", "position"), &_File::seek_end, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("get_position"), &_File::get_position);
-	ClassDB::bind_method(D_METHOD("get_len"), &_File::get_len);
+	ClassDB::bind_method(D_METHOD("get_length"), &_File::get_length);
 	ClassDB::bind_method(D_METHOD("eof_reached"), &_File::eof_reached);
 	ClassDB::bind_method(D_METHOD("get_8"), &_File::get_8);
 	ClassDB::bind_method(D_METHOD("get_16"), &_File::get_16);
@@ -1546,7 +1545,7 @@ void _File::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_float"), &_File::get_float);
 	ClassDB::bind_method(D_METHOD("get_double"), &_File::get_double);
 	ClassDB::bind_method(D_METHOD("get_real"), &_File::get_real);
-	ClassDB::bind_method(D_METHOD("get_buffer", "len"), &_File::get_buffer);
+	ClassDB::bind_method(D_METHOD("get_buffer", "length"), &_File::get_buffer);
 	ClassDB::bind_method(D_METHOD("get_line"), &_File::get_line);
 	ClassDB::bind_method(D_METHOD("get_csv_line", "delim"), &_File::get_csv_line, DEFVAL(","));
 	ClassDB::bind_method(D_METHOD("get_as_text"), &_File::get_as_text);

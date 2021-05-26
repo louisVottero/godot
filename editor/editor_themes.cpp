@@ -144,70 +144,70 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 	Set<StringName> exceptions;
 
 	if (!p_dark_theme) {
-		// convert color:                             FROM       TO
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e0e0e0", "#5a5a5a"); // common icon color
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffffff", "#414141"); // white
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#b4b4b4", "#363636"); // script darker color
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f9f9f9", "#606060"); // scrollbar grabber highlight color
+		// Convert color:                             FROM       TO
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e0e0e0", "#5a5a5a"); // Common icon color
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffffff", "#414141"); // White
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#b4b4b4", "#363636"); // Script darker color
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f9f9f9", "#606060"); // Scrollbar grabber highlight color
 
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#cea4f1", "#a85de9"); // animation
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#fc9c9c", "#cd3838"); // spatial
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#a5b7f3", "#3d64dd"); // 2d
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#708cea", "#1a3eac"); // 2d dark
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#a5efac", "#2fa139"); // control
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#c38ef1", "#a85de9"); // Animation
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#fc7f7f", "#cd3838"); // Spatial
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#8da5f3", "#3d64dd"); // 2D
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#4b70ea", "#1a3eac"); // 2D Dark
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#8eef97", "#2fa139"); // Control
 
-		// rainbow
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff7070", "#ff2929"); // red
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffeb70", "#ffe337"); // yellow
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#9dff70", "#74ff34"); // green
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#70ffb9", "#2cff98"); // aqua
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#70deff", "#22ccff"); // blue
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#9f70ff", "#702aff"); // purple
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff70ac", "#ff2781"); // pink
+		// Rainbow
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff4545", "#ff2929"); // Red
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffe345", "#ffe337"); // Yellow
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#80ff45", "#74ff34"); // Green
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#45ffa2", "#2cff98"); // Aqua
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#45d7ff", "#22ccff"); // Blue
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#8045ff", "#702aff"); // Purple
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff4596", "#ff2781"); // Pink
 
-		// audio gradient
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff8484", "#ff4040"); // red
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e1dc7a", "#d6cf4b"); // yellow
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#84ffb1", "#00f010"); // green
+		// Audio gradient
+		// Red is defined further below.
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e1da5b", "#d6cf4b"); // Yellow
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#5fff97", "#00f010"); // Green
 
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffd684", "#fea900"); // mesh (orange)
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#40a2ff", "#68b6ff"); // shape (blue)
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ffca5f", "#fea900"); // Mesh resource (orange)
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#0787ff", "#68b6ff"); // Shape resource (blue)
 
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff8484", "#ff3333"); // remove (red)
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#84ffb1", "#00db50"); // add (green)
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#84c2ff", "#5caeff"); // selection (blue)
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ff5f5f", "#ff3333"); // Red audio gradient + remove (red)
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#5fff97", "#00db50"); // Add (green)
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#5fb2ff", "#5caeff"); // Selection (blue)
 
 		// Animation editor tracks
-		// The property track icon color is set by the common icon color
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ea9568", "#bd5e2c"); // 3D Transform track
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#66f376", "#16a827"); // Call Method track
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#5792f6", "#236be6"); // Bezier Curve track
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#eae668", "#9f9722"); // Audio Playback track
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#b76ef0", "#9853ce"); // Animation Playback track
+		// The property track icon color is set by the common icon color.
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ea7940", "#bd5e2c"); // 3D Transform track
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#3cf34e", "#16a827"); // Call Method track
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#2877f6", "#236be6"); // Bezier Curve track
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#eae440", "#9f9722"); // Audio Playback track
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#a448f0", "#9853ce"); // Animation Playback track
 
 		// TileSet editor icons
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#fce844", "#aa8d24"); // New Single Tile
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#4490fc", "#0350bd"); // New Autotile
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#c9cfd4", "#828f9b"); // New Atlas
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#fce00e", "#aa8d24"); // New Single Tile
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#0e71fc", "#0350bd"); // New Autotile
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#c6ced4", "#828f9b"); // New Atlas
 
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#69ecbd", "#25e3a0"); // VS variant
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#8da6f0", "#6d8eeb"); // VS bool
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#7dc6ef", "#4fb2e9"); // VS int
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#61daf4", "#27ccf0"); // VS float
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#6ba7ec", "#4690e7"); // VS string
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#bd91f1", "#ad76ee"); // VS vector2
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f191a5", "#ee758e"); // VS rect
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e286f0", "#dc6aed"); // VS vector3
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#c4ec69", "#96ce1a"); // VS transform2D
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f77070", "#f77070"); // VS plane
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ec69a3", "#ec69a3"); // VS quat
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ee7991", "#ee7991"); // VS aabb
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e3ec69", "#b2bb19"); // VS basis
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f6a86e", "#f49047"); // VS transform
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#6993ec", "#6993ec"); // VS path
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#69ec9a", "#2ce573"); // VS rid
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#79f3e8", "#12d5c3"); // VS object
-		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#77edb1", "#57e99f"); // VS dict
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#41ecad", "#25e3a0"); // VisualScript variant
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#6f91f0", "#6d8eeb"); // VisualScript bool
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#5abbef", "#4fb2e9"); // VisualScript int
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#35d4f4", "#27ccf0"); // VisualScript float
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#4593ec", "#4690e7"); // VisualScript String
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ac73f1", "#ad76ee"); // VisualScript Vector2
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f1738f", "#ee758e"); // VisualScript Rect2
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#de66f0", "#dc6aed"); // VisualScript Vector3
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#b9ec41", "#96ce1a"); // VisualScript Transform2D
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f74949", "#f77070"); // VisualScript Plane
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ec418e", "#ec69a3"); // VisualScript Quat
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#ee5677", "#ee7991"); // VisualScript AABB
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#e1ec41", "#b2bb19"); // VisualScript Basis
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#f68f45", "#f49047"); // VisualScript Transform
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#417aec", "#6993ec"); // VisualScript NodePath
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#41ec80", "#2ce573"); // VisualScript RID
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#55f3e3", "#12d5c3"); // VisualScript Object
+		ADD_CONVERT_COLOR(dark_icon_color_dictionary, "#54ed9e", "#57e99f"); // VisualScript Dictionary
 
 		exceptions.insert("EditorPivot");
 		exceptions.insert("EditorHandle");
@@ -216,6 +216,7 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 		exceptions.insert("Sky");
 		exceptions.insert("EditorControlAnchor");
 		exceptions.insert("DefaultProjectIcon");
+		exceptions.insert("GuiChecked");
 		exceptions.insert("GuiCloseCustomizable");
 		exceptions.insert("GuiGraphNodePort");
 		exceptions.insert("GuiResizer");
@@ -798,8 +799,6 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	style_tree_bg->set_border_color(dark_color_3);
 	theme->set_stylebox("bg", "Tree", style_tree_bg);
 
-	const Color guide_color = mono_color * Color(1, 1, 1, 0.05);
-	Color relationship_line_color = mono_color * Color(1, 1, 1, relationship_line_opacity);
 	// Tree
 	theme->set_icon("checked", "Tree", theme->get_icon("GuiChecked", "EditorIcons"));
 	theme->set_icon("unchecked", "Tree", theme->get_icon("GuiUnchecked", "EditorIcons"));
@@ -816,18 +815,32 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("font_color", "Tree", font_color);
 	theme->set_color("font_selected_color", "Tree", mono_color);
 	theme->set_color("title_button_color", "Tree", font_color);
-	theme->set_color("guide_color", "Tree", guide_color);
-	theme->set_color("relationship_line_color", "Tree", relationship_line_color);
 	theme->set_color("drop_position_color", "Tree", accent_color);
 	theme->set_constant("vseparation", "Tree", widget_default_margin.y - EDSCALE);
 	theme->set_constant("hseparation", "Tree", 6 * EDSCALE);
 	theme->set_constant("guide_width", "Tree", border_width);
 	theme->set_constant("item_margin", "Tree", 3 * default_margin_size * EDSCALE);
 	theme->set_constant("button_margin", "Tree", default_margin_size * EDSCALE);
-	theme->set_constant("draw_relationship_lines", "Tree", relationship_line_opacity >= 0.01);
-	theme->set_constant("draw_guides", "Tree", relationship_line_opacity < 0.01);
 	theme->set_constant("scroll_border", "Tree", 40 * EDSCALE);
 	theme->set_constant("scroll_speed", "Tree", 12);
+
+	const Color guide_color = mono_color * Color(1, 1, 1, 0.05);
+	Color relationship_line_color = mono_color * Color(1, 1, 1, relationship_line_opacity);
+
+	theme->set_constant("draw_guides", "Tree", relationship_line_opacity < 0.01);
+	theme->set_color("guide_color", "Tree", guide_color);
+
+	int relationship_line_width = 1;
+	Color parent_line_color = mono_color * Color(1, 1, 1, CLAMP(relationship_line_opacity + 0.45, 0.0, 1.0));
+	Color children_line_color = mono_color * Color(1, 1, 1, CLAMP(relationship_line_opacity + 0.25, 0.0, 1.0));
+	theme->set_constant("draw_relationship_lines", "Tree", relationship_line_opacity >= 0.01);
+	theme->set_constant("relationship_line_width", "Tree", relationship_line_width);
+	theme->set_constant("parent_hl_line_width", "Tree", relationship_line_width * 2);
+	theme->set_constant("children_hl_line_width", "Tree", relationship_line_width);
+	theme->set_constant("parent_hl_line_margin", "Tree", relationship_line_width * 3);
+	theme->set_color("relationship_line_color", "Tree", relationship_line_color);
+	theme->set_color("parent_hl_line_color", "Tree", parent_line_color);
+	theme->set_color("children_hl_line_color", "Tree", children_line_color);
 
 	Ref<StyleBoxFlat> style_tree_btn = style_default->duplicate();
 	style_tree_btn->set_bg_color(highlight_color);

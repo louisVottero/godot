@@ -451,7 +451,6 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_color("font_readonly_color", "TextEdit", Color(control_font_color.r, control_font_color.g, control_font_color.b, 0.5f));
 	theme->set_color("font_outline_color", "TextEdit", Color(1, 1, 1));
 	theme->set_color("selection_color", "TextEdit", control_selection_color);
-	theme->set_color("mark_color", "TextEdit", Color(1.0, 0.4, 0.4, 0.4));
 	theme->set_color("code_folding_color", "TextEdit", Color(0.8, 0.8, 0.8, 0.8));
 	theme->set_color("current_line_color", "TextEdit", Color(0.25, 0.25, 0.26, 0.8));
 	theme->set_color("caret_color", "TextEdit", control_font_color);
@@ -494,7 +493,6 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_color("font_readonly_color", "CodeEdit", Color(control_font_color.r, control_font_color.g, control_font_color.b, 0.5f));
 	theme->set_color("font_outline_color", "CodeEdit", Color(1, 1, 1));
 	theme->set_color("selection_color", "CodeEdit", control_selection_color);
-	theme->set_color("mark_color", "CodeEdit", Color(1.0, 0.4, 0.4, 0.4));
 	theme->set_color("bookmark_color", "CodeEdit", Color(0.5, 0.64, 1, 0.8));
 	theme->set_color("breakpoint_color", "CodeEdit", Color(0.9, 0.29, 0.3));
 	theme->set_color("executing_line_color", "CodeEdit", Color(0.98, 0.89, 0.27));
@@ -721,6 +719,8 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_color("guide_color", "Tree", Color(0, 0, 0, 0.1));
 	theme->set_color("drop_position_color", "Tree", Color(1, 0.3, 0.2));
 	theme->set_color("relationship_line_color", "Tree", Color(0.27, 0.27, 0.27));
+	theme->set_color("parent_hl_line_color", "Tree", Color(0.27, 0.27, 0.27));
+	theme->set_color("children_hl_line_color", "Tree", Color(0.27, 0.27, 0.27));
 	theme->set_color("custom_button_font_highlight", "Tree", control_font_hover_color);
 
 	theme->set_constant("hseparation", "Tree", 4 * scale);
@@ -728,6 +728,10 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_constant("item_margin", "Tree", 12 * scale);
 	theme->set_constant("button_margin", "Tree", 4 * scale);
 	theme->set_constant("draw_relationship_lines", "Tree", 0);
+	theme->set_constant("relationship_line_width", "Tree", 1);
+	theme->set_constant("parent_hl_line_width", "Tree", 1);
+	theme->set_constant("children_hl_line_width", "Tree", 1);
+	theme->set_constant("parent_hl_line_margin", "Tree", 0);
 	theme->set_constant("draw_guides", "Tree", 1);
 	theme->set_constant("scroll_border", "Tree", 4);
 	theme->set_constant("scroll_speed", "Tree", 12);

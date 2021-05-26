@@ -163,7 +163,7 @@ public:
 	virtual void seek(uint64_t p_position);
 	virtual void seek_end(int64_t p_position = 0);
 	virtual uint64_t get_position() const;
-	virtual uint64_t get_len() const;
+	virtual uint64_t get_length() const;
 
 	virtual bool eof_reached() const;
 
@@ -244,6 +244,10 @@ public:
 	virtual Error remove(String p_name);
 
 	uint64_t get_space_left();
+
+	virtual bool is_link(String p_file) { return false; }
+	virtual String read_link(String p_file) { return p_file; }
+	virtual Error create_link(String p_source, String p_target) { return FAILED; }
 
 	virtual String get_filesystem_type() const;
 
