@@ -529,8 +529,8 @@ public:
 	EditorPropertyBasis();
 };
 
-class EditorPropertyTransform : public EditorProperty {
-	GDCLASS(EditorPropertyTransform, EditorProperty);
+class EditorPropertyTransform3D : public EditorProperty {
+	GDCLASS(EditorPropertyTransform3D, EditorProperty);
 	EditorSpinSlider *spin[12];
 	bool setting;
 	void _value_changed(double p_val, const String &p_name);
@@ -541,9 +541,9 @@ protected:
 
 public:
 	virtual void update_property() override;
-	virtual void update_using_transform(Transform p_transform);
+	virtual void update_using_transform(Transform3D p_transform);
 	void setup(double p_min, double p_max, double p_step, bool p_no_slider);
-	EditorPropertyTransform();
+	EditorPropertyTransform3D();
 };
 
 class EditorPropertyColor : public EditorProperty {

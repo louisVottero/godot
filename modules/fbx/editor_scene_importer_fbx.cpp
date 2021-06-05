@@ -1011,7 +1011,7 @@ Node3D *EditorSceneImporterFBX::_generate_scene(
 						// track count is 5.
 						// next track id is 5.
 						const uint64_t target_id = track->key();
-						int track_idx = animation->add_track(Animation::TYPE_TRANSFORM);
+						int track_idx = animation->add_track(Animation::TYPE_TRANSFORM3D);
 
 						// animation->track_set_path(track_idx, node_path);
 						Ref<FBXBone> bone;
@@ -1023,7 +1023,7 @@ Node3D *EditorSceneImporterFBX::_generate_scene(
 							bone = state.fbx_bone_map[target_id];
 						}
 
-						Transform target_transform;
+						Transform3D target_transform;
 
 						if (state.fbx_target_map.has(target_id)) {
 							Ref<FBXNode> node_ref = state.fbx_target_map[target_id];
@@ -1165,7 +1165,7 @@ Node3D *EditorSceneImporterFBX::_generate_scene(
 						}
 
 						bool valid_rest = false;
-						Transform bone_rest;
+						Transform3D bone_rest;
 						int skeleton_bone = -1;
 						if (state.fbx_bone_map.has(target_id)) {
 							if (bone.is_valid() && bone->fbx_skeleton.is_valid()) {
@@ -1208,10 +1208,10 @@ Node3D *EditorSceneImporterFBX::_generate_scene(
 
 							// node animations must also include pivots
 							if (skeleton_bone >= 0) {
-								Transform xform = Transform();
+								Transform3D xform = Transform3D();
 								xform.basis.set_quat_scale(rot, scale);
 								xform.origin = pos;
-								const Transform t = bone_rest.affine_inverse() * xform;
+								const Transform3D t = bone_rest.affine_inverse() * xform;
 
 								// populate	this again
 								rot = t.basis.get_rotation_quat();

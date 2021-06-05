@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  platform_config.h                                                    */
+/*  editor_paths.h                                                       */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,22 +28,43 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <alloca.h>
-#endif
+#ifndef EDITORPATHS_H
+#define EDITORPATHS_H
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-#include <stdlib.h> // alloca
-// FreeBSD and OpenBSD use pthread_set_name_np, while other platforms,
-// include NetBSD, use pthread_setname_np. NetBSD's version however requires
-// a different format, we handle this directly in thread_posix.
-#ifdef __NetBSD__
-#define PTHREAD_NETBSD_SET_NAME
-#else
-#define PTHREAD_BSD_SET_NAME
-#endif
-#endif
+#include "core/config/engine.h"
 
-#ifdef __APPLE__
-#define PTHREAD_RENAME_SELF
-#endif
+class EditorPaths : public Object {
+	GDCLASS(EditorPaths, Object)
+
+	bool paths_valid = false;
+	String data_dir; //editor data dir
+	String config_dir; //editor config dir
+	String cache_dir; //editor cache dir
+	bool self_contained = false; //true if running self contained
+	String self_contained_file; //self contained file with configuration
+
+	static EditorPaths *singleton;
+
+protected:
+	static void _bind_methods();
+
+public:
+	bool are_paths_valid() const;
+
+	String get_data_dir() const;
+	String get_config_dir() const;
+	String get_cache_dir() const;
+	bool is_self_contained() const;
+	String get_self_contained_file() const;
+
+	static EditorPaths *get_singleton() {
+		return singleton;
+	}
+
+	static void create(bool p_for_project_manager);
+	static void free();
+
+	EditorPaths(bool p_for_project_mamanger = false);
+};
+
+#endif // EDITORPATHS_H

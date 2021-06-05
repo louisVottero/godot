@@ -1419,6 +1419,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector2, distance_squared_to, sarray("to"), varray());
 	bind_method(Vector2, length, sarray(), varray());
 	bind_method(Vector2, length_squared, sarray(), varray());
+	bind_method(Vector2, limit_length, sarray("length"), varray(1.0));
 	bind_method(Vector2, normalized, sarray(), varray());
 	bind_method(Vector2, is_normalized, sarray(), varray());
 	bind_method(Vector2, is_equal_approx, sarray("to"), varray());
@@ -1442,14 +1443,15 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector2, cross, sarray("with"), varray());
 	bind_method(Vector2, abs, sarray(), varray());
 	bind_method(Vector2, sign, sarray(), varray());
+	bind_method(Vector2, clamp, sarray("min", "max"), varray());
 	bind_method(Vector2, snapped, sarray("step"), varray());
-	bind_method(Vector2, clamped, sarray("length"), varray());
 
 	/* Vector2i */
 
 	bind_method(Vector2i, aspect, sarray(), varray());
 	bind_method(Vector2i, sign, sarray(), varray());
 	bind_method(Vector2i, abs, sarray(), varray());
+	bind_method(Vector2i, clamp, sarray("min", "max"), varray());
 
 	/* Rect2 */
 
@@ -1493,10 +1495,12 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector3, distance_squared_to, sarray("b"), varray());
 	bind_method(Vector3, length, sarray(), varray());
 	bind_method(Vector3, length_squared, sarray(), varray());
+	bind_method(Vector3, limit_length, sarray("length"), varray(1.0));
 	bind_method(Vector3, normalized, sarray(), varray());
 	bind_method(Vector3, is_normalized, sarray(), varray());
 	bind_method(Vector3, is_equal_approx, sarray("to"), varray());
 	bind_method(Vector3, inverse, sarray(), varray());
+	bind_method(Vector3, clamp, sarray("min", "max"), varray());
 	bind_method(Vector3, snapped, sarray("step"), varray());
 	bind_method(Vector3, rotated, sarray("by_axis", "phi"), varray());
 	bind_method(Vector3, lerp, sarray("to", "weight"), varray());
@@ -1525,6 +1529,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Vector3i, max_axis, sarray(), varray());
 	bind_method(Vector3i, sign, sarray(), varray());
 	bind_method(Vector3i, abs, sarray(), varray());
+	bind_method(Vector3i, clamp, sarray("min", "max"), varray());
 
 	/* Plane */
 
@@ -1562,6 +1567,7 @@ static void _register_variant_builtin_methods() {
 	bind_method(Color, to_abgr64, sarray(), varray());
 	bind_method(Color, to_rgba64, sarray(), varray());
 
+	bind_method(Color, clamp, sarray("min", "max"), varray(Color(0, 0, 0, 0), Color(1, 1, 1, 1)));
 	bind_method(Color, inverted, sarray(), varray());
 	bind_method(Color, lerp, sarray("to", "weight"), varray());
 	bind_method(Color, lightened, sarray("amount"), varray());
@@ -1690,17 +1696,17 @@ static void _register_variant_builtin_methods() {
 	bind_methodv(AABB, intersects_segment, &AABB::intersects_segment_bind, sarray("from", "to"), varray());
 	bind_methodv(AABB, intersects_ray, &AABB::intersects_ray_bind, sarray("from", "dir"), varray());
 
-	/* Transform */
+	/* Transform3D */
 
-	bind_method(Transform, inverse, sarray(), varray());
-	bind_method(Transform, affine_inverse, sarray(), varray());
-	bind_method(Transform, orthonormalized, sarray(), varray());
-	bind_method(Transform, rotated, sarray("axis", "phi"), varray());
-	bind_method(Transform, scaled, sarray("scale"), varray());
-	bind_method(Transform, translated, sarray("offset"), varray());
-	bind_method(Transform, looking_at, sarray("target", "up"), varray(Vector3(0, 1, 0)));
-	bind_method(Transform, interpolate_with, sarray("xform", "weight"), varray());
-	bind_method(Transform, is_equal_approx, sarray("xform"), varray());
+	bind_method(Transform3D, inverse, sarray(), varray());
+	bind_method(Transform3D, affine_inverse, sarray(), varray());
+	bind_method(Transform3D, orthonormalized, sarray(), varray());
+	bind_method(Transform3D, rotated, sarray("axis", "phi"), varray());
+	bind_method(Transform3D, scaled, sarray("scale"), varray());
+	bind_method(Transform3D, translated, sarray("offset"), varray());
+	bind_method(Transform3D, looking_at, sarray("target", "up"), varray(Vector3(0, 1, 0)));
+	bind_method(Transform3D, interpolate_with, sarray("xform", "weight"), varray());
+	bind_method(Transform3D, is_equal_approx, sarray("xform"), varray());
 
 	/* Dictionary */
 
@@ -2019,14 +2025,14 @@ static void _register_variant_builtin_methods() {
 	_VariantCall::add_variant_constant(Variant::TRANSFORM2D, "FLIP_X", Transform2D(-1, 0, 0, 1, 0, 0));
 	_VariantCall::add_variant_constant(Variant::TRANSFORM2D, "FLIP_Y", Transform2D(1, 0, 0, -1, 0, 0));
 
-	Transform identity_transform = Transform();
-	Transform flip_x_transform = Transform(-1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-	Transform flip_y_transform = Transform(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0);
-	Transform flip_z_transform = Transform(1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0);
-	_VariantCall::add_variant_constant(Variant::TRANSFORM, "IDENTITY", identity_transform);
-	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_X", flip_x_transform);
-	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_Y", flip_y_transform);
-	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_Z", flip_z_transform);
+	Transform3D identity_transform = Transform3D();
+	Transform3D flip_x_transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+	Transform3D flip_y_transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0);
+	Transform3D flip_z_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0);
+	_VariantCall::add_variant_constant(Variant::TRANSFORM3D, "IDENTITY", identity_transform);
+	_VariantCall::add_variant_constant(Variant::TRANSFORM3D, "FLIP_X", flip_x_transform);
+	_VariantCall::add_variant_constant(Variant::TRANSFORM3D, "FLIP_Y", flip_y_transform);
+	_VariantCall::add_variant_constant(Variant::TRANSFORM3D, "FLIP_Z", flip_z_transform);
 
 	Basis identity_basis = Basis();
 	Basis flip_x_basis = Basis(-1, 0, 0, 0, 1, 0, 0, 0, 1);

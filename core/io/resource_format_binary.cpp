@@ -245,7 +245,7 @@ Error ResourceLoaderBinary::parse_variant(Variant &r_v) {
 
 		} break;
 		case VARIANT_TRANSFORM: {
-			Transform v;
+			Transform3D v;
 			v.basis.elements[0].x = f->get_real();
 			v.basis.elements[0].y = f->get_real();
 			v.basis.elements[0].z = f->get_real();
@@ -851,7 +851,7 @@ void ResourceLoaderBinary::open(FileAccess *p_f) {
 	bool big_endian = f->get_32();
 	bool use_real64 = f->get_32();
 
-	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
+	f->set_big_endian(big_endian != 0); //read big endian if saved as big endian
 
 	uint32_t ver_major = f->get_32();
 	uint32_t ver_minor = f->get_32();
@@ -948,7 +948,7 @@ String ResourceLoaderBinary::recognize(FileAccess *p_f) {
 	bool big_endian = f->get_32();
 	f->get_32(); // use_real64
 
-	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
+	f->set_big_endian(big_endian != 0); //read big endian if saved as big endian
 
 	uint32_t ver_major = f->get_32();
 	f->get_32(); // ver_minor
@@ -1097,13 +1097,13 @@ Error ResourceFormatLoaderBinary::rename_dependencies(const String &p_path, cons
 	bool big_endian = f->get_32();
 	bool use_real64 = f->get_32();
 
-	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
+	f->set_big_endian(big_endian != 0); //read big endian if saved as big endian
 #ifdef BIG_ENDIAN_ENABLED
 	fw->store_32(!big_endian);
 #else
 	fw->store_32(big_endian);
 #endif
-	fw->set_endian_swap(big_endian != 0);
+	fw->set_big_endian(big_endian != 0);
 	fw->store_32(use_real64); //use real64
 
 	uint32_t ver_major = f->get_32();
@@ -1416,9 +1416,9 @@ void ResourceFormatSaverBinaryInstance::write_variant(FileAccess *f, const Varia
 			f->store_real(val.elements[2].z);
 
 		} break;
-		case Variant::TRANSFORM: {
+		case Variant::TRANSFORM3D: {
 			f->store_32(VARIANT_TRANSFORM);
-			Transform val = p_property;
+			Transform3D val = p_property;
 			f->store_real(val.basis.elements[0].x);
 			f->store_real(val.basis.elements[0].y);
 			f->store_real(val.basis.elements[0].z);
@@ -1798,7 +1798,7 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 
 	if (big_endian) {
 		f->store_32(1);
-		f->set_endian_swap(true);
+		f->set_big_endian(true);
 	} else {
 		f->store_32(0);
 	}

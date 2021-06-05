@@ -433,7 +433,7 @@ Node *ResourceImporterScene::_pre_fix_node(Node *p_node, Node *p_root, Map<Ref<E
 			p_node->replace_by(rigid_body);
 			rigid_body->set_transform(mi->get_transform());
 			p_node = rigid_body;
-			mi->set_transform(Transform());
+			mi->set_transform(Transform3D());
 			rigid_body->add_child(mi);
 			mi->set_owner(rigid_body->get_owner());
 
@@ -632,7 +632,7 @@ Node *ResourceImporterScene::_post_fix_node(Node *p_node, Node *p_root, Map<Ref<
 								p_node->replace_by(rigid_body);
 								rigid_body->set_transform(mi->get_transform());
 								p_node = rigid_body;
-								mi->set_transform(Transform());
+								mi->set_transform(Transform3D());
 								rigid_body->add_child(mi);
 								mi->set_owner(rigid_body->get_owner());
 								base = rigid_body;
@@ -856,7 +856,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 						new_anim->track_set_path(dtrack, default_anim->track_get_path(j));
 
 						if (kt > (from + 0.01) && k > 0) {
-							if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM) {
+							if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
 								Quat q;
 								Vector3 p;
 								Vector3 s;
@@ -870,7 +870,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 						}
 					}
 
-					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM) {
+					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
 						Quat q;
 						Vector3 p;
 						Vector3 s;
@@ -884,7 +884,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 				}
 
 				if (dtrack != -1 && kt >= to) {
-					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM) {
+					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
 						Quat q;
 						Vector3 p;
 						Vector3 s;
@@ -902,7 +902,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 				new_anim->add_track(default_anim->track_get_type(j));
 				dtrack = new_anim->get_track_count() - 1;
 				new_anim->track_set_path(dtrack, default_anim->track_get_path(j));
-				if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM) {
+				if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
 					Quat q;
 					Vector3 p;
 					Vector3 s;
@@ -1209,7 +1209,7 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_m
 				}
 
 				if (bake_lightmaps) {
-					Transform xf;
+					Transform3D xf;
 					Node3D *n = src_mesh_node;
 					while (n) {
 						xf = n->get_transform() * xf;

@@ -848,6 +848,10 @@ void VisualShaderGraphPlugin::add_node(VisualShader::Type p_type, int p_id) {
 		expression_syntax_highlighter->add_color_region("/*", "*/", comment_color, false);
 		expression_syntax_highlighter->add_color_region("//", "", comment_color, true);
 
+		expression_box->clear_comment_delimiters();
+		expression_box->add_comment_delimiter("/*", "*/", false);
+		expression_box->add_comment_delimiter("//", "", true);
+
 		expression_box->set_text(expression);
 		expression_box->set_context_menu_enabled(false);
 		expression_box->set_draw_line_numbers(true);
@@ -2945,9 +2949,6 @@ void VisualShaderEditor::_notification(int p_what) {
 	if (p_what == NOTIFICATION_ENTER_TREE || p_what == NOTIFICATION_THEME_CHANGED) {
 		highend_label->set_modulate(get_theme_color("vulkan_color", "Editor"));
 
-		error_panel->add_theme_style_override("panel", get_theme_stylebox("bg", "Tree"));
-		error_label->add_theme_color_override("font_color", get_theme_color("error_color", "Editor"));
-
 		node_filter->set_right_icon(Control::get_theme_icon("Search", "EditorIcons"));
 
 		preview_shader->set_icon(Control::get_theme_icon("Shader", "EditorIcons"));
@@ -2984,9 +2985,14 @@ void VisualShaderEditor::_notification(int p_what) {
 			syntax_highlighter->add_color_region("/*", "*/", comment_color, false);
 			syntax_highlighter->add_color_region("//", "", comment_color, true);
 
-			error_text->add_theme_font_override("font", get_theme_font("status_source", "EditorFonts"));
-			error_text->add_theme_font_size_override("font_size", get_theme_font_size("status_source_size", "EditorFonts"));
-			error_text->add_theme_color_override("font_color", get_theme_color("error_color", "Editor"));
+			preview_text->clear_comment_delimiters();
+			preview_text->add_comment_delimiter("/*", "*/", false);
+			preview_text->add_comment_delimiter("//", "", true);
+
+			error_panel->add_theme_style_override("panel", get_theme_stylebox("panel", "Panel"));
+			error_label->add_theme_font_override("font", get_theme_font("status_source", "EditorFonts"));
+			error_label->add_theme_font_size_override("font_size", get_theme_font_size("status_source_size", "EditorFonts"));
+			error_label->add_theme_color_override("font_color", get_theme_color("error_color", "Editor"));
 		}
 
 		tools->set_icon(EditorNode::get_singleton()->get_gui_base()->get_theme_icon("Tools", "EditorIcons"));
@@ -3602,13 +3608,13 @@ void VisualShaderEditor::_update_preview() {
 	if (err != OK) {
 		Color error_line_color = EDITOR_GET("text_editor/highlighting/mark_color");
 		preview_text->set_line_background_color(sl.get_error_line() - 1, error_line_color);
-		error_text->set_visible(true);
+		error_panel->show();
 
 		String text = "error(" + itos(sl.get_error_line()) + "): " + sl.get_error_text();
-		error_text->set_text(text);
+		error_label->set_text(text);
 		shader_error = true;
 	} else {
-		error_text->set_visible(false);
+		error_panel->hide();
 		shader_error = false;
 	}
 }
@@ -3770,6 +3776,7 @@ VisualShaderEditor::VisualShaderEditor() {
 
 	preview_vbox = memnew(VBoxContainer);
 	preview_window->add_child(preview_vbox);
+	preview_vbox->add_theme_constant_override("separation", 0);
 
 	preview_text = memnew(CodeEdit);
 	syntax_highlighter.instance();
@@ -3779,10 +3786,13 @@ VisualShaderEditor::VisualShaderEditor() {
 	preview_text->set_draw_line_numbers(true);
 	preview_text->set_readonly(true);
 
-	error_text = memnew(Label);
-	preview_vbox->add_child(error_text);
-	error_text->set_autowrap(true);
-	error_text->set_visible(false);
+	error_panel = memnew(PanelContainer);
+	preview_vbox->add_child(error_panel);
+	error_panel->set_visible(false);
+
+	error_label = memnew(Label);
+	error_panel->add_child(error_label);
+	error_label->set_autowrap(true);
 
 	///////////////////////////////////////
 	// POPUP MENU
@@ -4260,6 +4270,7 @@ VisualShaderEditor::VisualShaderEditor() {
 	add_options.push_back(AddOption("TransformDecompose", "Transform", "Composition", "VisualShaderNodeTransformDecompose", TTR("Decomposes transform to four vectors.")));
 
 	add_options.push_back(AddOption("Determinant", "Transform", "Functions", "VisualShaderNodeDeterminant", TTR("Calculates the determinant of a transform."), -1, VisualShaderNode::PORT_TYPE_SCALAR));
+	add_options.push_back(AddOption("GetBillboardMatrix", "Transform", "Functions", "VisualShaderNodeBillboard", TTR("Calculates how the object should face the camera to be applied on Model View Matrix output port for 3D objects."), -1, VisualShaderNode::PORT_TYPE_TRANSFORM, TYPE_FLAGS_VERTEX, Shader::MODE_SPATIAL));
 	add_options.push_back(AddOption("Inverse", "Transform", "Functions", "VisualShaderNodeTransformFunc", TTR("Calculates the inverse of a transform."), VisualShaderNodeTransformFunc::FUNC_INVERSE, VisualShaderNode::PORT_TYPE_TRANSFORM));
 	add_options.push_back(AddOption("Transpose", "Transform", "Functions", "VisualShaderNodeTransformFunc", TTR("Calculates the transpose of a transform."), VisualShaderNodeTransformFunc::FUNC_TRANSPOSE, VisualShaderNode::PORT_TYPE_TRANSFORM));
 
@@ -4361,13 +4372,6 @@ VisualShaderEditor::VisualShaderEditor() {
 	/////////////////////////////////////////////////////////////////////
 
 	_update_options_menu();
-
-	error_panel = memnew(PanelContainer);
-	add_child(error_panel);
-	error_label = memnew(Label);
-	error_panel->add_child(error_label);
-	error_label->set_text("eh");
-	error_panel->hide();
 
 	undo_redo = EditorNode::get_singleton()->get_undo_redo();
 
@@ -4685,7 +4689,7 @@ Control *VisualShaderNodePluginDefault::create_editor(const Ref<Resource> &p_par
 		if (Object::cast_to<EditorPropertyResource>(prop)) {
 			Object::cast_to<EditorPropertyResource>(prop)->set_use_sub_inspector(false);
 			prop->set_custom_minimum_size(Size2(100 * EDSCALE, 0));
-		} else if (Object::cast_to<EditorPropertyTransform>(prop) || Object::cast_to<EditorPropertyVector3>(prop)) {
+		} else if (Object::cast_to<EditorPropertyTransform3D>(prop) || Object::cast_to<EditorPropertyVector3>(prop)) {
 			prop->set_custom_minimum_size(Size2(250 * EDSCALE, 0));
 		} else if (Object::cast_to<EditorPropertyFloat>(prop)) {
 			prop->set_custom_minimum_size(Size2(100 * EDSCALE, 0));

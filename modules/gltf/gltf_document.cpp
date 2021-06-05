@@ -357,10 +357,10 @@ static Quat _arr_to_quat(const Array &p_array) {
 	return Quat(p_array[0], p_array[1], p_array[2], p_array[3]);
 }
 
-static Transform _arr_to_xform(const Array &p_array) {
-	ERR_FAIL_COND_V(p_array.size() != 16, Transform());
+static Transform3D _arr_to_xform(const Array &p_array) {
+	ERR_FAIL_COND_V(p_array.size() != 16, Transform3D());
 
-	Transform xform;
+	Transform3D xform;
 	xform.basis.set_axis(Vector3::AXIS_X, Vector3(p_array[0], p_array[1], p_array[2]));
 	xform.basis.set_axis(Vector3::AXIS_Y, Vector3(p_array[4], p_array[5], p_array[6]));
 	xform.basis.set_axis(Vector3::AXIS_Z, Vector3(p_array[8], p_array[9], p_array[10]));
@@ -369,7 +369,7 @@ static Transform _arr_to_xform(const Array &p_array) {
 	return xform;
 }
 
-static Vector<real_t> _xform_to_array(const Transform p_transform) {
+static Vector<real_t> _xform_to_array(const Transform3D p_transform) {
 	Vector<real_t> array;
 	array.resize(16);
 	Vector3 axis_x = p_transform.get_basis().get_axis(Vector3::AXIS_X);
@@ -421,7 +421,7 @@ Error GLTFDocument::_serialize_nodes(Ref<GLTFState> state) {
 		}
 		if (n->skeleton != -1 && n->skin < 0) {
 		}
-		if (n->xform != Transform()) {
+		if (n->xform != Transform3D()) {
 			node["matrix"] = _xform_to_array(n->xform);
 		}
 
@@ -1939,7 +1939,7 @@ GLTFAccessorIndex GLTFDocument::_encode_accessor_as_vec3(Ref<GLTFState> state, c
 	return state->accessors.size() - 1;
 }
 
-GLTFAccessorIndex GLTFDocument::_encode_accessor_as_xform(Ref<GLTFState> state, const Vector<Transform> p_attribs, const bool p_for_vertex) {
+GLTFAccessorIndex GLTFDocument::_encode_accessor_as_xform(Ref<GLTFState> state, const Vector<Transform3D> p_attribs, const bool p_for_vertex) {
 	if (p_attribs.size() == 0) {
 		return -1;
 	}
@@ -1953,7 +1953,7 @@ GLTFAccessorIndex GLTFDocument::_encode_accessor_as_xform(Ref<GLTFState> state, 
 	Vector<double> type_min;
 	type_min.resize(element_count);
 	for (int i = 0; i < p_attribs.size(); i++) {
-		Transform attrib = p_attribs[i];
+		Transform3D attrib = p_attribs[i];
 		Basis basis = attrib.get_basis();
 		Vector3 axis_0 = basis.get_axis(Vector3::AXIS_X);
 
@@ -2107,9 +2107,9 @@ Vector<Basis> GLTFDocument::_decode_accessor_as_basis(Ref<GLTFState> state, cons
 	return ret;
 }
 
-Vector<Transform> GLTFDocument::_decode_accessor_as_xform(Ref<GLTFState> state, const GLTFAccessorIndex p_accessor, const bool p_for_vertex) {
+Vector<Transform3D> GLTFDocument::_decode_accessor_as_xform(Ref<GLTFState> state, const GLTFAccessorIndex p_accessor, const bool p_for_vertex) {
 	const Vector<double> attribs = _decode_accessor(state, p_accessor, p_for_vertex);
-	Vector<Transform> ret;
+	Vector<Transform3D> ret;
 
 	if (attribs.size() == 0) {
 		return ret;
@@ -2821,8 +2821,8 @@ Error GLTFDocument::_parse_meshes(Ref<GLTFState> state) {
 				}
 				blend_weights.write[j] = weights[j];
 			}
-			mesh->set_blend_weights(blend_weights);
 		}
+		mesh->set_blend_weights(blend_weights);
 		mesh->set_mesh(import_mesh);
 
 		state->meshes.push_back(mesh);
@@ -4108,81 +4108,10 @@ Error GLTFDocument::_reparent_non_joint_skeleton_subtrees(Ref<GLTFState> state, 
 		subtree_set.get_members(subtree_nodes, subtree_root);
 
 		for (int subtree_i = 0; subtree_i < subtree_nodes.size(); ++subtree_i) {
-			ERR_FAIL_COND_V(_reparent_to_fake_joint(state, skeleton, subtree_nodes[subtree_i]), FAILED);
-
-			// We modified the tree, recompute all the heights
-			_compute_node_heights(state);
-		}
-	}
-
-	return OK;
-}
-
-Error GLTFDocument::_reparent_to_fake_joint(Ref<GLTFState> state, Ref<GLTFSkeleton> skeleton, const GLTFNodeIndex node_index) {
-	Ref<GLTFNode> node = state->nodes[node_index];
-
-	// Can we just "steal" this joint if it is just a spatial node?
-	if (node->skin < 0 && node->mesh < 0 && node->camera < 0) {
-		node->joint = true;
-		// Add the joint to the skeletons joints
-		skeleton->joints.push_back(node_index);
-		return OK;
-	}
-
-	GLTFNode *fake_joint = memnew(GLTFNode);
-	const GLTFNodeIndex fake_joint_index = state->nodes.size();
-	state->nodes.push_back(fake_joint);
-
-	// We better not be a joint, or we messed up in our logic
-	if (node->joint) {
-		return FAILED;
-	}
-
-	fake_joint->translation = node->translation;
-	fake_joint->rotation = node->rotation;
-	fake_joint->scale = node->scale;
-	fake_joint->xform = node->xform;
-	fake_joint->joint = true;
-
-	// We can use the exact same name here, because the joint will be inside a skeleton and not the scene
-	fake_joint->set_name(node->get_name());
-
-	// Clear the nodes transforms, since it will be parented to the fake joint
-	node->translation = Vector3(0, 0, 0);
-	node->rotation = Quat();
-	node->scale = Vector3(1, 1, 1);
-	node->xform = Transform();
-
-	// Transfer the node children to the fake joint
-	for (int child_i = 0; child_i < node->children.size(); ++child_i) {
-		Ref<GLTFNode> child = state->nodes[node->children[child_i]];
-		child->parent = fake_joint_index;
-	}
-
-	fake_joint->children = node->children;
-	node->children.clear();
-
-	// add the fake joint to the parent and remove the original joint
-	if (node->parent >= 0) {
-		Ref<GLTFNode> parent = state->nodes[node->parent];
-		parent->children.erase(node_index);
-		parent->children.push_back(fake_joint_index);
-		fake_joint->parent = node->parent;
-	}
-
-	// Add the node to the fake joint
-	fake_joint->children.push_back(node_index);
-	node->parent = fake_joint_index;
-	node->fake_joint_parent = fake_joint_index;
-
-	// Add the fake joint to the skeletons joints
-	skeleton->joints.push_back(fake_joint_index);
-
-	// Replace skin_skeletons with fake joints if we must.
-	for (GLTFSkinIndex skin_i = 0; skin_i < state->skins.size(); ++skin_i) {
-		Ref<GLTFSkin> skin = state->skins.write[skin_i];
-		if (skin->skin_root == node_index) {
-			skin->skin_root = fake_joint_index;
+			Ref<GLTFNode> node = state->nodes[subtree_nodes[subtree_i]];
+			node->joint = true;
+			// Add the joint to the skeletons joints
+			skeleton->joints.push_back(subtree_nodes[subtree_i]);
 		}
 	}
 
@@ -4350,7 +4279,7 @@ Error GLTFDocument::_create_skins(Ref<GLTFState> state) {
 			GLTFNodeIndex node = gltf_skin->joints_original[joint_i];
 			String bone_name = state->nodes[node]->get_name();
 
-			Transform xform;
+			Transform3D xform;
 			if (has_ibms) {
 				xform = gltf_skin->inverse_binds[joint_i];
 			}
@@ -4394,8 +4323,8 @@ bool GLTFDocument::_skins_are_same(const Ref<Skin> skin_a, const Ref<Skin> skin_
 			return false;
 		}
 
-		Transform a_xform = skin_a->get_bind_pose(i);
-		Transform b_xform = skin_b->get_bind_pose(i);
+		Transform3D a_xform = skin_a->get_bind_pose(i);
+		Transform3D b_xform = skin_b->get_bind_pose(i);
 
 		if (a_xform != b_xform) {
 			return false;
@@ -4920,10 +4849,9 @@ void GLTFDocument::_assign_scene_names(Ref<GLTFState> state) {
 	}
 }
 
-BoneAttachment3D *GLTFDocument::_generate_bone_attachment(Ref<GLTFState> state, Skeleton3D *skeleton, const GLTFNodeIndex node_index) {
+BoneAttachment3D *GLTFDocument::_generate_bone_attachment(Ref<GLTFState> state, Skeleton3D *skeleton, const GLTFNodeIndex node_index, const GLTFNodeIndex bone_index) {
 	Ref<GLTFNode> gltf_node = state->nodes[node_index];
-	Ref<GLTFNode> bone_node = state->nodes[gltf_node->parent];
-
+	Ref<GLTFNode> bone_node = state->nodes[bone_index];
 	BoneAttachment3D *bone_attachment = memnew(BoneAttachment3D);
 	print_verbose("glTF: Creating bone attachment for: " + gltf_node->get_name());
 
@@ -5008,7 +4936,7 @@ EditorSceneImporterMeshNode3D *GLTFDocument::_generate_mesh_instance(Ref<GLTFSta
 	return mi;
 }
 
-Light3D *GLTFDocument::_generate_light(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
+Node3D *GLTFDocument::_generate_light(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
 	Ref<GLTFNode> gltf_node = state->nodes[node_index];
 
 	ERR_FAIL_INDEX_V(gltf_node->light, state->lights.size(), nullptr);
@@ -5057,7 +4985,7 @@ Light3D *GLTFDocument::_generate_light(Ref<GLTFState> state, Node *scene_parent,
 		light->set_param(SpotLight3D::PARAM_SPOT_ATTENUATION, angle_attenuation);
 		return light;
 	}
-	return nullptr;
+	return memnew(Node3D);
 }
 
 Camera3D *GLTFDocument::_generate_camera(Ref<GLTFState> state, Node *scene_parent, const GLTFNodeIndex node_index) {
@@ -5147,7 +5075,7 @@ GLTFSkeletonIndex GLTFDocument::_convert_skeleton(Ref<GLTFState> state, Skeleton
 }
 
 void GLTFDocument::_convert_spatial(Ref<GLTFState> state, Node3D *p_spatial, Ref<GLTFNode> p_node) {
-	Transform xform = p_spatial->get_transform();
+	Transform3D xform = p_spatial->get_transform();
 	p_node->scale = xform.basis.get_scale();
 	p_node->rotation = xform.basis.get_rotation_quat();
 	p_node->translation = xform.origin;
@@ -5312,7 +5240,7 @@ void GLTFDocument::_convert_grid_map_to_gltf(Node *p_scene_parent, const GLTFNod
 				Vector3(cell_location.x, cell_location.y, cell_location.z));
 		EditorSceneImporterMeshNode3D *import_mesh_node = memnew(EditorSceneImporterMeshNode3D);
 		import_mesh_node->set_mesh(grid_map->get_mesh_library()->get_item_mesh(cell));
-		Transform cell_xform;
+		Transform3D cell_xform;
 		cell_xform.basis.set_orthogonal_index(
 				grid_map->get_cell_item_orientation(
 						Vector3(cell_location.x, cell_location.y, cell_location.z)));
@@ -5340,7 +5268,7 @@ void GLTFDocument::_convert_mult_mesh_instance_to_gltf(Node *p_scene_parent, con
 		for (int32_t instance_i = 0; instance_i < multi_mesh->get_instance_count();
 				instance_i++) {
 			GLTFNode *new_gltf_node = memnew(GLTFNode);
-			Transform transform;
+			Transform3D transform;
 			if (multi_mesh->get_transform_format() == MultiMesh::TRANSFORM_2D) {
 				Transform2D xform_2d = multi_mesh->get_instance_transform_2d(instance_i);
 				transform.origin =
@@ -5429,31 +5357,22 @@ void GLTFDocument::_convert_mesh_to_gltf(Node *p_scene_parent, Ref<GLTFState> st
 void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent, Node3D *scene_root, const GLTFNodeIndex node_index) {
 	Ref<GLTFNode> gltf_node = state->nodes[node_index];
 
+	if (gltf_node->skeleton >= 0) {
+		_generate_skeleton_bone_node(state, scene_parent, scene_root, node_index);
+		return;
+	}
+
 	Node3D *current_node = nullptr;
 
 	// Is our parent a skeleton
 	Skeleton3D *active_skeleton = Object::cast_to<Skeleton3D>(scene_parent);
 
-	if (gltf_node->skeleton >= 0) {
-		Skeleton3D *skeleton = state->skeletons[gltf_node->skeleton]->godot_skeleton;
+	const bool non_bone_parented_to_skeleton = active_skeleton;
 
-		if (active_skeleton != skeleton) {
-			ERR_FAIL_COND_MSG(active_skeleton != nullptr, "glTF: Generating scene detected direct parented Skeletons");
-
-			// Add it to the scene if it has not already been added
-			if (skeleton->get_parent() == nullptr) {
-				scene_parent->add_child(skeleton);
-				skeleton->set_owner(scene_root);
-			}
-		}
-
-		active_skeleton = skeleton;
-		current_node = skeleton;
-	}
-
-	// If we have an active skeleton, and the node is node skinned, we need to create a bone attachment
-	if (current_node == nullptr && active_skeleton != nullptr && gltf_node->skin < 0) {
-		BoneAttachment3D *bone_attachment = _generate_bone_attachment(state, active_skeleton, node_index);
+	// skinned meshes must not be placed in a bone attachment.
+	if (non_bone_parented_to_skeleton && gltf_node->skin < 0) {
+		// Bone Attachment - Parent Case
+		BoneAttachment3D *bone_attachment = _generate_bone_attachment(state, active_skeleton, node_index, gltf_node->parent);
 
 		scene_parent->add_child(bone_attachment);
 		bone_attachment->set_owner(scene_root);
@@ -5467,7 +5386,86 @@ void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent
 	}
 
 	// We still have not managed to make a node
-	if (current_node == nullptr) {
+	if (gltf_node->mesh >= 0) {
+		current_node = _generate_mesh_instance(state, scene_parent, node_index);
+	} else if (gltf_node->camera >= 0) {
+		current_node = _generate_camera(state, scene_parent, node_index);
+	} else if (gltf_node->light >= 0) {
+		current_node = _generate_light(state, scene_parent, node_index);
+	} else {
+		current_node = _generate_spatial(state, scene_parent, node_index);
+	}
+
+	scene_parent->add_child(current_node);
+	if (current_node != scene_root) {
+		current_node->set_owner(scene_root);
+	}
+	current_node->set_transform(gltf_node->xform);
+	current_node->set_name(gltf_node->get_name());
+
+	state->scene_nodes.insert(node_index, current_node);
+
+	for (int i = 0; i < gltf_node->children.size(); ++i) {
+		_generate_scene_node(state, current_node, scene_root, gltf_node->children[i]);
+	}
+}
+
+void GLTFDocument::_generate_skeleton_bone_node(Ref<GLTFState> state, Node *scene_parent, Node3D *scene_root, const GLTFNodeIndex node_index) {
+	Ref<GLTFNode> gltf_node = state->nodes[node_index];
+
+	Node3D *current_node = nullptr;
+
+	Skeleton3D *skeleton = state->skeletons[gltf_node->skeleton]->godot_skeleton;
+	// In this case, this node is already a bone in skeleton.
+	const bool is_skinned_mesh = (gltf_node->skin >= 0 && gltf_node->mesh >= 0);
+	const bool requires_extra_node = (gltf_node->mesh >= 0 || gltf_node->camera >= 0 || gltf_node->light >= 0);
+
+	Skeleton3D *active_skeleton = Object::cast_to<Skeleton3D>(scene_parent);
+	if (active_skeleton != skeleton) {
+		if (active_skeleton) {
+			// Bone Attachment - Direct Parented Skeleton Case
+			BoneAttachment3D *bone_attachment = _generate_bone_attachment(state, active_skeleton, node_index, gltf_node->parent);
+
+			scene_parent->add_child(bone_attachment);
+			bone_attachment->set_owner(scene_root);
+
+			// There is no gltf_node that represent this, so just directly create a unique name
+			bone_attachment->set_name(_gen_unique_name(state, "BoneAttachment3D"));
+
+			// We change the scene_parent to our bone attachment now. We do not set current_node because we want to make the node
+			// and attach it to the bone_attachment
+			scene_parent = bone_attachment;
+			WARN_PRINT(vformat("glTF: Generating scene detected direct parented Skeletons at node %d", node_index));
+		}
+
+		// Add it to the scene if it has not already been added
+		if (skeleton->get_parent() == nullptr) {
+			scene_parent->add_child(skeleton);
+			skeleton->set_owner(scene_root);
+		}
+	}
+
+	active_skeleton = skeleton;
+	current_node = skeleton;
+
+	if (requires_extra_node) {
+		// skinned meshes must not be placed in a bone attachment.
+		if (!is_skinned_mesh) {
+			// Bone Attachment - Same Node Case
+			BoneAttachment3D *bone_attachment = _generate_bone_attachment(state, active_skeleton, node_index, node_index);
+
+			scene_parent->add_child(bone_attachment);
+			bone_attachment->set_owner(scene_root);
+
+			// There is no gltf_node that represent this, so just directly create a unique name
+			bone_attachment->set_name(_gen_unique_name(state, "BoneAttachment3D"));
+
+			// We change the scene_parent to our bone attachment now. We do not set current_node because we want to make the node
+			// and attach it to the bone_attachment
+			scene_parent = bone_attachment;
+		}
+
+		// We still have not managed to make a node
 		if (gltf_node->mesh >= 0) {
 			current_node = _generate_mesh_instance(state, scene_parent, node_index);
 		} else if (gltf_node->camera >= 0) {
@@ -5476,22 +5474,18 @@ void GLTFDocument::_generate_scene_node(Ref<GLTFState> state, Node *scene_parent
 			current_node = _generate_light(state, scene_parent, node_index);
 		}
 
-		if (!current_node) {
-			current_node = _generate_spatial(state, scene_parent, node_index);
-		}
-
 		scene_parent->add_child(current_node);
 		if (current_node != scene_root) {
 			current_node->set_owner(scene_root);
 		}
-		current_node->set_transform(gltf_node->xform);
+		// Do not set transform here. Transform is already applied to our bone.
 		current_node->set_name(gltf_node->get_name());
 	}
 
 	state->scene_nodes.insert(node_index, current_node);
 
 	for (int i = 0; i < gltf_node->children.size(); ++i) {
-		_generate_scene_node(state, current_node, scene_root, gltf_node->children[i]);
+		_generate_scene_node(state, active_skeleton, scene_root, gltf_node->children[i]);
 	}
 }
 
@@ -5632,28 +5626,30 @@ void GLTFDocument::_import_animation(Ref<GLTFState> state, AnimationPlayer *ap, 
 
 	for (Map<int, GLTFAnimation::Track>::Element *track_i = anim->get_tracks().front(); track_i; track_i = track_i->next()) {
 		const GLTFAnimation::Track &track = track_i->get();
-		//need to find the path
+		//need to find the path: for skeletons, weight tracks will affect the mesh
 		NodePath node_path;
+		//for skeletons, transform tracks always affect bones
+		NodePath transform_node_path;
 
 		GLTFNodeIndex node_index = track_i->key();
-		if (state->nodes[node_index]->fake_joint_parent >= 0) {
-			// Should be same as parent
-			node_index = state->nodes[node_index]->fake_joint_parent;
-		}
 
 		const Ref<GLTFNode> gltf_node = state->nodes[track_i->key()];
 
+		Node *root = ap->get_parent();
+		ERR_FAIL_COND(root == nullptr);
+		Map<GLTFNodeIndex, Node *>::Element *node_element = state->scene_nodes.find(node_index);
+		ERR_CONTINUE_MSG(node_element == nullptr, vformat("Unable to find node %d for animation", node_index));
+		node_path = root->get_path_to(node_element->get());
+
 		if (gltf_node->skeleton >= 0) {
-			const Skeleton3D *sk = Object::cast_to<Skeleton3D>(state->scene_nodes.find(node_index)->get());
+			const Skeleton3D *sk = state->skeletons[gltf_node->skeleton]->godot_skeleton;
 			ERR_FAIL_COND(sk == nullptr);
 
 			const String path = ap->get_parent()->get_path_to(sk);
 			const String bone = gltf_node->get_name();
-			node_path = path + ":" + bone;
+			transform_node_path = path + ":" + bone;
 		} else {
-			Node *root = ap->get_parent();
-			Node *godot_node = state->scene_nodes.find(node_index)->get();
-			node_path = root->get_path_to(godot_node);
+			transform_node_path = node_path;
 		}
 
 		for (int i = 0; i < track.rotation_track.times.size(); i++) {
@@ -5672,11 +5668,13 @@ void GLTFDocument::_import_animation(Ref<GLTFState> state, AnimationPlayer *ap, 
 			}
 		}
 
-		if (track.rotation_track.values.size() || track.translation_track.values.size() || track.scale_track.values.size()) {
+		// Animated TRS properties will not affect a skinned mesh.
+		const bool transform_affects_skinned_mesh_instance = gltf_node->skeleton < 0 && gltf_node->skin >= 0;
+		if ((track.rotation_track.values.size() || track.translation_track.values.size() || track.scale_track.values.size()) && !transform_affects_skinned_mesh_instance) {
 			//make transform track
 			int track_idx = animation->get_track_count();
-			animation->add_track(Animation::TYPE_TRANSFORM);
-			animation->track_set_path(track_idx, node_path);
+			animation->add_track(Animation::TYPE_TRANSFORM3D);
+			animation->track_set_path(track_idx, transform_node_path);
 			//first determine animation length
 
 			const double increment = 1.0 / bake_fps;
@@ -5717,7 +5715,7 @@ void GLTFDocument::_import_animation(Ref<GLTFState> state, AnimationPlayer *ap, 
 				}
 
 				if (gltf_node->skeleton >= 0) {
-					Transform xform;
+					Transform3D xform;
 					xform.basis.set_quat_scale(rot, scale);
 					xform.origin = pos;
 
@@ -5810,7 +5808,7 @@ void GLTFDocument::_convert_mesh_instances(Ref<GLTFState> state) {
 		}
 		MeshInstance3D *mi = Object::cast_to<MeshInstance3D>(mi_element->get());
 		ERR_CONTINUE(!mi);
-		Transform mi_xform = mi->get_transform();
+		Transform3D mi_xform = mi->get_transform();
 		node->scale = mi_xform.basis.get_scale();
 		node->rotation = mi_xform.basis.get_rotation_quat();
 		node->translation = mi_xform.origin;
@@ -5874,7 +5872,7 @@ void GLTFDocument::_convert_mesh_instances(Ref<GLTFState> state) {
 			String gltf_bone_name = _gen_unique_bone_name(state, skeleton_gltf_i, godot_bone_name);
 			joint_node->set_name(gltf_bone_name);
 
-			Transform bone_rest_xform = skeleton->get_bone_rest(bone_index);
+			Transform3D bone_rest_xform = skeleton->get_bone_rest(bone_index);
 			joint_node->scale = bone_rest_xform.basis.get_scale();
 			joint_node->rotation = bone_rest_xform.basis.get_rotation_quat();
 			joint_node->translation = bone_rest_xform.origin;
@@ -5997,12 +5995,12 @@ void GLTFDocument::_process_mesh_instances(Ref<GLTFState> state, Node *scene_roo
 
 			mi->set_skin(state->skins.write[skin_i]->godot_skin);
 			mi->set_skeleton_path(mi->get_path_to(skeleton));
-			mi->set_transform(Transform());
+			mi->set_transform(Transform3D());
 		}
 	}
 }
 
-GLTFAnimation::Track GLTFDocument::_convert_animation_track(Ref<GLTFState> state, GLTFAnimation::Track p_track, Ref<Animation> p_animation, Transform p_bone_rest, int32_t p_track_i, GLTFNodeIndex p_node_i) {
+GLTFAnimation::Track GLTFDocument::_convert_animation_track(Ref<GLTFState> state, GLTFAnimation::Track p_track, Ref<Animation> p_animation, Transform3D p_bone_rest, int32_t p_track_i, GLTFNodeIndex p_node_i) {
 	Animation::InterpolationType interpolation = p_animation->track_get_interpolation_type(p_track_i);
 
 	GLTFAnimation::Interpolation gltf_interpolation = GLTFAnimation::INTERP_LINEAR;
@@ -6022,7 +6020,7 @@ GLTFAnimation::Track GLTFDocument::_convert_animation_track(Ref<GLTFState> state
 		times.write[key_i] = p_animation->track_get_key_time(p_track_i, key_i);
 	}
 	const float BAKE_FPS = 30.0f;
-	if (track_type == Animation::TYPE_TRANSFORM) {
+	if (track_type == Animation::TYPE_TRANSFORM3D) {
 		p_track.translation_track.times = times;
 		p_track.translation_track.interpolation = gltf_interpolation;
 		p_track.rotation_track.times = times;
@@ -6042,7 +6040,7 @@ GLTFAnimation::Track GLTFDocument::_convert_animation_track(Ref<GLTFState> state
 			Vector3 scale;
 			Error err = p_animation->transform_track_get_key(p_track_i, key_i, &translation, &rotation, &scale);
 			ERR_CONTINUE(err != OK);
-			Transform xform;
+			Transform3D xform;
 			xform.basis.set_quat_scale(rotation, scale);
 			xform.origin = translation;
 			xform = p_bone_rest * xform;
@@ -6065,7 +6063,7 @@ GLTFAnimation::Track GLTFDocument::_convert_animation_track(Ref<GLTFState> state
 		p_track.rotation_track.values.resize(key_count);
 		p_track.rotation_track.interpolation = gltf_interpolation;
 		for (int32_t key_i = 0; key_i < key_count; key_i++) {
-			Transform xform = p_animation->track_get_key_value(p_track_i, key_i);
+			Transform3D xform = p_animation->track_get_key_value(p_track_i, key_i);
 			p_track.translation_track.values.write[key_i] = xform.get_origin();
 			p_track.rotation_track.values.write[key_i] = xform.basis.get_rotation_quat();
 			p_track.scale_track.values.write[key_i] = xform.basis.get_scale();
@@ -6212,7 +6210,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 					if (translation_track_i) {
 						track = translation_track_i->get();
 					}
-					track = _convert_animation_track(state, track, animation, Transform(), track_i, node_index);
+					track = _convert_animation_track(state, track, animation, Transform3D(), track_i, node_index);
 					gltf_animation->get_tracks().insert(node_index, track);
 				}
 			}
@@ -6228,7 +6226,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 					if (rotation_degree_track_i) {
 						track = rotation_degree_track_i->get();
 					}
-					track = _convert_animation_track(state, track, animation, Transform(), track_i, node_index);
+					track = _convert_animation_track(state, track, animation, Transform3D(), track_i, node_index);
 					gltf_animation->get_tracks().insert(node_index, track);
 				}
 			}
@@ -6244,7 +6242,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 					if (scale_track_i) {
 						track = scale_track_i->get();
 					}
-					track = _convert_animation_track(state, track, animation, Transform(), track_i, node_index);
+					track = _convert_animation_track(state, track, animation, Transform3D(), track_i, node_index);
 					gltf_animation->get_tracks().insert(node_index, track);
 				}
 			}
@@ -6255,7 +6253,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 			for (Map<GLTFNodeIndex, Node *>::Element *transform_track_i = state->scene_nodes.front(); transform_track_i; transform_track_i = transform_track_i->next()) {
 				if (transform_track_i->get() == node) {
 					GLTFAnimation::Track track;
-					track = _convert_animation_track(state, track, animation, Transform(), track_i, transform_track_i->key());
+					track = _convert_animation_track(state, track, animation, Transform3D(), track_i, transform_track_i->key());
 					gltf_animation->get_tracks().insert(transform_track_i->key(), track);
 				}
 			}
@@ -6343,7 +6341,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 					Ref<GLTFSkeleton> skeleton_gltf = state->skeletons[skeleton_gltf_i];
 					int32_t bone = skeleton->find_bone(suffix);
 					ERR_CONTINUE(bone == -1);
-					Transform xform = skeleton->get_bone_rest(bone);
+					Transform3D xform = skeleton->get_bone_rest(bone);
 					if (!skeleton_gltf->godot_bone_node.has(bone)) {
 						continue;
 					}
@@ -6370,7 +6368,7 @@ void GLTFDocument::_convert_animation(Ref<GLTFState> state, AnimationPlayer *ap,
 						if (node_track_i) {
 							track = node_track_i->get();
 						}
-						track = _convert_animation_track(state, track, animation, Transform(), track_i, node_index);
+						track = _convert_animation_track(state, track, animation, Transform3D(), track_i, node_index);
 						gltf_animation->get_tracks().insert(node_index, track);
 						break;
 					}

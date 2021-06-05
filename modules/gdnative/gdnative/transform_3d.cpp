@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  texture_loader_dummy.h                                               */
+/*  transform_3d.cpp                                                     */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,20 +28,24 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef TEXTURE_LOADER_DUMMY_H
-#define TEXTURE_LOADER_DUMMY_H
+#include "gdnative/transform_3d.h"
 
-#include "core/io/resource_loader.h"
-#include "scene/resources/texture.h"
+#include "core/math/transform_3d.h"
 
-class ResourceFormatDummyTexture : public ResourceFormatLoader {
-public:
-	virtual RES load(const String &p_path, const String &p_original_path = "", Error *r_error = nullptr, bool p_use_sub_threads = false, float *r_progress = nullptr, CacheMode p_cache_mode = CACHE_MODE_REUSE);
-	virtual void get_recognized_extensions(List<String> *p_extensions) const;
-	virtual bool handles_type(const String &p_type) const;
-	virtual String get_resource_type(const String &p_path) const;
+static_assert(sizeof(godot_transform3d) == sizeof(Transform3D), "Transform3D size mismatch");
 
-	virtual ~ResourceFormatDummyTexture() {}
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#endif // TEXTURE_LOADER_DUMMY_H
+void GDAPI godot_transform3d_new(godot_transform3d *p_self) {
+	memnew_placement(p_self, Transform3D);
+}
+
+void GDAPI godot_transform3d_new_copy(godot_transform3d *r_dest, const godot_transform3d *p_src) {
+	memnew_placement(r_dest, Transform3D(*(Transform3D *)p_src));
+}
+
+#ifdef __cplusplus
+}
+#endif
