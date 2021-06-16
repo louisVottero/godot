@@ -31,10 +31,10 @@
 #include "gdscript_analyzer.h"
 
 #include "core/config/project_settings.h"
+#include "core/io/file_access.h"
 #include "core/io/resource_loader.h"
 #include "core/object/class_db.h"
 #include "core/object/script_language.h"
-#include "core/os/file_access.h"
 #include "core/templates/hash_map.h"
 #include "gdscript.h"
 #include "gdscript_utility_functions.h"
@@ -163,7 +163,7 @@ Error GDScriptAnalyzer::resolve_inheritance(GDScriptParser::ClassNode *p_class, 
 	if (!p_class->extends_used) {
 		result.type_source = GDScriptParser::DataType::ANNOTATED_INFERRED;
 		result.kind = GDScriptParser::DataType::NATIVE;
-		result.native_type = "Reference";
+		result.native_type = "RefCounted";
 	} else {
 		result.type_source = GDScriptParser::DataType::ANNOTATED_EXPLICIT;
 
@@ -2825,7 +2825,7 @@ void GDScriptAnalyzer::reduce_subscript(GDScriptParser::SubscriptNode *p_subscri
 							case Variant::RECT2:
 							case Variant::RECT2I:
 							case Variant::PLANE:
-							case Variant::QUAT:
+							case Variant::QUATERNION:
 							case Variant::AABB:
 							case Variant::OBJECT:
 								error = index_type.builtin_type != Variant::STRING;
@@ -2904,7 +2904,7 @@ void GDScriptAnalyzer::reduce_subscript(GDScriptParser::SubscriptNode *p_subscri
 					case Variant::PACKED_FLOAT64_ARRAY:
 					case Variant::VECTOR2:
 					case Variant::VECTOR3:
-					case Variant::QUAT:
+					case Variant::QUATERNION:
 						result_type.builtin_type = Variant::FLOAT;
 						break;
 					// Return Color.

@@ -62,7 +62,7 @@ MAKE_PTRCONSTRUCT(Vector3);
 MAKE_PTRCONSTRUCT(Vector3i);
 MAKE_PTRCONSTRUCT(Transform2D);
 MAKE_PTRCONSTRUCT(Plane);
-MAKE_PTRCONSTRUCT(Quat);
+MAKE_PTRCONSTRUCT(Quaternion);
 MAKE_PTRCONSTRUCT(AABB);
 MAKE_PTRCONSTRUCT(Basis);
 MAKE_PTRCONSTRUCT(Transform3D);
@@ -659,13 +659,13 @@ void Variant::_register_variant_constructors() {
 	add_constructor<VariantConstructor<Plane, Vector3, Vector3, Vector3>>(sarray("point1", "point2", "point3"));
 	add_constructor<VariantConstructor<Plane, double, double, double, double>>(sarray("a", "b", "c", "d"));
 
-	add_constructor<VariantConstructNoArgs<Quat>>(sarray());
-	add_constructor<VariantConstructor<Quat, Quat>>(sarray("from"));
-	add_constructor<VariantConstructor<Quat, Basis>>(sarray("from"));
-	add_constructor<VariantConstructor<Quat, Vector3>>(sarray("euler"));
-	add_constructor<VariantConstructor<Quat, Vector3, double>>(sarray("axis", "angle"));
-	add_constructor<VariantConstructor<Quat, Vector3, Vector3>>(sarray("arc_from", "arc_to"));
-	add_constructor<VariantConstructor<Quat, double, double, double, double>>(sarray("x", "y", "z", "w"));
+	add_constructor<VariantConstructNoArgs<Quaternion>>(sarray());
+	add_constructor<VariantConstructor<Quaternion, Quaternion>>(sarray("from"));
+	add_constructor<VariantConstructor<Quaternion, Basis>>(sarray("from"));
+	add_constructor<VariantConstructor<Quaternion, Vector3>>(sarray("euler"));
+	add_constructor<VariantConstructor<Quaternion, Vector3, double>>(sarray("axis", "angle"));
+	add_constructor<VariantConstructor<Quaternion, Vector3, Vector3>>(sarray("arc_from", "arc_to"));
+	add_constructor<VariantConstructor<Quaternion, double, double, double, double>>(sarray("x", "y", "z", "w"));
 
 	add_constructor<VariantConstructNoArgs<::AABB>>(sarray());
 	add_constructor<VariantConstructor<::AABB, ::AABB>>(sarray("from"));
@@ -673,7 +673,7 @@ void Variant::_register_variant_constructors() {
 
 	add_constructor<VariantConstructNoArgs<Basis>>(sarray());
 	add_constructor<VariantConstructor<Basis, Basis>>(sarray("from"));
-	add_constructor<VariantConstructor<Basis, Quat>>(sarray("from"));
+	add_constructor<VariantConstructor<Basis, Quaternion>>(sarray("from"));
 	add_constructor<VariantConstructor<Basis, Vector3>>(sarray("euler"));
 	add_constructor<VariantConstructor<Basis, Vector3, double>>(sarray("axis", "phi"));
 	add_constructor<VariantConstructor<Basis, Vector3, Vector3, Vector3>>(sarray("x_axis", "y_axis", "z_axis"));
@@ -836,9 +836,9 @@ String Variant::get_constructor_argument_name(Variant::Type p_type, int p_constr
 
 void VariantInternal::object_assign(Variant *v, const Object *o) {
 	if (o) {
-		if (o->is_reference()) {
-			Reference *reference = const_cast<Reference *>(static_cast<const Reference *>(o));
-			if (!reference->init_ref()) {
+		if (o->is_ref_counted()) {
+			RefCounted *ref_counted = const_cast<RefCounted *>(static_cast<const RefCounted *>(o));
+			if (!ref_counted->init_ref()) {
 				v->_get_obj().obj = nullptr;
 				v->_get_obj().id = ObjectID();
 				return;

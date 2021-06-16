@@ -2547,6 +2547,8 @@ void Viewport::_gui_remove_control(Control *p_control) {
 }
 
 Window *Viewport::get_base_window() const {
+	ERR_FAIL_COND_V(!is_inside_tree(), nullptr);
+
 	Viewport *v = const_cast<Viewport *>(this);
 	Window *w = Object::cast_to<Window>(v);
 	while (!w) {
@@ -3336,6 +3338,7 @@ bool Viewport::is_input_handled() const {
 		return local_input_handled;
 	} else {
 		const Viewport *vp = this;
+		ERR_FAIL_COND_V(!is_inside_tree(), false);
 		while (true) {
 			if (Object::cast_to<Window>(vp)) {
 				break;
@@ -3669,9 +3672,9 @@ void Viewport::_bind_methods() {
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_OVERDRAW);
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_WIREFRAME);
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_NORMAL_BUFFER);
-	BIND_ENUM_CONSTANT(DEBUG_DRAW_GI_PROBE_ALBEDO);
-	BIND_ENUM_CONSTANT(DEBUG_DRAW_GI_PROBE_LIGHTING);
-	BIND_ENUM_CONSTANT(DEBUG_DRAW_GI_PROBE_EMISSION);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_VOXEL_GI_ALBEDO);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_VOXEL_GI_LIGHTING);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_VOXEL_GI_EMISSION);
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_SHADOW_ATLAS);
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_DIRECTIONAL_SHADOW_ATLAS);
 	BIND_ENUM_CONSTANT(DEBUG_DRAW_SCENE_LUMINANCE);

@@ -85,9 +85,10 @@ protected:
 
 		RID color_fb;
 		int width, height;
+		uint32_t view_count;
 
 		void clear();
-		virtual void configure(RID p_color_buffer, RID p_depth_buffer, int p_width, int p_height, RS::ViewportMSAA p_msaa);
+		virtual void configure(RID p_color_buffer, RID p_depth_buffer, int p_width, int p_height, RS::ViewportMSAA p_msaa, uint32_t p_view_count);
 
 		~RenderBufferDataForwardMobile();
 	};
@@ -104,7 +105,7 @@ protected:
 		PASS_MODE_SHADOW_DP,
 		// PASS_MODE_DEPTH,
 		// PASS_MODE_DEPTH_NORMAL_ROUGHNESS,
-		// PASS_MODE_DEPTH_NORMAL_ROUGHNESS_GIPROBE,
+		// PASS_MODE_DEPTH_NORMAL_ROUGHNESS_VOXEL_GI,
 		PASS_MODE_DEPTH_MATERIAL,
 		// PASS_MODE_SDF,
 	};
@@ -120,6 +121,7 @@ protected:
 		bool reverse_cull = false;
 		PassMode pass_mode = PASS_MODE_COLOR;
 		// bool no_gi = false;
+		uint32_t view_count = 1;
 		RID render_pass_uniform_set;
 		bool force_wireframe = false;
 		Vector2 uv_offset;
@@ -130,13 +132,14 @@ protected:
 		uint32_t element_offset = 0;
 		uint32_t barrier = RD::BARRIER_MASK_ALL;
 
-		RenderListParameters(GeometryInstanceSurfaceDataCache **p_elements, RenderElementInfo *p_element_info, int p_element_count, bool p_reverse_cull, PassMode p_pass_mode, RID p_render_pass_uniform_set, bool p_force_wireframe = false, const Vector2 &p_uv_offset = Vector2(), const Plane &p_lod_plane = Plane(), float p_lod_distance_multiplier = 0.0, float p_screen_lod_threshold = 0.0, uint32_t p_element_offset = 0, uint32_t p_barrier = RD::BARRIER_MASK_ALL) {
+		RenderListParameters(GeometryInstanceSurfaceDataCache **p_elements, RenderElementInfo *p_element_info, int p_element_count, bool p_reverse_cull, PassMode p_pass_mode, RID p_render_pass_uniform_set, bool p_force_wireframe = false, const Vector2 &p_uv_offset = Vector2(), const Plane &p_lod_plane = Plane(), float p_lod_distance_multiplier = 0.0, float p_screen_lod_threshold = 0.0, uint32_t p_view_count = 1, uint32_t p_element_offset = 0, uint32_t p_barrier = RD::BARRIER_MASK_ALL) {
 			elements = p_elements;
 			element_info = p_element_info;
 			element_count = p_element_count;
 			reverse_cull = p_reverse_cull;
 			pass_mode = p_pass_mode;
 			// no_gi = p_no_gi;
+			view_count = p_view_count;
 			render_pass_uniform_set = p_render_pass_uniform_set;
 			force_wireframe = p_force_wireframe;
 			uv_offset = p_uv_offset;
@@ -196,9 +199,11 @@ protected:
 		struct UBO {
 			float projection_matrix[16];
 			float inv_projection_matrix[16];
-
 			float camera_matrix[16];
 			float inv_camera_matrix[16];
+
+			float projection_matrix_view[RendererSceneRender::MAX_RENDER_VIEWS][16];
+			float inv_projection_matrix_view[RendererSceneRender::MAX_RENDER_VIEWS][16];
 
 			float viewport_size[2];
 			float screen_pixel_size[2];
@@ -390,7 +395,7 @@ protected:
 		INSTANCE_DATA_FLAG_USE_LIGHTMAP_CAPTURE = 1 << 8,
 		INSTANCE_DATA_FLAG_USE_LIGHTMAP = 1 << 9,
 		INSTANCE_DATA_FLAG_USE_SH_LIGHTMAP = 1 << 10,
-		INSTANCE_DATA_FLAG_USE_GIPROBE = 1 << 11,
+		INSTANCE_DATA_FLAG_USE_VOXEL_GI = 1 << 11,
 		INSTANCE_DATA_FLAG_MULTIMESH = 1 << 12,
 		INSTANCE_DATA_FLAG_MULTIMESH_FORMAT_2D = 1 << 13,
 		INSTANCE_DATA_FLAG_MULTIMESH_HAS_COLOR = 1 << 14,
@@ -587,7 +592,7 @@ public:
 	virtual void geometry_instance_pair_light_instances(GeometryInstance *p_geometry_instance, const RID *p_light_instances, uint32_t p_light_instance_count);
 	virtual void geometry_instance_pair_reflection_probe_instances(GeometryInstance *p_geometry_instance, const RID *p_reflection_probe_instances, uint32_t p_reflection_probe_instance_count);
 	virtual void geometry_instance_pair_decal_instances(GeometryInstance *p_geometry_instance, const RID *p_decal_instances, uint32_t p_decal_instance_count);
-	virtual void geometry_instance_pair_gi_probe_instances(GeometryInstance *p_geometry_instance, const RID *p_gi_probe_instances, uint32_t p_gi_probe_instance_count);
+	virtual void geometry_instance_pair_voxel_gi_instances(GeometryInstance *p_geometry_instance, const RID *p_voxel_gi_instances, uint32_t p_voxel_gi_instance_count);
 
 	virtual bool free(RID p_rid);
 

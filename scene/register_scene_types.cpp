@@ -55,6 +55,7 @@
 #include "scene/2d/parallax_background.h"
 #include "scene/2d/parallax_layer.h"
 #include "scene/2d/path_2d.h"
+#include "scene/2d/physical_bone_2d.h"
 #include "scene/2d/physics_body_2d.h"
 #include "scene/2d/polygon_2d.h"
 #include "scene/2d/position_2d.h"
@@ -65,7 +66,6 @@
 #include "scene/2d/tile_map.h"
 #include "scene/2d/touch_screen_button.h"
 #include "scene/2d/visibility_notifier_2d.h"
-#include "scene/2d/y_sort.h"
 #include "scene/animation/animation_blend_space_1d.h"
 #include "scene/animation/animation_blend_space_2d.h"
 #include "scene/animation/animation_blend_tree.h"
@@ -161,6 +161,15 @@
 #include "scene/resources/rectangle_shape_2d.h"
 #include "scene/resources/resource_format_text.h"
 #include "scene/resources/segment_shape_2d.h"
+#include "scene/resources/skeleton_modification_2d.h"
+#include "scene/resources/skeleton_modification_2d_ccdik.h"
+#include "scene/resources/skeleton_modification_2d_fabrik.h"
+#include "scene/resources/skeleton_modification_2d_jiggle.h"
+#include "scene/resources/skeleton_modification_2d_lookat.h"
+#include "scene/resources/skeleton_modification_2d_physicalbones.h"
+#include "scene/resources/skeleton_modification_2d_stackholder.h"
+#include "scene/resources/skeleton_modification_2d_twoboneik.h"
+#include "scene/resources/skeleton_modification_stack_2d.h"
 #include "scene/resources/sky.h"
 #include "scene/resources/sky_material.h"
 #include "scene/resources/sphere_shape_3d.h"
@@ -174,6 +183,7 @@
 #include "scene/resources/video_stream.h"
 #include "scene/resources/visual_shader.h"
 #include "scene/resources/visual_shader_nodes.h"
+#include "scene/resources/visual_shader_particle_nodes.h"
 #include "scene/resources/visual_shader_sdf_nodes.h"
 #include "scene/resources/world_2d.h"
 #include "scene/resources/world_3d.h"
@@ -185,18 +195,17 @@
 #ifndef _3D_DISABLED
 #include "scene/3d/area_3d.h"
 #include "scene/3d/audio_stream_player_3d.h"
-#include "scene/3d/baked_lightmap.h"
 #include "scene/3d/bone_attachment_3d.h"
 #include "scene/3d/camera_3d.h"
 #include "scene/3d/collision_polygon_3d.h"
 #include "scene/3d/collision_shape_3d.h"
 #include "scene/3d/cpu_particles_3d.h"
 #include "scene/3d/decal.h"
-#include "scene/3d/gi_probe.h"
 #include "scene/3d/gpu_particles_3d.h"
 #include "scene/3d/gpu_particles_collision_3d.h"
 #include "scene/3d/immediate_geometry_3d.h"
 #include "scene/3d/light_3d.h"
+#include "scene/3d/lightmap_gi.h"
 #include "scene/3d/lightmap_probe.h"
 #include "scene/3d/listener_3d.h"
 #include "scene/3d/mesh_instance_3d.h"
@@ -221,6 +230,7 @@
 #include "scene/3d/sprite_3d.h"
 #include "scene/3d/vehicle_body_3d.h"
 #include "scene/3d/visibility_notifier_3d.h"
+#include "scene/3d/voxel_gi.h"
 #include "scene/3d/world_environment.h"
 #include "scene/3d/xr_nodes.h"
 #include "scene/resources/environment.h"
@@ -453,10 +463,10 @@ void register_scene_types() {
 	ClassDB::register_class<SpotLight3D>();
 	ClassDB::register_class<ReflectionProbe>();
 	ClassDB::register_class<Decal>();
-	ClassDB::register_class<GIProbe>();
-	ClassDB::register_class<GIProbeData>();
-	ClassDB::register_class<BakedLightmap>();
-	ClassDB::register_class<BakedLightmapData>();
+	ClassDB::register_class<VoxelGI>();
+	ClassDB::register_class<VoxelGIData>();
+	ClassDB::register_class<LightmapGI>();
+	ClassDB::register_class<LightmapGIData>();
 	ClassDB::register_class<LightmapProbe>();
 	ClassDB::register_virtual_class<Lightmapper>();
 	ClassDB::register_class<GPUParticles3D>();
@@ -551,6 +561,7 @@ void register_scene_types() {
 	ClassDB::register_class<VisualShaderNodeVectorFunc>();
 	ClassDB::register_class<VisualShaderNodeColorFunc>();
 	ClassDB::register_class<VisualShaderNodeTransformFunc>();
+	ClassDB::register_class<VisualShaderNodeUVFunc>();
 	ClassDB::register_class<VisualShaderNodeDotProduct>();
 	ClassDB::register_class<VisualShaderNodeVectorLen>();
 	ClassDB::register_class<VisualShaderNodeDeterminant>();
@@ -603,6 +614,17 @@ void register_scene_types() {
 	ClassDB::register_class<VisualShaderNodeTextureSDFNormal>();
 	ClassDB::register_class<VisualShaderNodeSDFRaymarch>();
 
+	ClassDB::register_class<VisualShaderNodeParticleOutput>();
+	ClassDB::register_virtual_class<VisualShaderNodeParticleEmitter>();
+	ClassDB::register_class<VisualShaderNodeParticleSphereEmitter>();
+	ClassDB::register_class<VisualShaderNodeParticleBoxEmitter>();
+	ClassDB::register_class<VisualShaderNodeParticleRingEmitter>();
+	ClassDB::register_class<VisualShaderNodeParticleMultiplyByAxisAngle>();
+	ClassDB::register_class<VisualShaderNodeParticleConeVelocity>();
+	ClassDB::register_class<VisualShaderNodeParticleRandomness>();
+	ClassDB::register_class<VisualShaderNodeParticleAccelerator>();
+	ClassDB::register_class<VisualShaderNodeParticleEmit>();
+
 	ClassDB::register_class<ShaderMaterial>();
 	ClassDB::register_virtual_class<CanvasItem>();
 	ClassDB::register_class<CanvasTexture>();
@@ -643,7 +665,6 @@ void register_scene_types() {
 	ClassDB::register_class<DirectionalLight2D>();
 	ClassDB::register_class<LightOccluder2D>();
 	ClassDB::register_class<OccluderPolygon2D>();
-	ClassDB::register_class<YSort>();
 	ClassDB::register_class<BackBufferCopy>();
 
 	OS::get_singleton()->yield(); //may take time to init
@@ -663,6 +684,18 @@ void register_scene_types() {
 	ClassDB::register_class<ParallaxLayer>();
 	ClassDB::register_class<TouchScreenButton>();
 	ClassDB::register_class<RemoteTransform2D>();
+
+	ClassDB::register_class<SkeletonModificationStack2D>();
+	ClassDB::register_class<SkeletonModification2D>();
+	ClassDB::register_class<SkeletonModification2DLookAt>();
+	ClassDB::register_class<SkeletonModification2DCCDIK>();
+	ClassDB::register_class<SkeletonModification2DFABRIK>();
+	ClassDB::register_class<SkeletonModification2DJiggle>();
+	ClassDB::register_class<SkeletonModification2DTwoBoneIK>();
+	ClassDB::register_class<SkeletonModification2DStackHolder>();
+
+	ClassDB::register_class<PhysicalBone2D>();
+	ClassDB::register_class<SkeletonModification2DPhysicalBones>();
 
 	OS::get_singleton()->yield(); //may take time to init
 
@@ -820,6 +853,11 @@ void register_scene_types() {
 	ClassDB::add_compatibility_class("ToolButton", "Button");
 	ClassDB::add_compatibility_class("Navigation3D", "Node3D");
 	ClassDB::add_compatibility_class("Navigation2D", "Node2D");
+	ClassDB::add_compatibility_class("YSort", "Node2D");
+	ClassDB::add_compatibility_class("GIProbe", "VoxelGI");
+	ClassDB::add_compatibility_class("GIProbeData", "VoxelGIData");
+	ClassDB::add_compatibility_class("BakedLightmap", "LightmapGI");
+	ClassDB::add_compatibility_class("BakedLightmapData", "LightmapGIData");
 
 	// Renamed in 4.0.
 	// Keep alphabetical ordering to easily locate classes and avoid duplicates.

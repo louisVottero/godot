@@ -548,56 +548,56 @@ public:
 	virtual void decal_set_fade(RID p_decal, float p_above, float p_below) = 0;
 	virtual void decal_set_normal_fade(RID p_decal, float p_fade) = 0;
 
-	/* GI PROBE API */
+	/* VOXEL GI API */
 
-	virtual RID gi_probe_create() = 0;
+	virtual RID voxel_gi_create() = 0;
 
-	virtual void gi_probe_allocate_data(RID p_gi_probe, const Transform3D &p_to_cell_xform, const AABB &p_aabb, const Vector3i &p_octree_size, const Vector<uint8_t> &p_octree_cells, const Vector<uint8_t> &p_data_cells, const Vector<uint8_t> &p_distance_field, const Vector<int> &p_level_counts) = 0;
+	virtual void voxel_gi_allocate_data(RID p_voxel_gi, const Transform3D &p_to_cell_xform, const AABB &p_aabb, const Vector3i &p_octree_size, const Vector<uint8_t> &p_octree_cells, const Vector<uint8_t> &p_data_cells, const Vector<uint8_t> &p_distance_field, const Vector<int> &p_level_counts) = 0;
 
-	virtual AABB gi_probe_get_bounds(RID p_gi_probe) const = 0;
-	virtual Vector3i gi_probe_get_octree_size(RID p_gi_probe) const = 0;
-	virtual Vector<uint8_t> gi_probe_get_octree_cells(RID p_gi_probe) const = 0;
-	virtual Vector<uint8_t> gi_probe_get_data_cells(RID p_gi_probe) const = 0;
-	virtual Vector<uint8_t> gi_probe_get_distance_field(RID p_gi_probe) const = 0;
-	virtual Vector<int> gi_probe_get_level_counts(RID p_gi_probe) const = 0;
-	virtual Transform3D gi_probe_get_to_cell_xform(RID p_gi_probe) const = 0;
+	virtual AABB voxel_gi_get_bounds(RID p_voxel_gi) const = 0;
+	virtual Vector3i voxel_gi_get_octree_size(RID p_voxel_gi) const = 0;
+	virtual Vector<uint8_t> voxel_gi_get_octree_cells(RID p_voxel_gi) const = 0;
+	virtual Vector<uint8_t> voxel_gi_get_data_cells(RID p_voxel_gi) const = 0;
+	virtual Vector<uint8_t> voxel_gi_get_distance_field(RID p_voxel_gi) const = 0;
+	virtual Vector<int> voxel_gi_get_level_counts(RID p_voxel_gi) const = 0;
+	virtual Transform3D voxel_gi_get_to_cell_xform(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_dynamic_range(RID p_gi_probe, float p_range) = 0;
-	virtual float gi_probe_get_dynamic_range(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_dynamic_range(RID p_voxel_gi, float p_range) = 0;
+	virtual float voxel_gi_get_dynamic_range(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_propagation(RID p_gi_probe, float p_range) = 0;
-	virtual float gi_probe_get_propagation(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_propagation(RID p_voxel_gi, float p_range) = 0;
+	virtual float voxel_gi_get_propagation(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_energy(RID p_gi_probe, float p_energy) = 0;
-	virtual float gi_probe_get_energy(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_energy(RID p_voxel_gi, float p_energy) = 0;
+	virtual float voxel_gi_get_energy(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_ao(RID p_gi_probe, float p_ao) = 0;
-	virtual float gi_probe_get_ao(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_ao(RID p_voxel_gi, float p_ao) = 0;
+	virtual float voxel_gi_get_ao(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_ao_size(RID p_gi_probe, float p_strength) = 0;
-	virtual float gi_probe_get_ao_size(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_ao_size(RID p_voxel_gi, float p_strength) = 0;
+	virtual float voxel_gi_get_ao_size(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_bias(RID p_gi_probe, float p_bias) = 0;
-	virtual float gi_probe_get_bias(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_bias(RID p_voxel_gi, float p_bias) = 0;
+	virtual float voxel_gi_get_bias(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_normal_bias(RID p_gi_probe, float p_range) = 0;
-	virtual float gi_probe_get_normal_bias(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_normal_bias(RID p_voxel_gi, float p_range) = 0;
+	virtual float voxel_gi_get_normal_bias(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_interior(RID p_gi_probe, bool p_enable) = 0;
-	virtual bool gi_probe_is_interior(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_interior(RID p_voxel_gi, bool p_enable) = 0;
+	virtual bool voxel_gi_is_interior(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_use_two_bounces(RID p_gi_probe, bool p_enable) = 0;
-	virtual bool gi_probe_is_using_two_bounces(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_use_two_bounces(RID p_voxel_gi, bool p_enable) = 0;
+	virtual bool voxel_gi_is_using_two_bounces(RID p_voxel_gi) const = 0;
 
-	virtual void gi_probe_set_anisotropy_strength(RID p_gi_probe, float p_strength) = 0;
-	virtual float gi_probe_get_anisotropy_strength(RID p_gi_probe) const = 0;
+	virtual void voxel_gi_set_anisotropy_strength(RID p_voxel_gi, float p_strength) = 0;
+	virtual float voxel_gi_get_anisotropy_strength(RID p_voxel_gi) const = 0;
 
-	enum GIProbeQuality {
-		GI_PROBE_QUALITY_LOW,
-		GI_PROBE_QUALITY_HIGH,
+	enum VoxelGIQuality {
+		VOXEL_GI_QUALITY_LOW,
+		VOXEL_GI_QUALITY_HIGH,
 	};
 
-	virtual void gi_probe_set_quality(GIProbeQuality) = 0;
+	virtual void voxel_gi_set_quality(VoxelGIQuality) = 0;
 
 	/* LIGHTMAP */
 
@@ -882,9 +882,9 @@ public:
 		VIEWPORT_DEBUG_DRAW_OVERDRAW,
 		VIEWPORT_DEBUG_DRAW_WIREFRAME,
 		VIEWPORT_DEBUG_DRAW_NORMAL_BUFFER,
-		VIEWPORT_DEBUG_DRAW_GI_PROBE_ALBEDO,
-		VIEWPORT_DEBUG_DRAW_GI_PROBE_LIGHTING,
-		VIEWPORT_DEBUG_DRAW_GI_PROBE_EMISSION,
+		VIEWPORT_DEBUG_DRAW_VOXEL_GI_ALBEDO,
+		VIEWPORT_DEBUG_DRAW_VOXEL_GI_LIGHTING,
+		VIEWPORT_DEBUG_DRAW_VOXEL_GI_EMISSION,
 		VIEWPORT_DEBUG_DRAW_SHADOW_ATLAS,
 		VIEWPORT_DEBUG_DRAW_DIRECTIONAL_SHADOW_ATLAS,
 		VIEWPORT_DEBUG_DRAW_SCENE_LUMINANCE,
@@ -1145,7 +1145,7 @@ public:
 		INSTANCE_LIGHT,
 		INSTANCE_REFLECTION_PROBE,
 		INSTANCE_DECAL,
-		INSTANCE_GI_PROBE,
+		INSTANCE_VOXEL_GI,
 		INSTANCE_LIGHTMAP,
 		INSTANCE_OCCLUDER,
 		INSTANCE_MAX,
@@ -1172,6 +1172,7 @@ public:
 	virtual void instance_set_exterior(RID p_instance, bool p_enabled) = 0;
 
 	virtual void instance_set_extra_visibility_margin(RID p_instance, real_t p_margin) = 0;
+	virtual void instance_set_visibility_parent(RID p_instance, RID p_parent_instance) = 0;
 
 	// don't use these in a game!
 	virtual Vector<ObjectID> instances_cull_aabb(const AABB &p_aabb, RID p_scenario = RID()) const = 0;
@@ -1201,8 +1202,7 @@ public:
 	virtual void instance_geometry_set_cast_shadows_setting(RID p_instance, ShadowCastingSetting p_shadow_casting_setting) = 0;
 	virtual void instance_geometry_set_material_override(RID p_instance, RID p_material) = 0;
 
-	virtual void instance_geometry_set_draw_range(RID p_instance, float p_min, float p_max, float p_min_margin, float p_max_margin) = 0;
-	virtual void instance_geometry_set_as_instance_lod(RID p_instance, RID p_as_lod_of_instance) = 0;
+	virtual void instance_geometry_set_visibility_range(RID p_instance, float p_min, float p_max, float p_min_margin, float p_max_margin) = 0;
 	virtual void instance_geometry_set_lightmap(RID p_instance, RID p_lightmap, const Rect2 &p_lightmap_uv_scale, int p_lightmap_slice) = 0;
 	virtual void instance_geometry_set_lod_bias(RID p_instance, float p_lod_bias) = 0;
 

@@ -1326,28 +1326,28 @@ void RendererSceneRenderRD::lightmap_instance_set_transform(RID p_lightmap, cons
 
 /////////////////////////////////
 
-RID RendererSceneRenderRD::gi_probe_instance_create(RID p_base) {
-	return gi.gi_probe_instance_create(p_base);
+RID RendererSceneRenderRD::voxel_gi_instance_create(RID p_base) {
+	return gi.voxel_gi_instance_create(p_base);
 }
 
-void RendererSceneRenderRD::gi_probe_instance_set_transform_to_data(RID p_probe, const Transform3D &p_xform) {
-	gi.gi_probe_instance_set_transform_to_data(p_probe, p_xform);
+void RendererSceneRenderRD::voxel_gi_instance_set_transform_to_data(RID p_probe, const Transform3D &p_xform) {
+	gi.voxel_gi_instance_set_transform_to_data(p_probe, p_xform);
 }
 
-bool RendererSceneRenderRD::gi_probe_needs_update(RID p_probe) const {
+bool RendererSceneRenderRD::voxel_gi_needs_update(RID p_probe) const {
 	if (!is_dynamic_gi_supported()) {
 		return false;
 	}
 
-	return gi.gi_probe_needs_update(p_probe);
+	return gi.voxel_gi_needs_update(p_probe);
 }
 
-void RendererSceneRenderRD::gi_probe_update(RID p_probe, bool p_update_light_instances, const Vector<RID> &p_light_instances, const PagedArray<GeometryInstance *> &p_dynamic_objects) {
+void RendererSceneRenderRD::voxel_gi_update(RID p_probe, bool p_update_light_instances, const Vector<RID> &p_light_instances, const PagedArray<GeometryInstance *> &p_dynamic_objects) {
 	if (!is_dynamic_gi_supported()) {
 		return;
 	}
 
-	gi.gi_probe_update(p_probe, p_update_light_instances, p_light_instances, p_dynamic_objects, this);
+	gi.voxel_gi_update(p_probe, p_update_light_instances, p_light_instances, p_dynamic_objects, this);
 }
 
 void RendererSceneRenderRD::_debug_sdfgi_probes(RID p_render_buffers, RD::DrawListID p_draw_list, RID p_framebuffer, const CameraMatrix &p_camera_with_transform) {
@@ -1728,7 +1728,7 @@ void RendererSceneRenderRD::_process_ssao(RID p_render_buffers, RID p_environmen
 	settings.half_screen_size = Size2i(buffer_width, buffer_height);
 	settings.quarter_screen_size = Size2i(half_width, half_height);
 
-	storage->get_effects()->generate_ssao(rb->depth_texture, p_normal_buffer, rb->ssao.depth, rb->ssao.depth_slices, rb->ssao.ao_deinterleaved, rb->ssao.ao_deinterleaved_slices, rb->ssao.ao_pong, rb->ssao.ao_pong_slices, rb->ssao.ao_final, rb->ssao.importance_map[0], rb->ssao.importance_map[1], p_projection, settings, uniform_sets_are_invalid);
+	storage->get_effects()->generate_ssao(rb->depth_texture, p_normal_buffer, rb->ssao.depth, rb->ssao.depth_slices, rb->ssao.ao_deinterleaved, rb->ssao.ao_deinterleaved_slices, rb->ssao.ao_pong, rb->ssao.ao_pong_slices, rb->ssao.ao_final, rb->ssao.importance_map[0], rb->ssao.importance_map[1], p_projection, settings, uniform_sets_are_invalid, rb->ssao.downsample_uniform_set, rb->ssao.gather_uniform_set, rb->ssao.importance_map_uniform_set);
 }
 
 void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const RenderDataRD *p_render_data) {
@@ -1857,6 +1857,8 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 			}
 		}
 
+		tonemap.view_count = p_render_data->view_count;
+
 		storage->get_effects()->tonemapper(rb->texture, storage->render_target_get_rd_framebuffer(rb->render_target), tonemap);
 	}
 
@@ -1959,17 +1961,17 @@ RID RendererSceneRenderRD::render_buffers_get_ao_texture(RID p_render_buffers) {
 	return rb->ssao.ao_final;
 }
 
-RID RendererSceneRenderRD::render_buffers_get_gi_probe_buffer(RID p_render_buffers) {
+RID RendererSceneRenderRD::render_buffers_get_voxel_gi_buffer(RID p_render_buffers) {
 	RenderBuffers *rb = render_buffers_owner.getornull(p_render_buffers);
 	ERR_FAIL_COND_V(!rb, RID());
-	if (rb->gi.giprobe_buffer.is_null()) {
-		rb->gi.giprobe_buffer = RD::get_singleton()->uniform_buffer_create(sizeof(RendererSceneGIRD::GIProbeData) * RendererSceneGIRD::MAX_GIPROBES);
+	if (rb->gi.voxel_gi_buffer.is_null()) {
+		rb->gi.voxel_gi_buffer = RD::get_singleton()->uniform_buffer_create(sizeof(RendererSceneGIRD::VoxelGIData) * RendererSceneGIRD::MAX_VOXEL_GI_INSTANCES);
 	}
-	return rb->gi.giprobe_buffer;
+	return rb->gi.voxel_gi_buffer;
 }
 
-RID RendererSceneRenderRD::render_buffers_get_default_gi_probe_buffer() {
-	return gi.default_giprobe_buffer;
+RID RendererSceneRenderRD::render_buffers_get_default_voxel_gi_buffer() {
+	return gi.default_voxel_gi_buffer;
 }
 
 RID RendererSceneRenderRD::render_buffers_get_gi_ambient_texture(RID p_render_buffers) {
@@ -2112,7 +2114,9 @@ float RendererSceneRenderRD::render_buffers_get_volumetric_fog_detail_spread(RID
 	return rb->volumetric_fog->spread;
 }
 
-void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p_render_target, int p_width, int p_height, RS::ViewportMSAA p_msaa, RenderingServer::ViewportScreenSpaceAA p_screen_space_aa, bool p_use_debanding) {
+void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p_render_target, int p_width, int p_height, RS::ViewportMSAA p_msaa, RenderingServer::ViewportScreenSpaceAA p_screen_space_aa, bool p_use_debanding, uint32_t p_view_count) {
+	ERR_FAIL_COND_MSG(p_view_count == 0, "Must have atleast 1 view");
+
 	RenderBuffers *rb = render_buffers_owner.getornull(p_render_buffers);
 	rb->width = p_width;
 	rb->height = p_height;
@@ -2120,6 +2124,7 @@ void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p
 	rb->msaa = p_msaa;
 	rb->screen_space_aa = p_screen_space_aa;
 	rb->use_debanding = p_use_debanding;
+	rb->view_count = p_view_count;
 
 	if (is_clustered_enabled()) {
 		if (rb->cluster_builder == nullptr) {
@@ -2132,9 +2137,13 @@ void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p
 
 	{
 		RD::TextureFormat tf;
+		if (rb->view_count > 1) {
+			tf.texture_type = RD::TEXTURE_TYPE_2D_ARRAY;
+		}
 		tf.format = RD::DATA_FORMAT_R16G16B16A16_SFLOAT;
 		tf.width = rb->width;
 		tf.height = rb->height;
+		tf.array_layers = rb->view_count; // create a layer for every view
 		tf.usage_bits = RD::TEXTURE_USAGE_SAMPLING_BIT | RD::TEXTURE_USAGE_STORAGE_BIT;
 		if (rb->msaa != RS::VIEWPORT_MSAA_DISABLED) {
 			tf.usage_bits |= RD::TEXTURE_USAGE_CAN_COPY_TO_BIT | RD::TEXTURE_USAGE_STORAGE_BIT;
@@ -2147,6 +2156,9 @@ void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p
 
 	{
 		RD::TextureFormat tf;
+		if (rb->view_count > 1) {
+			tf.texture_type = RD::TEXTURE_TYPE_2D_ARRAY;
+		}
 		if (rb->msaa == RS::VIEWPORT_MSAA_DISABLED) {
 			tf.format = RD::get_singleton()->texture_is_format_supported_for_usage(RD::DATA_FORMAT_D24_UNORM_S8_UINT, RD::TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ? RD::DATA_FORMAT_D24_UNORM_S8_UINT : RD::DATA_FORMAT_D32_SFLOAT_S8_UINT;
 		} else {
@@ -2156,6 +2168,7 @@ void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p
 		tf.width = p_width;
 		tf.height = p_height;
 		tf.usage_bits = RD::TEXTURE_USAGE_SAMPLING_BIT;
+		tf.array_layers = rb->view_count; // create a layer for every view
 
 		if (rb->msaa != RS::VIEWPORT_MSAA_DISABLED) {
 			tf.usage_bits |= RD::TEXTURE_USAGE_CAN_COPY_TO_BIT | RD::TEXTURE_USAGE_STORAGE_BIT;
@@ -2166,7 +2179,7 @@ void RendererSceneRenderRD::render_buffers_configure(RID p_render_buffers, RID p
 		rb->depth_texture = RD::get_singleton()->texture_create(tf, RD::TextureView());
 	}
 
-	rb->data->configure(rb->texture, rb->depth_texture, p_width, p_height, p_msaa);
+	rb->data->configure(rb->texture, rb->depth_texture, p_width, p_height, p_msaa, p_view_count);
 
 	if (is_clustered_enabled()) {
 		rb->cluster_builder->setup(Size2i(p_width, p_height), max_cluster_elements, rb->depth_texture, storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_NEAREST, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED), rb->texture);
@@ -3066,7 +3079,7 @@ void RendererSceneRenderRD::_volumetric_fog_erase(RenderBuffers *rb) {
 	rb->volumetric_fog = nullptr;
 }
 
-void RendererSceneRenderRD::_update_volumetric_fog(RID p_render_buffers, RID p_environment, const CameraMatrix &p_cam_projection, const Transform3D &p_cam_transform, RID p_shadow_atlas, int p_directional_light_count, bool p_use_directional_shadows, int p_positional_light_count, int p_gi_probe_count) {
+void RendererSceneRenderRD::_update_volumetric_fog(RID p_render_buffers, RID p_environment, const CameraMatrix &p_cam_projection, const Transform3D &p_cam_transform, RID p_shadow_atlas, int p_directional_light_count, bool p_use_directional_shadows, int p_positional_light_count, int p_voxel_gi_count) {
 	ERR_FAIL_COND(!is_clustered_enabled()); // can't use volumetric fog without clustered
 	RenderBuffers *rb = render_buffers_owner.getornull(p_render_buffers);
 	ERR_FAIL_COND(!rb);
@@ -3228,7 +3241,7 @@ void RendererSceneRenderRD::_update_volumetric_fog(RID p_render_buffers, RID p_e
 			RD::Uniform u;
 			u.uniform_type = RD::UNIFORM_TYPE_UNIFORM_BUFFER;
 			u.binding = 11;
-			u.ids.push_back(render_buffers_get_gi_probe_buffer(p_render_buffers));
+			u.ids.push_back(render_buffers_get_voxel_gi_buffer(p_render_buffers));
 			uniforms.push_back(u);
 		}
 
@@ -3236,8 +3249,8 @@ void RendererSceneRenderRD::_update_volumetric_fog(RID p_render_buffers, RID p_e
 			RD::Uniform u;
 			u.uniform_type = RD::UNIFORM_TYPE_TEXTURE;
 			u.binding = 12;
-			for (int i = 0; i < RendererSceneGIRD::MAX_GIPROBES; i++) {
-				u.ids.push_back(rb->gi.giprobe_textures[i]);
+			for (int i = 0; i < RendererSceneGIRD::MAX_VOXEL_GI_INSTANCES; i++) {
+				u.ids.push_back(rb->gi.voxel_gi_textures[i]);
 			}
 			uniforms.push_back(u);
 		}
@@ -3362,7 +3375,7 @@ void RendererSceneRenderRD::_update_volumetric_fog(RID p_render_buffers, RID p_e
 	params.cam_rotation[10] = p_cam_transform.basis[2][2];
 	params.cam_rotation[11] = 0;
 	params.filter_axis = 0;
-	params.max_gi_probes = env->volumetric_fog_gi_inject > 0.001 ? p_gi_probe_count : 0;
+	params.max_voxel_gi_instances = env->volumetric_fog_gi_inject > 0.001 ? p_voxel_gi_count : 0;
 	params.temporal_frame = RSG::rasterizer->get_frame_number() % VolumetricFog::MAX_TEMPORAL_FRAMES;
 
 	Transform3D to_prev_cam_view = rb->volumetric_fog->prev_cam_transform.affine_inverse() * p_cam_transform;
@@ -3492,17 +3505,15 @@ void RendererSceneRenderRD::_pre_resolve_render(RenderDataRD *p_render_data, boo
 	}
 }
 
-void RendererSceneRenderRD::_pre_opaque_render(RenderDataRD *p_render_data, bool p_use_ssao, bool p_use_gi, RID p_normal_roughness_buffer, RID p_gi_probe_buffer) {
+void RendererSceneRenderRD::_pre_opaque_render(RenderDataRD *p_render_data, bool p_use_ssao, bool p_use_gi, RID p_normal_roughness_buffer, RID p_voxel_gi_buffer) {
 	// Render shadows while GI is rendering, due to how barriers are handled, this should happen at the same time
 
 	if (p_render_data->render_buffers.is_valid() && p_use_gi) {
 		RenderBuffers *rb = render_buffers_owner.getornull(p_render_data->render_buffers);
 		ERR_FAIL_COND(rb == nullptr);
-		if (rb->sdfgi == nullptr) {
-			return;
+		if (rb->sdfgi != nullptr) {
+			rb->sdfgi->store_probes();
 		}
-
-		rb->sdfgi->store_probes();
 	}
 
 	render_state.cube_shadows.clear();
@@ -3569,7 +3580,7 @@ void RendererSceneRenderRD::_pre_opaque_render(RenderDataRD *p_render_data, bool
 
 	//start GI
 	if (render_gi) {
-		gi.process_gi(p_render_data->render_buffers, p_normal_roughness_buffer, p_gi_probe_buffer, p_render_data->environment, p_render_data->cam_projection, p_render_data->cam_transform, *p_render_data->gi_probes, this);
+		gi.process_gi(p_render_data->render_buffers, p_normal_roughness_buffer, p_voxel_gi_buffer, p_render_data->environment, p_render_data->cam_projection, p_render_data->cam_transform, *p_render_data->voxel_gi_instances, this);
 	}
 
 	//Do shadow rendering (in parallel with GI)
@@ -3625,12 +3636,12 @@ void RendererSceneRenderRD::_pre_opaque_render(RenderDataRD *p_render_data, bool
 			}
 		}
 		if (is_volumetric_supported()) {
-			_update_volumetric_fog(p_render_data->render_buffers, p_render_data->environment, p_render_data->cam_projection, p_render_data->cam_transform, p_render_data->shadow_atlas, directional_light_count, directional_shadows, positional_light_count, render_state.gi_probe_count);
+			_update_volumetric_fog(p_render_data->render_buffers, p_render_data->environment, p_render_data->cam_projection, p_render_data->cam_transform, p_render_data->shadow_atlas, directional_light_count, directional_shadows, positional_light_count, render_state.voxel_gi_count);
 		}
 	}
 }
 
-void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D &p_cam_transform, const CameraMatrix &p_cam_projection, bool p_cam_ortogonal, const PagedArray<GeometryInstance *> &p_instances, const PagedArray<RID> &p_lights, const PagedArray<RID> &p_reflection_probes, const PagedArray<RID> &p_gi_probes, const PagedArray<RID> &p_decals, const PagedArray<RID> &p_lightmaps, RID p_environment, RID p_camera_effects, RID p_shadow_atlas, RID p_occluder_debug_tex, RID p_reflection_atlas, RID p_reflection_probe, int p_reflection_probe_pass, float p_screen_lod_threshold, const RenderShadowData *p_render_shadows, int p_render_shadow_count, const RenderSDFGIData *p_render_sdfgi_regions, int p_render_sdfgi_region_count, const RenderSDFGIUpdateData *p_sdfgi_update_data) {
+void RendererSceneRenderRD::render_scene(RID p_render_buffers, const CameraData *p_camera_data, const PagedArray<GeometryInstance *> &p_instances, const PagedArray<RID> &p_lights, const PagedArray<RID> &p_reflection_probes, const PagedArray<RID> &p_voxel_gi_instances, const PagedArray<RID> &p_decals, const PagedArray<RID> &p_lightmaps, RID p_environment, RID p_camera_effects, RID p_shadow_atlas, RID p_occluder_debug_tex, RID p_reflection_atlas, RID p_reflection_probe, int p_reflection_probe_pass, float p_screen_lod_threshold, const RenderShadowData *p_render_shadows, int p_render_shadow_count, const RenderSDFGIData *p_render_sdfgi_regions, int p_render_sdfgi_region_count, const RenderSDFGIUpdateData *p_sdfgi_update_data) {
 	// getting this here now so we can direct call a bunch of things more easily
 	RenderBuffers *rb = nullptr;
 	if (p_render_buffers.is_valid()) {
@@ -3643,16 +3654,24 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 	{
 		render_data.render_buffers = p_render_buffers;
 
-		render_data.cam_transform = p_cam_transform;
-		render_data.cam_projection = p_cam_projection;
-		render_data.cam_ortogonal = p_cam_projection.is_orthogonal(); // !BAS! Shouldn't this be p_cam_ortogonal ?
-		render_data.z_near = p_cam_projection.get_z_near();
-		render_data.z_far = p_cam_projection.get_z_far();
+		// Our first camera is used by default
+		render_data.cam_transform = p_camera_data->main_transform;
+		render_data.cam_projection = p_camera_data->main_projection;
+		render_data.view_projection[0] = p_camera_data->main_projection;
+		render_data.cam_ortogonal = p_camera_data->is_ortogonal;
+
+		render_data.view_count = p_camera_data->view_count;
+		for (uint32_t v = 0; v < p_camera_data->view_count; v++) {
+			render_data.view_projection[v] = p_camera_data->view_projection[v];
+		}
+
+		render_data.z_near = p_camera_data->main_projection.get_z_near();
+		render_data.z_far = p_camera_data->main_projection.get_z_far();
 
 		render_data.instances = &p_instances;
 		render_data.lights = &p_lights;
 		render_data.reflection_probes = &p_reflection_probes;
-		render_data.gi_probes = &p_gi_probes;
+		render_data.voxel_gi_instances = &p_voxel_gi_instances;
 		render_data.decals = &p_decals;
 		render_data.lightmaps = &p_lightmaps;
 		render_data.environment = p_environment;
@@ -3662,8 +3681,9 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 		render_data.reflection_probe = p_reflection_probe;
 		render_data.reflection_probe_pass = p_reflection_probe_pass;
 
-		render_data.lod_distance_multiplier = p_cam_projection.get_lod_multiplier();
-		render_data.lod_camera_plane = Plane(p_cam_transform.get_origin(), -p_cam_transform.basis.get_axis(Vector3::AXIS_Z));
+		// this should be the same for all cameras..
+		render_data.lod_distance_multiplier = p_camera_data->main_projection.get_lod_multiplier();
+		render_data.lod_camera_plane = Plane(p_camera_data->main_transform.get_origin(), -p_camera_data->main_transform.basis.get_axis(Vector3::AXIS_Z));
 
 		if (get_debug_draw_mode() == RS::VIEWPORT_DEBUG_DRAW_DISABLE_LOD) {
 			render_data.screen_lod_threshold = 0.0;
@@ -3683,7 +3703,7 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 	if (get_debug_draw_mode() == RS::VIEWPORT_DEBUG_DRAW_UNSHADED) {
 		render_data.lights = &empty;
 		render_data.reflection_probes = &empty;
-		render_data.gi_probes = &empty;
+		render_data.voxel_gi_instances = &empty;
 	}
 
 	//sdfgi first
@@ -3703,12 +3723,12 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 		clear_color = storage->get_default_clear_color();
 	}
 
-	//assign render indices to giprobes
+	//assign render indices to voxel_gi_instances
 	if (is_dynamic_gi_supported()) {
-		for (uint32_t i = 0; i < (uint32_t)p_gi_probes.size(); i++) {
-			RendererSceneGIRD::GIProbeInstance *giprobe_inst = gi.gi_probe_instance_owner.getornull(p_gi_probes[i]);
-			if (giprobe_inst) {
-				giprobe_inst->render_index = i;
+		for (uint32_t i = 0; i < (uint32_t)p_voxel_gi_instances.size(); i++) {
+			RendererSceneGIRD::VoxelGIInstance *voxel_gi_inst = gi.voxel_gi_instance_owner.getornull(p_voxel_gi_instances[i]);
+			if (voxel_gi_inst) {
+				voxel_gi_inst->render_index = i;
 			}
 		}
 	}
@@ -3730,17 +3750,18 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 		current_cluster_builder = nullptr;
 	}
 
-	if (rb != nullptr && rb->sdfgi != nullptr) {
-		rb->sdfgi->update_cascades();
+	render_state.voxel_gi_count = 0;
 
-		rb->sdfgi->pre_process_gi(p_cam_transform, &render_data, this);
-	}
+	if (rb != nullptr) {
+		if (rb->sdfgi) {
+			rb->sdfgi->update_cascades();
+			rb->sdfgi->pre_process_gi(render_data.cam_transform, &render_data, this);
+			rb->sdfgi->update_light();
+		}
 
-	render_state.gi_probe_count = 0;
-	if (rb != nullptr && rb->sdfgi != nullptr) {
-		gi.setup_giprobes(render_data.render_buffers, render_data.cam_transform, *render_data.gi_probes, render_state.gi_probe_count, this);
-
-		rb->sdfgi->update_light();
+		if (p_voxel_gi_instances.size()) {
+			gi.setup_voxel_gi_instances(render_data.render_buffers, render_data.cam_transform, *render_data.voxel_gi_instances, render_state.voxel_gi_count, this);
+		}
 	}
 
 	render_state.depth_prepass_used = false;
@@ -3782,7 +3803,7 @@ void RendererSceneRenderRD::render_scene(RID p_render_buffers, const Transform3D
 		_render_buffers_post_process_and_tonemap(&render_data);
 		_render_buffers_debug_draw(p_render_buffers, p_shadow_atlas, p_occluder_debug_tex);
 		if (debug_draw == RS::VIEWPORT_DEBUG_DRAW_SDFGI && rb != nullptr && rb->sdfgi != nullptr) {
-			rb->sdfgi->debug_draw(p_cam_projection, p_cam_transform, rb->width, rb->height, rb->render_target, rb->texture);
+			rb->sdfgi->debug_draw(render_data.cam_projection, render_data.cam_transform, rb->width, rb->height, rb->render_target, rb->texture);
 		}
 	}
 }
@@ -4018,19 +4039,19 @@ bool RendererSceneRenderRD::free(RID p_rid) {
 		decal_instance_owner.free(p_rid);
 	} else if (lightmap_instance_owner.owns(p_rid)) {
 		lightmap_instance_owner.free(p_rid);
-	} else if (gi.gi_probe_instance_owner.owns(p_rid)) {
-		RendererSceneGIRD::GIProbeInstance *gi_probe = gi.gi_probe_instance_owner.getornull(p_rid);
-		if (gi_probe->texture.is_valid()) {
-			RD::get_singleton()->free(gi_probe->texture);
-			RD::get_singleton()->free(gi_probe->write_buffer);
+	} else if (gi.voxel_gi_instance_owner.owns(p_rid)) {
+		RendererSceneGIRD::VoxelGIInstance *voxel_gi = gi.voxel_gi_instance_owner.getornull(p_rid);
+		if (voxel_gi->texture.is_valid()) {
+			RD::get_singleton()->free(voxel_gi->texture);
+			RD::get_singleton()->free(voxel_gi->write_buffer);
 		}
 
-		for (int i = 0; i < gi_probe->dynamic_maps.size(); i++) {
-			RD::get_singleton()->free(gi_probe->dynamic_maps[i].texture);
-			RD::get_singleton()->free(gi_probe->dynamic_maps[i].depth);
+		for (int i = 0; i < voxel_gi->dynamic_maps.size(); i++) {
+			RD::get_singleton()->free(voxel_gi->dynamic_maps[i].texture);
+			RD::get_singleton()->free(voxel_gi->dynamic_maps[i].depth);
 		}
 
-		gi.gi_probe_instance_owner.free(p_rid);
+		gi.voxel_gi_instance_owner.free(p_rid);
 	} else if (sky.sky_owner.owns(p_rid)) {
 		sky.update_dirty_skys();
 		sky.free_sky(p_rid);

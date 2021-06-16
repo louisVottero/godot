@@ -120,13 +120,13 @@ void EditorSceneImporter::_bind_methods() {
 
 /////////////////////////////////
 void EditorScenePostImport::_bind_methods() {
-	BIND_VMETHOD(MethodInfo(Variant::OBJECT, "post_import", PropertyInfo(Variant::OBJECT, "scene")));
+	BIND_VMETHOD(MethodInfo(Variant::OBJECT, "_post_import", PropertyInfo(Variant::OBJECT, "scene")));
 	ClassDB::bind_method(D_METHOD("get_source_file"), &EditorScenePostImport::get_source_file);
 }
 
 Node *EditorScenePostImport::post_import(Node *p_scene) {
 	if (get_script_instance()) {
-		return get_script_instance()->call("post_import", p_scene);
+		return get_script_instance()->call("_post_import", p_scene);
 	}
 
 	return p_scene;
@@ -857,7 +857,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 
 						if (kt > (from + 0.01) && k > 0) {
 							if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
-								Quat q;
+								Quaternion q;
 								Vector3 p;
 								Vector3 s;
 								default_anim->transform_track_interpolate(j, from, &p, &q, &s);
@@ -871,7 +871,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 					}
 
 					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
-						Quat q;
+						Quaternion q;
 						Vector3 p;
 						Vector3 s;
 						default_anim->transform_track_get_key(j, k, &p, &q, &s);
@@ -885,7 +885,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 
 				if (dtrack != -1 && kt >= to) {
 					if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
-						Quat q;
+						Quaternion q;
 						Vector3 p;
 						Vector3 s;
 						default_anim->transform_track_interpolate(j, to, &p, &q, &s);
@@ -903,7 +903,7 @@ void ResourceImporterScene::_create_clips(AnimationPlayer *anim, const Array &p_
 				dtrack = new_anim->get_track_count() - 1;
 				new_anim->track_set_path(dtrack, default_anim->track_get_path(j));
 				if (default_anim->track_get_type(j) == Animation::TYPE_TRANSFORM3D) {
-					Quat q;
+					Quaternion q;
 					Vector3 p;
 					Vector3 s;
 					default_anim->transform_track_interpolate(j, from, &p, &q, &s);
@@ -1213,7 +1213,7 @@ void ResourceImporterScene::_generate_meshes(Node *p_node, const Dictionary &p_m
 					Node3D *n = src_mesh_node;
 					while (n) {
 						xf = n->get_transform() * xf;
-						n = n->get_parent_spatial();
+						n = n->get_parent_node_3d();
 					}
 
 					Vector<uint8_t> lightmap_cache;
@@ -1508,7 +1508,7 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 		if (!scene) {
 			EditorNode::add_io_error(
 					TTR("Error running post-import script:") + " " + post_import_script_path + "\n" +
-					TTR("Did you return a Node-derived object in the `post_import()` method?"));
+					TTR("Did you return a Node-derived object in the `_post_import()` method?"));
 			return err;
 		}
 	}

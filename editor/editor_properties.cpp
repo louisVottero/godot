@@ -994,9 +994,8 @@ void EditorPropertyEasing::_draw_easing() {
 
 	Size2 s = easing_draw->get_size();
 
-	const int points = 48;
+	const int point_count = 48;
 
-	float prev = 1.0;
 	const float exp = get_edited_object()->get(get_edited_property());
 
 	const Ref<Font> f = get_theme_font("font", "Label");
@@ -1009,24 +1008,20 @@ void EditorPropertyEasing::_draw_easing() {
 		line_color = get_theme_color("font_color", "Label") * Color(1, 1, 1, 0.9);
 	}
 
-	Vector<Point2> lines;
-	for (int i = 1; i <= points; i++) {
-		float ifl = i / float(points);
-		float iflp = (i - 1) / float(points);
+	Vector<Point2> points;
+	for (int i = 0; i <= point_count; i++) {
+		float ifl = i / float(point_count);
 
 		const float h = 1.0 - Math::ease(ifl, exp);
 
 		if (flip) {
 			ifl = 1.0 - ifl;
-			iflp = 1.0 - iflp;
 		}
 
-		lines.push_back(Point2(ifl * s.width, h * s.height));
-		lines.push_back(Point2(iflp * s.width, prev * s.height));
-		prev = h;
+		points.push_back(Point2(ifl * s.width, h * s.height));
 	}
 
-	easing_draw->draw_multiline(lines, line_color, 1.0);
+	easing_draw->draw_polyline(points, line_color, 1.0, true);
 	// Draw more decimals for small numbers since higher precision is usually required for fine adjustments.
 	int decimals;
 	if (Math::abs(exp) < 0.1 - CMP_EPSILON) {
@@ -1761,14 +1756,14 @@ EditorPropertyPlane::EditorPropertyPlane(bool p_force_wide) {
 	setting = false;
 }
 
-///////////////////// QUAT /////////////////////////
+///////////////////// QUATERNION /////////////////////////
 
-void EditorPropertyQuat::_value_changed(double val, const String &p_name) {
+void EditorPropertyQuaternion::_value_changed(double val, const String &p_name) {
 	if (setting) {
 		return;
 	}
 
-	Quat p;
+	Quaternion p;
 	p.x = spin[0]->get_value();
 	p.y = spin[1]->get_value();
 	p.z = spin[2]->get_value();
@@ -1776,8 +1771,8 @@ void EditorPropertyQuat::_value_changed(double val, const String &p_name) {
 	emit_changed(get_edited_property(), p, p_name);
 }
 
-void EditorPropertyQuat::update_property() {
-	Quat val = get_edited_object()->get(get_edited_property());
+void EditorPropertyQuaternion::update_property() {
+	Quaternion val = get_edited_object()->get(get_edited_property());
 	setting = true;
 	spin[0]->set_value(val.x);
 	spin[1]->set_value(val.y);
@@ -1786,7 +1781,7 @@ void EditorPropertyQuat::update_property() {
 	setting = false;
 }
 
-void EditorPropertyQuat::_notification(int p_what) {
+void EditorPropertyQuaternion::_notification(int p_what) {
 	if (p_what == NOTIFICATION_ENTER_TREE || p_what == NOTIFICATION_THEME_CHANGED) {
 		Color base = get_theme_color("accent_color", "Editor");
 		for (int i = 0; i < 3; i++) {
@@ -1797,10 +1792,10 @@ void EditorPropertyQuat::_notification(int p_what) {
 	}
 }
 
-void EditorPropertyQuat::_bind_methods() {
+void EditorPropertyQuaternion::_bind_methods() {
 }
 
-void EditorPropertyQuat::setup(double p_min, double p_max, double p_step, bool p_no_slider) {
+void EditorPropertyQuaternion::setup(double p_min, double p_max, double p_step, bool p_no_slider) {
 	for (int i = 0; i < 4; i++) {
 		spin[i]->set_min(p_min);
 		spin[i]->set_max(p_max);
@@ -1811,7 +1806,7 @@ void EditorPropertyQuat::setup(double p_min, double p_max, double p_step, bool p
 	}
 }
 
-EditorPropertyQuat::EditorPropertyQuat() {
+EditorPropertyQuaternion::EditorPropertyQuaternion() {
 	bool horizontal = EDITOR_GET("interface/inspector/horizontal_vector_types_editing");
 
 	BoxContainer *bc;
@@ -1832,7 +1827,7 @@ EditorPropertyQuat::EditorPropertyQuat() {
 		spin[i]->set_label(desc[i]);
 		bc->add_child(spin[i]);
 		add_focusable(spin[i]);
-		spin[i]->connect("value_changed", callable_mp(this, &EditorPropertyQuat::_value_changed), varray(desc[i]));
+		spin[i]->connect("value_changed", callable_mp(this, &EditorPropertyQuaternion::_value_changed), varray(desc[i]));
 		if (horizontal) {
 			spin[i]->set_h_size_flags(SIZE_EXPAND_FILL);
 		}
@@ -2261,7 +2256,7 @@ void EditorPropertyNodePath::_node_selected(const NodePath &p_path) {
 		base_node = get_edited_object()->call("get_root_path");
 	}
 
-	if (!base_node && Object::cast_to<Reference>(get_edited_object())) {
+	if (!base_node && Object::cast_to<RefCounted>(get_edited_object())) {
 		Node *to_node = get_node(p_path);
 		ERR_FAIL_COND(!to_node);
 		path = get_tree()->get_edited_scene_root()->get_path_to(to_node);
@@ -3056,8 +3051,8 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 			editor->setup(min, max, step, hide_slider);
 			add_property_editor(p_path, editor);
 		} break;
-		case Variant::QUAT: {
-			EditorPropertyQuat *editor = memnew(EditorPropertyQuat);
+		case Variant::QUATERNION: {
+			EditorPropertyQuaternion *editor = memnew(EditorPropertyQuaternion);
 			double min = -65535, max = 65535, step = default_float_step;
 			bool hide_slider = true;
 

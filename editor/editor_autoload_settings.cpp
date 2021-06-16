@@ -749,9 +749,9 @@ void EditorAutoloadSettings::autoload_remove(const String &p_name) {
 void EditorAutoloadSettings::_bind_methods() {
 	ClassDB::bind_method("_autoload_open", &EditorAutoloadSettings::_autoload_open);
 
-	ClassDB::bind_method("get_drag_data_fw", &EditorAutoloadSettings::get_drag_data_fw);
-	ClassDB::bind_method("can_drop_data_fw", &EditorAutoloadSettings::can_drop_data_fw);
-	ClassDB::bind_method("drop_data_fw", &EditorAutoloadSettings::drop_data_fw);
+	ClassDB::bind_method("_get_drag_data_fw", &EditorAutoloadSettings::get_drag_data_fw);
+	ClassDB::bind_method("_can_drop_data_fw", &EditorAutoloadSettings::can_drop_data_fw);
+	ClassDB::bind_method("_drop_data_fw", &EditorAutoloadSettings::drop_data_fw);
 
 	ClassDB::bind_method("update_autoload", &EditorAutoloadSettings::update_autoload);
 	ClassDB::bind_method("autoload_add", &EditorAutoloadSettings::autoload_add);
@@ -882,15 +882,16 @@ EditorAutoloadSettings::EditorAutoloadSettings() {
 
 	tree->set_column_title(0, TTR("Name"));
 	tree->set_column_expand(0, true);
-	tree->set_column_min_width(0, 100);
+	tree->set_column_min_width(0, 100 * EDSCALE);
 
 	tree->set_column_title(1, TTR("Path"));
 	tree->set_column_expand(1, true);
-	tree->set_column_min_width(1, 100);
+	tree->set_column_min_width(1, 100 * EDSCALE);
 
-	tree->set_column_title(2, TTR("Singleton"));
+	tree->set_column_title(2, TTR("Global Variable"));
 	tree->set_column_expand(2, false);
-	tree->set_column_min_width(2, 80 * EDSCALE);
+	// Reserve enough space for translations of "Global Variable" which may be longer.
+	tree->set_column_min_width(2, 150 * EDSCALE);
 
 	tree->set_column_expand(3, false);
 	tree->set_column_min_width(3, 120 * EDSCALE);

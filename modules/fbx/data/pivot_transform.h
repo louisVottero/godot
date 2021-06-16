@@ -32,7 +32,7 @@
 #define PIVOT_TRANSFORM_H
 
 #include "core/math/transform_3d.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 
 #include "model_abstraction.h"
 
@@ -55,13 +55,13 @@ enum TransformationComp {
 	TransformationComp_MAXIMUM
 };
 // Abstract away pivot data so its simpler to handle
-struct PivotTransform : Reference, ModelAbstraction {
+struct PivotTransform : RefCounted, ModelAbstraction {
 	// at the end we want to keep geometric_ everything, post and pre rotation
 	// these are used during animation data processing / keyframe ingestion the rest can be simplified down / out.
-	Quat pre_rotation = Quat();
-	Quat post_rotation = Quat();
-	Quat rotation = Quat();
-	Quat geometric_rotation = Quat();
+	Quaternion pre_rotation = Quaternion();
+	Quaternion post_rotation = Quaternion();
+	Quaternion rotation = Quaternion();
+	Quaternion geometric_rotation = Quaternion();
 	Vector3 rotation_pivot = Vector3();
 	Vector3 rotation_offset = Vector3();
 	Vector3 scaling_offset = Vector3(1.0, 1.0, 1.0);
@@ -87,8 +87,8 @@ struct PivotTransform : Reference, ModelAbstraction {
 
 	Transform3D ComputeGlobalTransform(Transform3D t) const;
 	Transform3D ComputeLocalTransform(Transform3D t) const;
-	Transform3D ComputeGlobalTransform(Vector3 p_translation, Quat p_rotation, Vector3 p_scaling) const;
-	Transform3D ComputeLocalTransform(Vector3 p_translation, Quat p_rotation, Vector3 p_scaling) const;
+	Transform3D ComputeGlobalTransform(Vector3 p_translation, Quaternion p_rotation, Vector3 p_scaling) const;
+	Transform3D ComputeLocalTransform(Vector3 p_translation, Quaternion p_rotation, Vector3 p_scaling) const;
 
 	/* Extract into xforms and calculate once */
 	void ComputePivotTransform();

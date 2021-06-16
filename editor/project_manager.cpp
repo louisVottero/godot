@@ -31,11 +31,11 @@
 #include "project_manager.h"
 
 #include "core/io/config_file.h"
+#include "core/io/dir_access.h"
+#include "core/io/file_access.h"
 #include "core/io/resource_saver.h"
 #include "core/io/stream_peer_ssl.h"
 #include "core/io/zip_io.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
 #include "core/string/translation.h"
@@ -2408,15 +2408,17 @@ ProjectManager::ProjectManager() {
 				editor_set_scale(DisplayServer::get_singleton()->screen_get_max_scale());
 #else
 				const int screen = DisplayServer::get_singleton()->window_get_current_screen();
+				// Use the smallest dimension to use a correct display scale on portait displays.
+				const int smallest_dimension = MIN(DisplayServer::get_singleton()->screen_get_size(screen).x, DisplayServer::get_singleton()->screen_get_size(screen).y);
 				float scale;
-				if (DisplayServer::get_singleton()->screen_get_dpi(screen) >= 192 && DisplayServer::get_singleton()->screen_get_size(screen).y >= 1400) {
+				if (DisplayServer::get_singleton()->screen_get_dpi(screen) >= 192 && smallest_dimension >= 1400) {
 					// hiDPI display.
 					scale = 2.0;
-				} else if (DisplayServer::get_singleton()->screen_get_size(screen).y >= 1700) {
+				} else if (smallest_dimension >= 1700) {
 					// Likely a hiDPI display, but we aren't certain due to the returned DPI.
 					// Use an intermediate scale to handle this situation.
 					scale = 1.5;
-				} else if (DisplayServer::get_singleton()->screen_get_size(screen).y <= 800) {
+				} else if (smallest_dimension <= 800) {
 					// Small loDPI display. Use a smaller display scale so that editor elements fit more easily.
 					// Icons won't look great, but this is better than having editor elements overflow from its window.
 					scale = 0.75;
@@ -2621,7 +2623,7 @@ ProjectManager::ProjectManager() {
 		version_btn = memnew(LinkButton);
 		String hash = String(VERSION_HASH);
 		if (hash.length() != 0) {
-			hash = "." + hash.left(9);
+			hash = " " + vformat("[%s]", hash.left(9));
 		}
 		version_btn->set_text("v" VERSION_FULL_BUILD + hash);
 		// Fade the version label to be less prominent, but still readable.

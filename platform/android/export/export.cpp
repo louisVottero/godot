@@ -31,11 +31,11 @@
 #include "export.h"
 
 #include "core/config/project_settings.h"
+#include "core/io/dir_access.h"
+#include "core/io/file_access.h"
 #include "core/io/image_loader.h"
 #include "core/io/marshalls.h"
 #include "core/io/zip_io.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
 #include "core/os/os.h"
 #include "core/templates/safe_refcount.h"
 #include "core/version.h"
@@ -609,9 +609,9 @@ class EditorExportPlatformAndroid : public EditorExportPlatform {
 		zip_fileinfo zipfi;
 		zipfi.tmz_date.tm_hour = time.hour;
 		zipfi.tmz_date.tm_mday = date.day;
-		zipfi.tmz_date.tm_min = time.min;
+		zipfi.tmz_date.tm_min = time.minute;
 		zipfi.tmz_date.tm_mon = date.month - 1; // tm_mon is zero indexed
-		zipfi.tmz_date.tm_sec = time.sec;
+		zipfi.tmz_date.tm_sec = time.second;
 		zipfi.tmz_date.tm_year = date.year;
 		zipfi.dosDate = 0;
 		zipfi.external_fa = 0;

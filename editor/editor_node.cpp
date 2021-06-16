@@ -34,15 +34,16 @@
 #include "core/core_bind.h"
 #include "core/input/input.h"
 #include "core/io/config_file.h"
+#include "core/io/file_access.h"
 #include "core/io/image_loader.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
 #include "core/io/stream_peer_ssl.h"
 #include "core/object/class_db.h"
 #include "core/object/message_queue.h"
-#include "core/os/file_access.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
+#include "core/os/time.h"
 #include "core/string/print_string.h"
 #include "core/string/translation.h"
 #include "core/version.h"
@@ -119,7 +120,6 @@
 #include "editor/plugins/animation_tree_editor_plugin.h"
 #include "editor/plugins/asset_library_editor_plugin.h"
 #include "editor/plugins/audio_stream_editor_plugin.h"
-#include "editor/plugins/baked_lightmap_editor_plugin.h"
 #include "editor/plugins/camera_3d_editor_plugin.h"
 #include "editor/plugins/canvas_item_editor_plugin.h"
 #include "editor/plugins/collision_polygon_2d_editor_plugin.h"
@@ -132,13 +132,13 @@
 #include "editor/plugins/editor_debugger_plugin.h"
 #include "editor/plugins/editor_preview_plugins.h"
 #include "editor/plugins/font_editor_plugin.h"
-#include "editor/plugins/gi_probe_editor_plugin.h"
 #include "editor/plugins/gpu_particles_2d_editor_plugin.h"
 #include "editor/plugins/gpu_particles_3d_editor_plugin.h"
 #include "editor/plugins/gpu_particles_collision_sdf_editor_plugin.h"
 #include "editor/plugins/gradient_editor_plugin.h"
 #include "editor/plugins/item_list_editor_plugin.h"
 #include "editor/plugins/light_occluder_2d_editor_plugin.h"
+#include "editor/plugins/lightmap_gi_editor_plugin.h"
 #include "editor/plugins/line_2d_editor_plugin.h"
 #include "editor/plugins/material_editor_plugin.h"
 #include "editor/plugins/mesh_editor_plugin.h"
@@ -175,6 +175,7 @@
 #include "editor/plugins/tiles/tiles_editor_plugin.h"
 #include "editor/plugins/version_control_editor_plugin.h"
 #include "editor/plugins/visual_shader_editor_plugin.h"
+#include "editor/plugins/voxel_gi_editor_plugin.h"
 #include "editor/progress_dialog.h"
 #include "editor/project_export.h"
 #include "editor/project_settings_editor.h"
@@ -484,8 +485,8 @@ void EditorNode::_update_from_settings() {
 	RS::get_singleton()->environment_set_sdfgi_frames_to_converge(frames_to_converge);
 	RS::EnvironmentSDFGIRayCount ray_count = RS::EnvironmentSDFGIRayCount(int(GLOBAL_GET("rendering/global_illumination/sdfgi/probe_ray_count")));
 	RS::get_singleton()->environment_set_sdfgi_ray_count(ray_count);
-	RS::GIProbeQuality gi_probe_quality = RS::GIProbeQuality(int(GLOBAL_GET("rendering/global_illumination/gi_probes/quality")));
-	RS::get_singleton()->gi_probe_set_quality(gi_probe_quality);
+	RS::VoxelGIQuality voxel_gi_quality = RS::VoxelGIQuality(int(GLOBAL_GET("rendering/global_illumination/voxel_gi/quality")));
+	RS::get_singleton()->voxel_gi_set_quality(voxel_gi_quality);
 	RS::get_singleton()->environment_set_volumetric_fog_volume_size(GLOBAL_GET("rendering/environment/volumetric_fog/volume_size"), GLOBAL_GET("rendering/environment/volumetric_fog/volume_depth"));
 	RS::get_singleton()->environment_set_volumetric_fog_filter_active(bool(GLOBAL_GET("rendering/environment/volumetric_fog/use_filter")));
 	RS::get_singleton()->canvas_set_shadow_texture_size(GLOBAL_GET("rendering/2d/shadow_atlas/size"));
@@ -770,7 +771,7 @@ void EditorNode::_resources_changed(const Vector<String> &p_resources) {
 		if (!res->editor_can_reload_from_file()) {
 			continue;
 		}
-		if (!res->get_path().is_resource_file() && !res->get_path().is_abs_path()) {
+		if (!res->get_path().is_resource_file() && !res->get_path().is_absolute_path()) {
 			continue;
 		}
 		if (!FileAccess::exists(res->get_path())) {
@@ -1587,6 +1588,8 @@ void EditorNode::_save_scene(String p_file, int idx) {
 		return;
 	}
 
+	scene->propagate_notification(NOTIFICATION_EDITOR_PRE_SAVE);
+
 	editor_data.apply_changes_in_editors();
 	List<Ref<AnimatedValuesBackup>> anim_backups;
 	_reset_animation_players(scene, &anim_backups);
@@ -1658,6 +1661,8 @@ void EditorNode::_save_scene(String p_file, int idx) {
 	} else {
 		_dialog_display_save_error(p_file, err);
 	}
+
+	scene->propagate_notification(NOTIFICATION_EDITOR_POST_SAVE);
 }
 
 void EditorNode::save_all_scenes() {
@@ -2157,9 +2162,14 @@ void EditorNode::_edit_current() {
 	if (!inspector_only) {
 		EditorPlugin *main_plugin = editor_data.get_editor(current_obj);
 
-		for (int i = 0; i < editor_table.size(); i++) {
-			if (editor_table[i] == main_plugin && !main_editor_buttons[i]->is_visible()) {
-				main_plugin = nullptr; //if button is not visible, then no plugin active
+		int plugin_index = 0;
+		for (; plugin_index < editor_table.size(); plugin_index++) {
+			if (editor_table[plugin_index] == main_plugin) {
+				if (!main_editor_buttons[plugin_index]->is_visible()) {
+					main_plugin = nullptr; //if button is not visible, then no plugin active
+				}
+
+				break;
 			}
 		}
 
@@ -2173,26 +2183,8 @@ void EditorNode::_edit_current() {
 
 			else if (main_plugin != editor_plugin_screen && (!ScriptEditor::get_singleton() || !ScriptEditor::get_singleton()->is_visible_in_tree() || ScriptEditor::get_singleton()->can_take_away_focus())) {
 				// update screen main_plugin
-
-				if (!changing_scene) {
-					if (editor_plugin_screen) {
-						editor_plugin_screen->make_visible(false);
-					}
-					editor_plugin_screen = main_plugin;
-					editor_plugin_screen->edit(current_obj);
-
-					editor_plugin_screen->make_visible(true);
-
-					int plugin_count = editor_data.get_editor_plugin_count();
-					for (int i = 0; i < plugin_count; i++) {
-						editor_data.get_editor_plugin(i)->notify_main_screen_changed(editor_plugin_screen->get_name());
-					}
-
-					for (int i = 0; i < editor_table.size(); i++) {
-						main_editor_buttons[i]->set_pressed(editor_table[i] == main_plugin);
-					}
-				}
-
+				_editor_select(plugin_index);
+				main_plugin->edit(current_obj);
 			} else {
 				editor_plugin_screen->edit(current_obj);
 			}
@@ -2701,6 +2693,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 		case FILE_EXPLORE_ANDROID_BUILD_TEMPLATES: {
 			OS::get_singleton()->shell_open("file://" + ProjectSettings::get_singleton()->get_resource_path().plus_file("android"));
 		} break;
+		case RUN_RELOAD_CURRENT_PROJECT: {
+			restart_editor();
+		} break;
 		case FILE_QUIT:
 		case RUN_PROJECT_MANAGER: {
 			if (!p_confirmed) {
@@ -2832,7 +2827,7 @@ void EditorNode::_request_screenshot() {
 }
 
 void EditorNode::_screenshot(bool p_use_utc) {
-	String name = "editor_screenshot_" + OS::get_singleton()->get_iso_date_time(p_use_utc).replace(":", "") + ".png";
+	String name = "editor_screenshot_" + Time::get_singleton()->get_datetime_string_from_system(p_use_utc).replace(":", "") + ".png";
 	NodePath path = String("user://") + name;
 	_save_screenshot(path);
 	if (EditorSettings::get_singleton()->get("interface/editor/automatically_open_screenshots")) {
@@ -3734,10 +3729,6 @@ bool EditorNode::is_scene_in_use(const String &p_path) {
 		return _find_scene_in_use(es, p_path);
 	}
 	return false;
-}
-
-void EditorNode::register_editor_paths(bool p_for_project_manager) {
-	EditorPaths::create(p_for_project_manager);
 }
 
 void EditorNode::register_editor_types() {
@@ -5706,15 +5697,17 @@ EditorNode::EditorNode() {
 				editor_set_scale(DisplayServer::get_singleton()->screen_get_max_scale());
 #else
 				const int screen = DisplayServer::get_singleton()->window_get_current_screen();
+				// Use the smallest dimension to use a correct display scale on portait displays.
+				const int smallest_dimension = MIN(DisplayServer::get_singleton()->screen_get_size(screen).x, DisplayServer::get_singleton()->screen_get_size(screen).y);
 				float scale;
-				if (DisplayServer::get_singleton()->screen_get_dpi(screen) >= 192 && DisplayServer::get_singleton()->screen_get_size(screen).y >= 1400) {
+				if (DisplayServer::get_singleton()->screen_get_dpi(screen) >= 192 && smallest_dimension >= 1400) {
 					// hiDPI display.
 					scale = 2.0;
-				} else if (DisplayServer::get_singleton()->screen_get_size(screen).y >= 1700) {
+				} else if (smallest_dimension >= 1700) {
 					// Likely a hiDPI display, but we aren't certain due to the returned DPI.
 					// Use an intermediate scale to handle this situation.
 					scale = 1.5;
-				} else if (DisplayServer::get_singleton()->screen_get_size(screen).y <= 800) {
+				} else if (smallest_dimension <= 800) {
 					// Small loDPI display. Use a smaller display scale so that editor elements fit more easily.
 					// Icons won't look great, but this is better than having editor elements overflow from its window.
 					scale = 0.75;
@@ -6300,6 +6293,7 @@ EditorNode::EditorNode() {
 	tool_menu->add_item(TTR("Orphan Resource Explorer..."), TOOLS_ORPHAN_RESOURCES);
 
 	p->add_separator();
+	p->add_item(TTR("Reload Current Project"), RUN_RELOAD_CURRENT_PROJECT);
 #ifdef OSX_ENABLED
 	p->add_shortcut(ED_SHORTCUT("editor/quit_to_project_list", TTR("Quit to Project List"), KEY_MASK_SHIFT + KEY_MASK_ALT + KEY_Q), RUN_PROJECT_MANAGER, true);
 #else
@@ -6628,7 +6622,7 @@ EditorNode::EditorNode() {
 	version_btn->set_text(VERSION_FULL_CONFIG);
 	String hash = String(VERSION_HASH);
 	if (hash.length() != 0) {
-		hash = "." + hash.left(9);
+		hash = " " + vformat("[%s]", hash.left(9));
 	}
 	// Set the text to copy in metadata as it slightly differs from the button's text.
 	version_btn->set_meta(META_TEXT_TO_COPY, "v" VERSION_FULL_BUILD + hash);
@@ -6818,8 +6812,8 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(TilesEditorPlugin(this)));
 	add_editor_plugin(memnew(SpriteFramesEditorPlugin(this)));
 	add_editor_plugin(memnew(TextureRegionEditorPlugin(this)));
-	add_editor_plugin(memnew(GIProbeEditorPlugin(this)));
-	add_editor_plugin(memnew(BakedLightmapEditorPlugin(this)));
+	add_editor_plugin(memnew(VoxelGIEditorPlugin(this)));
+	add_editor_plugin(memnew(LightmapGIEditorPlugin(this)));
 	add_editor_plugin(memnew(OccluderInstance3DEditorPlugin(this)));
 	add_editor_plugin(memnew(Path2DEditorPlugin(this)));
 	add_editor_plugin(memnew(Path3DEditorPlugin(this)));

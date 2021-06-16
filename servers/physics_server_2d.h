@@ -33,7 +33,7 @@
 
 #include "core/io/resource.h"
 #include "core/object/class_db.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 
 class PhysicsDirectSpaceState2D;
 
@@ -95,8 +95,8 @@ public:
 class PhysicsShapeQueryResult2D;
 
 //used for script
-class PhysicsShapeQueryParameters2D : public Reference {
-	GDCLASS(PhysicsShapeQueryParameters2D, Reference);
+class PhysicsShapeQueryParameters2D : public RefCounted {
+	GDCLASS(PhysicsShapeQueryParameters2D, RefCounted);
 	friend class PhysicsDirectSpaceState2D;
 
 	RES shape_ref;
@@ -164,8 +164,8 @@ public:
 		Vector2 normal;
 		RID rid;
 		ObjectID collider_id;
-		Object *collider;
-		int shape;
+		Object *collider = nullptr;
+		int shape = 0;
 		Variant metadata;
 	};
 
@@ -174,8 +174,8 @@ public:
 	struct ShapeResult {
 		RID rid;
 		ObjectID collider_id;
-		Object *collider;
-		int shape;
+		Object *collider = nullptr;
+		int shape = 0;
 		Variant metadata;
 	};
 
@@ -193,7 +193,7 @@ public:
 		Vector2 normal;
 		RID rid;
 		ObjectID collider_id;
-		int shape;
+		int shape = 0;
 		Vector2 linear_velocity; //velocity at contact point
 		Variant metadata;
 	};
@@ -203,8 +203,8 @@ public:
 	PhysicsDirectSpaceState2D();
 };
 
-class PhysicsShapeQueryResult2D : public Reference {
-	GDCLASS(PhysicsShapeQueryResult2D, Reference);
+class PhysicsShapeQueryResult2D : public RefCounted {
+	GDCLASS(PhysicsShapeQueryResult2D, RefCounted);
 
 	Vector<PhysicsDirectSpaceState2D::ShapeResult> result;
 
@@ -597,8 +597,8 @@ public:
 	~PhysicsServer2D();
 };
 
-class PhysicsTestMotionResult2D : public Reference {
-	GDCLASS(PhysicsTestMotionResult2D, Reference);
+class PhysicsTestMotionResult2D : public RefCounted {
+	GDCLASS(PhysicsTestMotionResult2D, RefCounted);
 
 	PhysicsServer2D::MotionResult result;
 	friend class PhysicsServer2D;
